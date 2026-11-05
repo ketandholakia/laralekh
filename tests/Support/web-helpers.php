@@ -139,3 +139,8 @@ function receiptDraft(\App\Domain\Masters\Models\Party $party, string $amount, a
         'payment_reference' => 'UTR-1', 'narration' => 'On account', 'amount' => $amount,
     ], $overrides));
 }
+
+function receiptSession(string $role = 'accountant', array $permissions = [...ACCOUNTANT_PERMISSIONS, 'receipts.view', 'receipts.create', 'receipts.post', 'receipts.allocate', 'reversals.post']): array
+{
+    return webSession($role, $permissions);
+}

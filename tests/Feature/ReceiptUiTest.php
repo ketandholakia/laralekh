@@ -9,11 +9,6 @@ use App\Livewire\Sales\{CustomerList, CustomerOutstanding, CustomerStatement, Re
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
-function receiptSession(string $role = 'accountant', array $permissions = [...ACCOUNTANT_PERMISSIONS, 'receipts.view', 'receipts.create', 'receipts.post', 'receipts.allocate', 'reversals.post']): array
-{
-    return webSession($role, $permissions);
-}
-
 it('lists receipts with filters and hides other companies', function () {
     [$user, $company] = receiptSession();
     $this->actingAs($user);
