@@ -1,0 +1,249 @@
+<?php
+use App\Domain\Accounting\Models\{Ledger, LedgerGroup, NumberSequence, Voucher};
+use App\Domain\Gst\Models\TaxRate;
+use App\Domain\Inventory\Models\Item;
+use App\Domain\Masters\Models\{Company, FinancialYear, Party};
+use App\Domain\Sales\Actions\{PostInvoice, SaveInvoiceDraft};
+use App\Domain\Sales\Models\{Invoice, InvoiceItem};
+use App\Domain\Shared\Models\{Activity, Role};
+use App\Domain\Shared\Tenancy\{CompanySession, TenantContext};
+use App\Livewire\Sales\{InvoiceEditor, InvoiceList, InvoiceView};
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Livewire\Livewire;
+use Spatie\Permission\Models\Permission;
+use Database\Seeders\{ChartOfAccountsSeeder, StateSeeder};
+
+// A logged-in user whose session company and financial year are selected, with
+// the seeded chart of accounts available inside the tenant scope.
+function webSession(string $role = 'accountant', array $permissions = ACCOUNTANT_PERMISSIONS): array
+{
+    (new StateSeeder)->run();
+    $user = webUser();
+    $company = companyFixture();
+    addMembership($user, $company);
+    assignCompanyRole($user, $company, $role, $permissions);
+    app(TenantContext::class)->run($company->id, fn (): mixed => (new ChartOfAccountsSeeder)->run());
+    selectSessionCompany($user, $company, salesYear($company));
+    return [$user, $company];
+}
+
+function inTenantContext(Company $company, Closure $callback): mixed
+{
+    return app(TenantContext::class)->run($company->id, $callback);
+}
+
+function selectSessionCompany(User $user, Company $company, FinancialYear $year): void
+{
+    app(CompanySession::class)->select($user, $company->id, $year->id);
+}
+
+function salesYear(Company $company): FinancialYear
+{
+    return app(TenantContext::class)->run($company->id, fn (): FinancialYear => FinancialYear::firstOrCreate(
+        ['name' => '2026-27'], ['starts_on' => '2026-04-01', 'ends_on' => '2027-03-31'],
+    ));
+}
+
+function verifiedRate(?string $code = 'GST18', string $rate = '18'): TaxRate
+{
+    return TaxRate::firstOrCreate(['code' => $code], [
+        'rate' => $rate, 'effective_from' => '2026-04-01', 'is_verified' => true,
+        'legal_reference' => 'Test fixture only',
+    ]);
+}
+
+function masters(): array
+{
+    $ledger = Ledger::firstOrCreate(['code' => 'CUSTOMER'], [
+        'name' => 'Customer', 'ledger_group_id' => LedgerGroup::where('code', 'RECEIVABLES')->sole()->id]);
+    $party = Party::firstOrCreate(['ledger_id' => $ledger->id], ['name' => 'Customer', 'state_code' => '27']);
+    $item = Item::firstOrCreate(['sku' => 'WIDGET'], ['name' => 'Widget', 'hsn_sac' => '8471']);
+    $sales = Ledger::where('code', 'SALES')->sole();
+    return [$party, $item, $sales];
+}
+
+function draftPayload(int $partyId, array $overrides = []): array
+{
+    return [
+        'party_id' => $partyId, 'date' => '2026-11-05', 'due_date' => null, 'series' => 'SI',
+        'supply_type' => 'domestic', 'place_of_supply' => '27', 'zero_rated_mode' => 'none',
+        'zero_rated_eligible' => false, 'sez_authorized' => false, 'reverse_charge' => false,
+    ] + $overrides;
+}
+
+function linePayload(int $itemId, int $ledgerId, ?int $rateId, array $overrides = []): array
+{
+    return [
+        'item_id' => $itemId, 'sales_ledger_id' => $ledgerId, 'tax_rate_id' => $rateId,
+        'description' => 'Widget', 'hsn_sac' => '8471', 'quantity' => '1',
+        'unit_price' => '1000.00', 'discount' => '0.00', 'tax_category' => 'taxable',
+    ] + $overrides;
+}
+
+it('lists invoices only for the session company', function () {
+    [$user, $company] = webSession();
+    $other = companyFixture('Other');
+    $this->actingAs($user);
+    inTenantContext($company, fn (): bool => Invoice::query()->get()->isEmpty());
+    // Create an invoice in the other company; it must never leak into this session.
+    inTenantContext($other, function (): void {
+        (new ChartOfAccountsSeeder)->run();
+        FinancialYear::firstOrCreate(['name' => '2026-27'], ['starts_on' => '2026-04-01', 'ends_on' => '2027-03-31']);
+        [$party, $item, $sales] = masters();
+        Invoice::create(['financial_year_id' => FinancialYear::sole()->id, 'party_id' => $party->id,
+            'date' => '2026-11-05', 'place_of_supply' => '27'])
+            ->items()->create(['financial_year_id' => FinancialYear::sole()->id, 'item_id' => $item->id,
+                'sales_ledger_id' => $sales->id, 'position' => 1, 'description' => 'Secret item',
+                'hsn_sac' => '8471', 'quantity' => '1', 'unit_price' => '999.00', 'discount' => '0.00']);
+    });
+    inTenantContext($company, function (): void {
+        Livewire::test(InvoiceList::class)->assertSee('No invoices');
+        expect(Invoice::count())->toBe(0);
+    });
+});
+
+it('saves a draft through the editor without allocating a number', function () {
+    [$user, $company] = webSession();
+    $this->actingAs($user);
+    inTenantContext($company, function (): void {
+        [$party, $item, $sales] = masters();
+        $rate = verifiedRate();
+        Livewire::test(InvoiceEditor::class)
+            ->set('partyQuery', 'Customer')->call('selectParty', $party->id)
+            ->set('date', '2026-11-05')->set('placeOfSupply', '27')
+            ->call('addItem', $item->id)
+            ->set('lines.0.quantity', '2')
+            ->set('lines.0.tax_rate_id', $rate->id)
+            ->set('lines.0.sales_ledger_id', $sales->id)
+            ->call('save');
+        $invoice = Invoice::sole();
+        expect($invoice->status)->toBe('draft')->and($invoice->number)->toBeNull()
+            ->and(NumberSequence::count())->toBe(0)
+            ->and(InvoiceItem::sole()->quantity)->toBe('2.000')
+            ->and(Voucher::count())->toBe(0);
+    });
+});
+
+it('rejects draft lines whose rate is not verified and effective on the invoice date', function () {
+    [$user, $company] = webSession();
+    $this->actingAs($user);
+    inTenantContext($company, function (): void {
+        [$party, $item, $sales] = masters();
+        $rate = verifiedRate('FUTURE18');
+        $rate->update(['effective_from' => '2027-01-01']);
+        Livewire::test(InvoiceEditor::class)
+            ->set('partyQuery', 'Customer')->call('selectParty', $party->id)
+            ->set('date', '2026-11-05')->set('placeOfSupply', '27')
+            ->call('addItem', $item->id)
+            ->set('lines.0.tax_rate_id', $rate->id)
+            ->set('lines.0.sales_ledger_id', $sales->id)
+            ->call('save')
+            ->assertHasErrors('lines');
+        expect(Invoice::count())->toBe(0);
+    });
+});
+
+it('previews live totals through the same calculator the poster uses', function () {
+    [$user, $company] = webSession();
+    $this->actingAs($user);
+    inTenantContext($company, function (): void {
+        [$party, $item, $sales] = masters();
+        $rate = verifiedRate();
+        Livewire::test(InvoiceEditor::class)
+            ->set('date', '2026-11-05')->set('placeOfSupply', '24') // inter-state
+            ->call('addItem', $item->id)
+            ->set('lines.0.quantity', '3')
+            ->set('lines.0.unit_price', '100.05')
+            ->set('lines.0.tax_rate_id', $rate->id)
+            ->set('lines.0.sales_ledger_id', $sales->id)
+            ->tap(function ($component): void {
+                expect($component->preview['totals']['taxable'])->toBe('300.15')
+                    ->and($component->preview['totals']['igst'])->toBe('54.03')
+                    ->and($component->preview['totals']['total'])->toBe('354.18');
+            });
+    });
+});
+
+it('posts through the editor once; duplicate submissions fail and use no extra number', function () {
+    [$user, $company] = webSession();
+    $this->actingAs($user);
+    inTenantContext($company, function (): void {
+        [$party, $item, $sales] = masters();
+        $rate = verifiedRate();
+        $component = Livewire::test(InvoiceEditor::class)
+            ->set('partyQuery', 'Customer')->call('selectParty', $party->id)
+            ->set('date', '2026-11-05')->set('placeOfSupply', '27')
+            ->call('addItem', $item->id)
+            ->set('lines.0.unit_price', '1000.00')
+            ->set('lines.0.tax_rate_id', $rate->id)
+            ->set('lines.0.sales_ledger_id', $sales->id)
+            ->call('post');
+        $invoice = Invoice::sole();
+        expect($invoice->status)->toBe('posted')->and($invoice->number)->toBe(1)
+            ->and(Voucher::count())->toBe(1)->and(NumberSequence::sole()->last_number)->toBe(1)
+            ->and(Activity::count())->toBe(1);
+        // A second submission of the same invoice fails inside the posting
+        // transaction and consumes no number.
+        expect(fn () => app(PostInvoice::class)->handle($invoice->id))->toThrow(DomainException::class);
+        expect(NumberSequence::sole()->last_number)->toBe(1)->and(Voucher::count())->toBe(1);
+    });
+});
+
+it('treats posted invoices as read-only in the editor and view', function () {
+    [$user, $company] = webSession();
+    $this->actingAs($user);
+    $invoice = inTenantContext($company, function (): Invoice {
+        [$party, $item, $sales] = masters();
+        $rate = verifiedRate();
+        $draft = app(SaveInvoiceDraft::class)->handle(null, draftPayload($party->id), [linePayload($item->id, $sales->id, $rate->id)]);
+        return app(PostInvoice::class)->handle($draft->id)->fresh(['items', 'party', 'voucher']);
+    });
+    inTenantContext($company, function () use ($invoice): void {
+        Livewire::test(InvoiceView::class, ['invoice' => $invoice])
+            ->assertOk()->assertSee('Invoice SI/1');
+        // Reopening the posted invoice in the editor redirects to the read-only view.
+        Livewire::test(InvoiceEditor::class, ['invoice' => $invoice]);
+        // And the draft action refuses to overwrite it.
+        [$party, $item, $sales] = masters();
+        $rate = verifiedRate();
+        expect(fn () => app(SaveInvoiceDraft::class)->handle(
+            $invoice->id, draftPayload($party->id, ['date' => '2026-11-06']),
+            [linePayload($item->id, $sales->id, $rate->id)],
+        ))->toThrow(ValidationException::class);
+        expect($invoice->fresh()->date->format('Y-m-d'))->toBe('2026-11-05');
+    });
+});
+
+it('refuses posting for users without the invoices.post permission', function () {
+    [$user, $company] = webSession('clerk', CLERK_PERMISSIONS);
+    $this->actingAs($user);
+    $draft = inTenantContext($company, function (): Invoice {
+        [$party, $item, $sales] = masters();
+        $rate = verifiedRate();
+        return app(SaveInvoiceDraft::class)->handle(null, draftPayload($party->id), [linePayload($item->id, $sales->id, $rate->id)]);
+    });
+    inTenantContext($company, function () use ($user, $draft): void {
+        expect($user->can('invoices.create'))->toBeTrue()->and($user->can('invoices.post'))->toBeFalse();
+        Livewire::test(InvoiceEditor::class, ['invoice' => $draft])
+            ->call('post')
+            ->assertHasErrors('lines');
+        expect(Invoice::sole()->status)->toBe('draft')->and(Voucher::count())->toBe(0);
+    });
+});
+
+it('never accepts a foreign company id through draft input', function () {
+    [$user, $company] = webSession();
+    $other = companyFixture('Other');
+    $this->actingAs($user);
+    inTenantContext($company, function () use ($other, $company): void {
+        [$party, $item, $sales] = masters();
+        $rate = verifiedRate();
+        $invoice = app(SaveInvoiceDraft::class)->handle(
+            null, draftPayload($party->id) + ['company_id' => $other->id],
+            [linePayload($item->id, $sales->id, $rate->id)],
+        );
+        expect($invoice->company_id)->toBe($company->id);
+    });
+});

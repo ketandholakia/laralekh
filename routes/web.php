@@ -17,5 +17,18 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
     Route::get('/companies', [CompanySelectionController::class, 'index'])->name('company.select');
     Route::post('/companies', [CompanySelectionController::class, 'store'])->name('company.store');
-    Route::get('/', fn () => redirect()->route('company.select'));
+
+    Route::middleware('company.context')->group(function (): void {
+        Route::get('/', fn () => redirect()->route('invoices.index'));
+
+        Route::middleware('can:invoices.view')->group(function (): void {
+            Route::get('/invoices', \App\Livewire\Sales\InvoiceList::class)->name('invoices.index');
+            Route::get('/invoices/create', \App\Livewire\Sales\InvoiceEditor::class)
+                ->middleware('can:invoices.create')->name('invoices.create');
+            Route::get('/invoices/{invoice}/edit', \App\Livewire\Sales\InvoiceEditor::class)
+                ->middleware('can:invoices.create')->name('invoices.edit');
+            Route::get('/invoices/{invoice}', \App\Livewire\Sales\InvoiceView::class)->name('invoices.show');
+            Route::get('/invoices/{invoice}/pdf', \App\Http\Controllers\Sales\InvoicePdfController::class)->name('invoices.pdf');
+        });
+    });
 });

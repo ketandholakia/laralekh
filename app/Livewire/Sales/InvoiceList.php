@@ -1,0 +1,42 @@
+<?php
+declare(strict_types=1);
+namespace App\Livewire\Sales;
+
+use App\Domain\Sales\Models\Invoice;
+use Illuminate\Contracts\View\View;
+use Livewire\Attributes\{Layout, Title, Url};
+use Livewire\Component;
+use Livewire\WithPagination;
+
+// Read-only invoice register for the session company. All queries run inside
+// the tenant scope entered by the company.context middleware; the component
+// never accepts a company id.
+#[Layout('layouts.app')]
+final class InvoiceList extends Component
+{
+    use WithPagination;
+
+    #[Url] public string $search = '';
+    #[Url] public string $status = '';
+    #[Url] public string $from = '';
+    #[Url] public string $to = '';
+
+    public function render(): View
+    {
+        $invoices = Invoice::query()
+            ->when($this->search !== '', function ($query): void {
+                $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($this->search)).'%';
+                $query->where(fn ($q) => $q
+                    ->where('number', 'like', $term)
+                    ->orWhere('series', 'like', $term)
+                    ->orWhereHas('party', fn ($p) => $p->where('parties.name', 'like', $term)));
+            })
+            ->when(in_array($this->status, ['draft', 'posted'], true), fn ($q) => $q->where('status', $this->status))
+            ->when($this->from !== '', fn ($q) => $q->where('date', '>=', $this->from))
+            ->when($this->to !== '', fn ($q) => $q->where('date', '<=', $this->to))
+            ->orderByDesc('date')->orderBy('id')
+            ->with('party:id,name')
+            ->paginate(10);
+        return view('livewire.sales.invoice-list', ['invoices' => $invoices]);
+    }
+}
