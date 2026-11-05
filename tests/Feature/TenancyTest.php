@@ -58,3 +58,18 @@ it('requires unique financial-year names within a company', function () {
     });
 })->throws(QueryException::class);
 
+it('rejects bulk changes to company ownership', function () {
+    $a = companyFixture(); $b = companyFixture();
+    app(TenantContext::class)->run($a->id, fn () => LedgerGroup::query()->update(['company_id' => $b->id]));
+})->throws(LogicException::class, 'ownership is immutable');
+
+it('scopes Spatie roles to the active company', function () {
+    $a = companyFixture(); $b = companyFixture(); $ctx = app(TenantContext::class);
+    $ctx->run($a->id, fn () => \App\Domain\Shared\Models\Role::create(['name' => 'accountant', 'guard_name' => 'web']));
+    $ctx->run($b->id, function () {
+        expect(\App\Domain\Shared\Models\Role::count())->toBe(0);
+        \App\Domain\Shared\Models\Role::create(['name' => 'accountant', 'guard_name' => 'web']);
+    });
+    expect($ctx->run($a->id, fn () => \App\Domain\Shared\Models\Role::count()))->toBe(1);
+});
+

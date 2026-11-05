@@ -9,6 +9,7 @@
 /public/css
 /setup-local.ps1
 /configure-tooling.ps1
+/local-*.ps1
 .env
 .env.backup
 .env.production

@@ -11,6 +11,11 @@ abstract class TenantModel extends Model
 {
     protected $guarded = ['id'];
 
+    public function newEloquentBuilder($query): TenantBuilder
+    {
+        return new TenantBuilder($query);
+    }
+
     protected static function booted(): void
     {
         static::addGlobalScope('company', function (Builder $query): void {
