@@ -7,12 +7,6 @@ use App\Domain\Shared\Tenancy\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
-function companyFixture(string $name = 'Company'): Company
-{
-    DB::table('states')->insertOrIgnore(['code' => '27', 'name' => 'Maharashtra']);
-    return Company::create(['name' => $name, 'state_code' => '27']);
-}
-
 it('fails closed without a tenant context', function () {
     Ledger::query()->get();
 })->throws(LogicException::class, 'company context');

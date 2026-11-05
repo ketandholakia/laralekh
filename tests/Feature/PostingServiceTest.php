@@ -33,13 +33,6 @@ function salesFixture(array $invoiceOverrides = [], array $lineOverrides = []): 
     return $invoice;
 }
 
-function inSalesCompany(Closure $callback): mixed
-{
-    (new StateSeeder)->run();
-    $company = companyFixture();
-    return app(TenantContext::class)->run($company->id, fn () => $callback($company));
-}
-
 it('posts exact balanced sales entries', function ($state, $expected) {
     inSalesCompany(function () use ($state, $expected) {
         $invoice = salesFixture(['place_of_supply' => $state]);

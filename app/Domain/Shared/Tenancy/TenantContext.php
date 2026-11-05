@@ -4,6 +4,7 @@ namespace App\Domain\Shared\Tenancy;
 
 use Closure;
 use LogicException;
+use Spatie\Permission\PermissionRegistrar;
 
 final class TenantContext
 {
@@ -22,14 +23,31 @@ final class TenantContext
         }
         $previous = $this->companyId;
         $previousTeam = getPermissionsTeamId();
+        $registrar = app(PermissionRegistrar::class);
+        $previousCacheKey = $registrar->cacheKey;
+        $switching = $previous !== $companyId;
         $this->companyId = $companyId;
         setPermissionsTeamId($companyId);
+        // Spatie caches permissions together with the roles visible at build
+        // time, and roles are company-scoped here. A shared cache would freeze
+        // one company's view for every other company, so the key is switched
+        // with the team, and on an actual company change any cached view —
+        // including the in-memory one — is dropped and rebuilt for this team.
+        $registrar->cacheKey = self::permissionCacheKey($companyId);
+        if ($switching) {
+            $registrar->forgetCachedPermissions();
+        }
         try {
             return $callback();
         } finally {
             $this->companyId = $previous;
             setPermissionsTeamId($previousTeam);
+            $registrar->cacheKey = $previousCacheKey;
         }
     }
-}
 
+    public static function permissionCacheKey(int $companyId): string
+    {
+        return config('permission.cache.key', 'spatie.permission.cache').'.company.'.$companyId;
+    }
+}
