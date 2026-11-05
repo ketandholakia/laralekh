@@ -166,6 +166,68 @@ it('refuses posting for users without the invoices.post permission', function ()
     });
 });
 
+it('validates draft line quantity, discount and date bounds', function ($lineOverrides, $invoiceOverrides, $message) {
+    [$user, $company] = webSession();
+    $this->actingAs($user);
+    inTenantContext($company, function () use ($lineOverrides, $invoiceOverrides, $message): void {
+        [$party, $item, $sales] = masters();
+        $rate = verifiedRate();
+        $component = Livewire::test(InvoiceEditor::class)
+            ->set('partyQuery', 'Customer')->call('selectParty', $party->id)
+            ->set('date', $invoiceOverrides['date'])
+            ->set('placeOfSupply', '27')
+            ->call('addItem', $item->id)
+            ->set('lines.0.tax_rate_id', $rate->id)
+            ->set('lines.0.sales_ledger_id', $sales->id);
+        foreach ($lineOverrides as $field => $value) {
+            $component = $component->set('lines.0.'.$field, $value);
+        }
+        $component->call('save')->assertHasErrors('lines');
+        expect(Invoice::count())->toBe(0)->and($message)->toBeString();
+    });
+})->with([
+    'bad quantity' => [['quantity' => '0'], ['date' => '2026-11-05'], 'Quantity must be positive'],
+    'fractional quantity too deep' => [['quantity' => '1.0005'], ['date' => '2026-11-05'], 'three decimals'],
+    'negative price' => [['unit_price' => '-5.00'], ['date' => '2026-11-05'], 'decimal string'],
+    'discount above line value' => [['discount' => '2000.00'], ['date' => '2026-11-05'], 'exceeds line'],
+    'date outside financial year' => [[], ['date' => '2027-04-02'], 'financial year'],
+]);
+
+it('rejects a verified rate that has lapsed before the invoice date', function () {
+    [$user, $company] = webSession();
+    $this->actingAs($user);
+    inTenantContext($company, function (): void {
+        [$party, $item, $sales] = masters();
+        $rate = verifiedRate('OLD12', '12');
+        $rate->update(['effective_to' => '2026-06-30']);
+        Livewire::test(InvoiceEditor::class)
+            ->set('partyQuery', 'Customer')->call('selectParty', $party->id)
+            ->set('date', '2026-11-05')->set('placeOfSupply', '27')
+            ->call('addItem', $item->id)
+            ->set('lines.0.tax_rate_id', $rate->id)
+            ->set('lines.0.sales_ledger_id', $sales->id)
+            ->call('save')
+            ->assertHasErrors('lines');
+        expect(Invoice::count())->toBe(0);
+    });
+});
+
+it('changes the rate dropdown to only verified rates effective on the chosen date', function () {
+    [$user, $company] = webSession();
+    $this->actingAs($user);
+    inTenantContext($company, function (): void {
+        $current = verifiedRate('NOW18', '18');
+        $future = verifiedRate('NEXT5', '5');
+        $future->update(['effective_from' => '2027-01-01']);
+        $component = Livewire::test(InvoiceEditor::class)->set('date', '2026-11-05');
+        $ids = array_column($component->rateOptions, 'id');
+        expect($ids)->toContain($current->id)->not->toContain($future->id);
+        // Moving the date into the future rate's window makes it selectable.
+        $component->set('date', '2027-01-15');
+        expect(array_column($component->rateOptions, 'id'))->toContain($future->id);
+    });
+});
+
 it('never accepts a foreign company id through draft input', function () {
     [$user, $company] = webSession();
     $other = companyFixture('Other');
