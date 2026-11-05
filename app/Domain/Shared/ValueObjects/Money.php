@@ -35,6 +35,8 @@ final readonly class Money implements Stringable, JsonSerializable
     public function add(self $other): self { return self::of(bcadd($this->amount, $other->amount, 2)); }
     public function subtract(self $other): self { return self::of(bcsub($this->amount, $other->amount, 2)); }
     public function equals(self $other): bool { return bccomp($this->amount, $other->amount, 2) === 0; }
+    public function greaterThan(self $other): bool { return bccomp($this->amount, $other->amount, 2) === 1; }
+    public function lessThan(self $other): bool { return bccomp($this->amount, $other->amount, 2) === -1; }
     public function isNegative(): bool { return bccomp($this->amount, '0', 2) < 0; }
     public function isZero(): bool { return $this->amount === '0.00'; }
     public function __toString(): string { return $this->amount; }

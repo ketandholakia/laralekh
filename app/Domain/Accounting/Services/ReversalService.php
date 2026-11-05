@@ -16,13 +16,18 @@ final class ReversalService
             // Same first lock as note posting: a note and a reversal cannot both pass eligibility.
             $invoice = Invoice::where('voucher_id', $voucherId)->lockForUpdate()->first();
             $original = Voucher::whereKey($voucherId)->lockForUpdate()->firstOrFail();
-            if ($original->status !== 'posted' || in_array($original->type, ['credit_note', 'debit_note', 'reversal'], true) ||
+            if ($original->status !== 'posted' || in_array($original->type, ['credit_note', 'debit_note', 'reversal', 'receipt'], true) ||
                 $original->reverses_voucher_id || Voucher::where('reverses_voucher_id', $original->id)->lockForUpdate()->first() ||
                 VoucherReversal::where('original_voucher_id', $original->id)->lockForUpdate()->first()) {
                 throw new DomainException('Only an unreversed original posted voucher can be reversed.');
             }
             if ($invoice && SalesCorrection::where('invoice_id', $invoice->id)->where('status', 'posted')->lockForUpdate()->first()) {
                 throw new DomainException('An invoice with posted correction notes cannot be fully reversed.');
+            }
+            // A reversed invoice must not leave active receipt allocations
+            // behind; undo the allocations first, then reverse the invoice.
+            if ($invoice && app(\App\Domain\Sales\Services\SettlementService::class)->allocatedToInvoice($invoice->id)->greaterThan(\App\Domain\Shared\ValueObjects\Money::of('0'))) {
+                throw new DomainException('This invoice has active receipt allocations; undo them before reversing the invoice.');
             }
             if (mb_strlen(trim($reason)) < 5 || mb_strlen($reason) > 2000) { throw new DomainException('Provide a reversal reason of 5 to 2000 characters.'); }
             app(CorrectionRules::class)->openYear($yearId, $date, $original->date->format('Y-m-d'));
