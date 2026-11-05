@@ -1,4 +1,9 @@
 <div>
+    @if ($invoice->status === 'posted')
+        @can('corrections.view')
+            <livewire:sales.invoice-corrections :invoice-id="$invoice->id" />
+        @endcan
+    @endif
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
             <h1 class="text-xl font-semibold">

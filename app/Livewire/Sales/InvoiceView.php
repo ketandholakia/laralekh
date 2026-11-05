@@ -6,6 +6,7 @@ use App\Domain\Sales\Models\Invoice;
 use App\Domain\Shared\Tenancy\CompanySession;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 // Read-only presentation of an invoice (draft or posted). Posted documents are
@@ -13,23 +14,28 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 final class InvoiceView extends Component
 {
-    public Invoice $invoice;
+    #[Locked]
+    public int $invoiceId;
 
     // Route parameters are not implicitly bound: that would resolve the model
     // before the company.context middleware enters the tenant scope.
-    public function mount(int|string $invoiceId): void
+    public function mount(int|string|null $invoice = null, int|string|null $invoiceId = null): void
+    {
+        $this->invoiceId = (int) ($invoice ?? $invoiceId);
+    }
+
+    public function boot(): void
     {
         $user = auth()->user();
         $companyId = app(CompanySession::class)->companyId();
         abort_if($companyId === null, 403, 'Select a company first.');
         abort_unless($user->isMemberOf($companyId), 403);
         abort_unless($user->can('invoices.view'), 403);
-        $this->invoice = Invoice::findOrFail((int) $invoiceId)
-            ->load(['items' => fn ($q) => $q->orderBy('position'), 'party', 'voucher']);
     }
 
     public function render(): View
     {
-        return view('livewire.sales.invoice-view');
+        return view('livewire.sales.invoice-view', ['invoice' => Invoice::findOrFail($this->invoiceId)
+            ->load(['items' => fn ($q) => $q->orderBy('position'), 'party', 'voucher'])]);
     }
 }

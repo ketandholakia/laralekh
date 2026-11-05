@@ -19,6 +19,13 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/companies', [CompanySelectionController::class, 'store'])->name('company.store');
 
     Route::middleware('company.context')->group(function (): void {
+        Route::middleware('can:corrections.view')->group(function (): void {
+            Route::get('/invoices/{invoice}/corrections/create', \App\Livewire\Sales\CorrectionEditor::class)->middleware('can:corrections.create')->name('corrections.create');
+            Route::get('/corrections/{correction}/edit', \App\Livewire\Sales\CorrectionEditor::class)->middleware('can:corrections.create')->name('corrections.edit');
+            Route::get('/corrections/{correction}', \App\Livewire\Sales\CorrectionView::class)->name('corrections.show');
+            Route::get('/vouchers/{voucher}/reverse', \App\Livewire\Accounting\ReversalEditor::class)->middleware('can:reversals.post')->name('reversals.create');
+            Route::get('/reversals/{reversal}', \App\Livewire\Accounting\ReversalView::class)->name('reversals.show');
+        });
         Route::get('/', fn () => redirect()->route('invoices.index'));
 
         Route::middleware('can:invoices.view')->group(function (): void {
