@@ -13,5 +13,6 @@ class Invoice extends TenantModel
     public function items() { return $this->hasMany(InvoiceItem::class); }
     public function party() { return $this->belongsTo(Party::class); }
     public function voucher() { return $this->belongsTo(Voucher::class); }
+    public function corrections() { return $this->hasMany(SalesCorrection::class); }
 }
 

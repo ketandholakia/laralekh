@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/Support/correction-helpers.php';
 
 uses(Tests\TestCase::class)->in('Feature');
 
