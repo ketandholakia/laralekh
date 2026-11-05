@@ -4,7 +4,7 @@ use App\Domain\Accounting\Services\PostingService;
 use App\Domain\Masters\Models\FinancialYear;
 use Illuminate\Support\Str;
 
-function correctionSource(array $overrides = [], array $lineOverrides = []): Invoice
+function correctionSource(array $overrides = [], array $lineOverrides = [], int $lineCount = 1): Invoice
 {
     $company = \App\Domain\Masters\Models\Company::findOrFail(app(\App\Domain\Shared\Tenancy\TenantContext::class)->id());
     $company->update(['gstin' => $company->gstin ?? '27AAAAA0000A1Z5', 'address' => $company->address ?? '12 Test Road, Mumbai']);
@@ -15,9 +15,11 @@ function correctionSource(array $overrides = [], array $lineOverrides = []): Inv
     $rate = verifiedRate();
     $invoice = Invoice::create($overrides + ['financial_year_id' => $year->id, 'party_id' => $party->id,
         'date' => '2026-11-01', 'place_of_supply' => '27', 'series' => 'SI']);
+    for ($position = 1; $position <= $lineCount; $position++) {
     $invoice->items()->create($lineOverrides + ['financial_year_id' => $year->id, 'item_id' => $item->id,
-        'sales_ledger_id' => $sales->id, 'tax_rate_id' => $rate->id, 'position' => 1,
+        'sales_ledger_id' => $sales->id, 'tax_rate_id' => $rate->id, 'position' => $position,
         'description' => 'Original widget', 'hsn_sac' => '8471', 'quantity' => '10', 'unit_price' => '100.00']);
+    }
     app(PostingService::class)->postSalesInvoice($invoice->id);
     return $invoice->fresh(['items', 'voucher']);
 }
