@@ -30,6 +30,20 @@ Route::middleware('auth')->group(function (): void {
         });
         Route::get('/', fn () => redirect()->route('invoices.index'));
 
+        Route::middleware('can:receipts.view')->group(function (): void {
+            Route::get('/receipts', \App\Livewire\Sales\ReceiptList::class)->name('receipts.index');
+            Route::get('/receipts/create', \App\Livewire\Sales\ReceiptEditor::class)
+                ->middleware('can:receipts.create')->name('receipts.create');
+            Route::get('/receipts/{receipt}/edit', \App\Livewire\Sales\ReceiptEditor::class)
+                ->middleware('can:receipts.create')->name('receipts.edit');
+            Route::get('/receipts/{receipt}', \App\Livewire\Sales\ReceiptView::class)->name('receipts.show');
+            Route::get('/receipts/{receipt}/pdf', \App\Http\Controllers\Sales\ReceiptPdfController::class)->name('receipts.pdf');
+            Route::get('/customers', \App\Livewire\Sales\CustomerList::class)->name('customers.index');
+            Route::get('/customers/{party}', \App\Livewire\Sales\CustomerOutstanding::class)->name('customers.show');
+            Route::get('/customers/{party}/statement', \App\Livewire\Sales\CustomerStatement::class)->name('customers.statement');
+            Route::get('/customers/{party}/statement/pdf', \App\Http\Controllers\Sales\StatementPdfController::class)->name('customers.statement-pdf');
+        });
+
         Route::middleware('can:invoices.view')->group(function (): void {
             Route::get('/invoices', \App\Livewire\Sales\InvoiceList::class)->name('invoices.index');
             Route::get('/invoices/create', \App\Livewire\Sales\InvoiceEditor::class)

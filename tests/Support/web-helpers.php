@@ -115,3 +115,27 @@ function linePayload(int $itemId, int $ledgerId, ?int $rateId, array $overrides 
         'unit_price' => '1000.00', 'discount' => '0.00', 'tax_category' => 'taxable',
     ];
 }
+
+function cashLedger(): \App\Domain\Accounting\Models\Ledger
+{
+    return \App\Domain\Accounting\Models\Ledger::where('code', 'CASH')->sole();
+}
+
+// Posts an invoice whose total equals the given amount exactly (exempt line, no tax).
+function postInvoiceFor(\App\Domain\Masters\Models\Party $party, string $amount = '1000.00', ?string $date = null): \App\Domain\Sales\Models\Invoice
+{
+    $item = \App\Domain\Inventory\Models\Item::firstOrCreate(['sku' => 'WIDGET'], ['name' => 'Widget', 'hsn_sac' => '8471']);
+    $sales = \App\Domain\Accounting\Models\Ledger::where('code', 'SALES')->sole();
+    $draft = app(\App\Domain\Sales\Actions\SaveInvoiceDraft::class)->handle(null, draftPayload($party->id, [
+        'date' => $date ?? '2026-11-06',
+    ]), [linePayload($item->id, $sales->id, null, ['unit_price' => $amount, 'tax_category' => 'exempt'])]);
+    return app(\App\Domain\Sales\Actions\PostInvoice::class)->handle($draft->id)->fresh(['items', 'party', 'voucher']);
+}
+
+function receiptDraft(\App\Domain\Masters\Models\Party $party, string $amount, array $overrides = []): \App\Domain\Sales\Models\Receipt
+{
+    return app(\App\Domain\Sales\Actions\SaveReceiptDraft::class)->handle(null, array_merge([
+        'party_id' => $party->id, 'ledger_id' => cashLedger()->id, 'date' => '2026-11-06',
+        'payment_reference' => 'UTR-1', 'narration' => 'On account', 'amount' => $amount,
+    ], $overrides));
+}

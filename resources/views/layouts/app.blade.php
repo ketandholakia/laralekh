@@ -15,6 +15,8 @@
         @auth
         <nav class="flex items-center gap-4 text-sm">
             <a href="{{ route('invoices.index') }}" class="hover:text-indigo-600">Invoices</a>
+            <a href="{{ route('receipts.index') }}" class="hover:text-indigo-600">Receipts</a>
+            <a href="{{ route('customers.index') }}" class="hover:text-indigo-600">Customers</a>
             <a href="{{ route('company.select') }}" class="hover:text-indigo-600">Company</a>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf

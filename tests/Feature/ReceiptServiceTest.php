@@ -12,30 +12,6 @@ use App\Domain\Shared\Tenancy\CompanySession;
 use DomainException;
 use Illuminate\Validation\ValidationException;
 
-function cashLedger(): Ledger
-{
-    return Ledger::where('code', 'CASH')->sole();
-}
-
-// Posts an invoice whose total equals the given amount exactly (exempt line, no tax).
-function postInvoiceFor(Party $party, string $amount = '1000.00', ?TaxRate $rate = null, ?string $date = null): Invoice
-{
-    $item = \App\Domain\Inventory\Models\Item::firstOrCreate(['sku' => 'WIDGET'], ['name' => 'Widget', 'hsn_sac' => '8471']);
-    $sales = Ledger::where('code', 'SALES')->sole();
-    $draft = app(SaveInvoiceDraft::class)->handle(null, draftPayload($party->id, [
-        'date' => $date ?? '2026-11-06',
-    ]), [linePayload($item->id, $sales->id, null, ['unit_price' => $amount, 'tax_category' => 'exempt'])]);
-    return app(PostInvoice::class)->handle($draft->id)->fresh(['items', 'party', 'voucher']);
-}
-
-function receiptDraft(Party $party, string $amount, array $overrides = []): Receipt
-{
-    return app(SaveReceiptDraft::class)->handle(null, array_merge([
-        'party_id' => $party->id, 'ledger_id' => cashLedger()->id, 'date' => '2026-11-06',
-        'payment_reference' => 'UTR-1', 'narration' => 'On account', 'amount' => $amount,
-    ], $overrides));
-}
-
 it('posts a receipt with exact Dr cash / Cr customer entries and a series number', function () {
     [$user, $company] = webSession();
     $this->actingAs($user);

@@ -131,6 +131,14 @@ final class ReceiptService
             $receipt->fill([
                 'voucher_id' => $voucher->id, 'number' => $number, 'status' => 'posted',
                 'party_snapshot' => $party->only(['name', 'gstin', 'state_code', 'address', 'registration_type']),
+                // Frozen view of the allocations made at posting, printed on the
+                // original receipt document; later allocations stay in the register.
+                'allocations_snapshot' => array_map(fn ($row) => [
+                    'invoice_label' => $row['invoice']->series.'/'.$row['invoice']->number,
+                    'invoice_date' => $row['invoice']->date->format('d-m-Y'),
+                    'invoice_total' => (string) $row['invoice']->total,
+                    'amount' => (string) $row['amount'],
+                ], $canonical),
             ])->save();
             $this->applyAllocations($receipt, $canonical, $userId);
             $allocated = Money::of('0');

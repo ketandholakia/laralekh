@@ -24,7 +24,7 @@ final class CustomerStatement
 
     /**
      * @return array{party: Party, from: string, as_of: string, opening: Money,
-     *     rows: list<array<string, mixed>>, closing: Money, ledger_closing: Money}
+     *     rows: list<array<string, mixed>>, closing: Money, ledger_as_of: Money}
      */
     public function build(int $partyId, string $from, string $asOf): array
     {
@@ -54,7 +54,7 @@ final class CustomerStatement
         return [
             'party' => $party, 'from' => $from, 'as_of' => $asOf,
             'opening' => $opening, 'rows' => $rows, 'closing' => $running,
-            'ledger_closing' => $ledgerClosing, 'ledger_as_of' => $ledgerAsOf,
+            'ledger_as_of' => $ledgerAsOf,
         ];
     }
 
@@ -63,12 +63,14 @@ final class CustomerStatement
     {
         $rows = [];
         foreach (Invoice::query()->where('party_id', $partyId)->where('status', 'posted')
-            ->whereBetween('date', [$from, $asOf])->orderBy('id')->get() as $invoice) {
+            ->where('date', '>=', $from)
+            ->where('date', '<', \Illuminate\Support\Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $invoice) {
             $rows[] = $this->row('invoice', $invoice->id, $invoice->date->format('Y-m-d'),
                 'Invoice '.$invoice->series.'/'.$invoice->number, (string) $invoice->total, '0.00');
         }
         foreach (SalesCorrection::query()->where('status', 'posted')
-            ->whereBetween('date', [$from, $asOf])->whereIn('invoice_id', $this->invoiceIds($partyId))
+            ->where('date', '>=', $from)
+            ->where('date', '<', \Illuminate\Support\Carbon::parse($asOf)->addDay()->toDateString())->whereIn('invoice_id', $this->invoiceIds($partyId))
             ->orderBy('id')->get() as $note) {
             $rows[] = $this->row($note->kind === 'credit' ? 'credit_note' : 'debit_note', $note->id,
                 $note->date->format('Y-m-d'), ucfirst($note->label()).' '.$note->series.'/'.$note->number
@@ -77,18 +79,21 @@ final class CustomerStatement
                 $note->kind === 'credit' ? (string) $note->total : '0.00');
         }
         foreach (Receipt::query()->where('party_id', $partyId)->where('status', 'posted')
-            ->whereBetween('date', [$from, $asOf])->orderBy('id')->get() as $receipt) {
+            ->where('date', '>=', $from)
+            ->where('date', '<', \Illuminate\Support\Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $receipt) {
             $rows[] = $this->row('receipt', $receipt->id, $receipt->date->format('Y-m-d'),
                 'Receipt '.$receipt->label(), '0.00', (string) $receipt->amount);
         }
         foreach (ReceiptReversal::query()->where('status', 'posted')
-            ->whereBetween('date', [$from, $asOf])->orderBy('id')->get() as $reversal) {
+            ->where('date', '>=', $from)
+            ->where('date', '<', \Illuminate\Support\Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $reversal) {
             $rows[] = $this->row('receipt_reversal', $reversal->id, $reversal->date->format('Y-m-d'),
                 'Receipt reversal (of '.$reversal->original_snapshot['number'].')',
                 (string) $reversal->original_snapshot['amount'], '0.00');
         }
         foreach (VoucherReversal::query()->where('status', 'posted')
-            ->whereBetween('date', [$from, $asOf])->orderBy('id')->get() as $reversal) {
+            ->where('date', '>=', $from)
+            ->where('date', '<', \Illuminate\Support\Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $reversal) {
             $invoice = Invoice::query()->where('voucher_id', $reversal->original_voucher_id)->first();
             if ($invoice === null || $invoice->party_id !== $partyId) {
                 continue; // not a customer invoice reversal

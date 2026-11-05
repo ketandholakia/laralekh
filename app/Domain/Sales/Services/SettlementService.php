@@ -88,7 +88,9 @@ final class SettlementService
             $query->where('vouchers.date', '<', $beforeExclusive);
         }
         if ($untilInclusive !== null) {
-            $query->where('vouchers.date', '<=', $untilInclusive);
+            // Date columns store midnight timestamps on SQLite; compare below
+            // the next day so the inclusive day is fully covered on both engines.
+            $query->where('vouchers.date', '<', \Illuminate\Support\Carbon::parse($untilInclusive)->addDay()->toDateString());
         }
         // Privileged aggregate over posted accounting rows; money columns are
         // decimal on MySQL and text on SQLite, so sum in application code.

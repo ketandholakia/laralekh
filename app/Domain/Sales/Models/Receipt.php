@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace App\Domain\Sales\Models;
 
 use App\Domain\Accounting\Models\{Ledger, Voucher};
+use App\Domain\Masters\Models\Party;
 use App\Domain\Shared\Casts\MoneyCast;
 use App\Domain\Shared\Models\TenantModel;
 
