@@ -21,8 +21,10 @@ final class VoucherNumberAllocator
         if ($year->is_closed) {
             throw new DomainException('Financial year is closed.');
         }
-        $sequence = NumberSequence::firstOrCreate(
-            ['financial_year_id' => $year->id, 'series' => $series], ['last_number' => 0]);
+        // A current read is essential under MySQL REPEATABLE READ when a caller
+        // has already established a snapshot before waiting for the year lock.
+        $sequence = NumberSequence::where('financial_year_id', $year->id)->where('series', $series)->lockForUpdate()->first();
+        $sequence ??= NumberSequence::create(['financial_year_id' => $year->id, 'series' => $series, 'last_number' => 0]);
         $sequence = NumberSequence::whereKey($sequence->id)->lockForUpdate()->sole();
         $number = (int) $sequence->last_number + 1;
         if (strlen($series.'/'.$number) > 16) {

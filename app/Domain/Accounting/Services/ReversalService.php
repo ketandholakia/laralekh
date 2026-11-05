@@ -17,11 +17,11 @@ final class ReversalService
             $invoice = Invoice::where('voucher_id', $voucherId)->lockForUpdate()->first();
             $original = Voucher::whereKey($voucherId)->lockForUpdate()->firstOrFail();
             if ($original->status !== 'posted' || in_array($original->type, ['credit_note', 'debit_note', 'reversal'], true) ||
-                $original->reverses_voucher_id || Voucher::where('reverses_voucher_id', $original->id)->exists() ||
-                VoucherReversal::where('original_voucher_id', $original->id)->exists()) {
+                $original->reverses_voucher_id || Voucher::where('reverses_voucher_id', $original->id)->lockForUpdate()->first() ||
+                VoucherReversal::where('original_voucher_id', $original->id)->lockForUpdate()->first()) {
                 throw new DomainException('Only an unreversed original posted voucher can be reversed.');
             }
-            if ($invoice && SalesCorrection::where('invoice_id', $invoice->id)->where('status', 'posted')->exists()) {
+            if ($invoice && SalesCorrection::where('invoice_id', $invoice->id)->where('status', 'posted')->lockForUpdate()->first()) {
                 throw new DomainException('An invoice with posted correction notes cannot be fully reversed.');
             }
             if (mb_strlen(trim($reason)) < 5 || mb_strlen($reason) > 2000) { throw new DomainException('Provide a reversal reason of 5 to 2000 characters.'); }

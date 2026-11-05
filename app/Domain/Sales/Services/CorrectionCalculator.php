@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace App\Domain\Sales\Services;
 
 use App\Domain\Gst\Services\{GstCalculator, PlaceOfSupplyResolver};
-use App\Domain\Sales\Models\{Invoice, SalesCorrectionLine};
+use App\Domain\Sales\Models\{Invoice, SalesCorrection, SalesCorrectionLine};
 use App\Domain\Shared\ValueObjects\Money;
 use DomainException;
 
@@ -16,8 +16,11 @@ final class CorrectionCalculator
     {
         $used = [];
         // Sum decimal values in PHP; SQLite numeric SUM would introduce floats.
-        $credits = SalesCorrectionLine::where('invoice_id', $invoice->id)
-            ->whereHas('correction', fn ($q) => $q->where('status', 'posted')->where('kind', 'credit'))->get();
+        // Current reads see credits committed while this transaction waited on
+        // the shared source-invoice lock, even with an older repeatable-read snapshot.
+        $ids = SalesCorrection::where('invoice_id', $invoice->id)->where('status', 'posted')
+            ->where('kind', 'credit')->lockForUpdate()->pluck('id');
+        $credits = SalesCorrectionLine::whereIn('sales_correction_id', $ids)->lockForUpdate()->get();
         foreach ($credits as $line) {
             $id = $line->invoice_item_id;
             $used[$id] ??= ['amount' => Money::of('0'), 'quantity' => '0.000'];

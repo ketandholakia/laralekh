@@ -56,7 +56,7 @@ final class CorrectionRules
         if ($data['kind'] !== 'credit') { return; }
 
         // Section 34(2): reporting, not merely issuance, by the earlier deadline.
-        $sourceYear = FinancialYear::whereKey($invoice->financial_year_id)->firstOrFail();
+        $sourceYear = FinancialYear::whereKey($invoice->financial_year_id)->lockForUpdate()->firstOrFail();
         $deadline = CarbonImmutable::create($sourceYear->ends_on->year, 11, 30)->startOfDay();
         foreach ([$sourceYear->annual_return_filed_on, $data['annual_return_filed_on']] as $filed) {
             if ($filed) {

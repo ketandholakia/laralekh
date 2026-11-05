@@ -85,7 +85,7 @@ encoded; the QR here is printed only when the company configures a valid UPI ID.
 Signature/digital-signature: the template prints an authorised-signatory block
 only; no digital signature is applied.
 
-## Step 3: credit/debit notes and reversals (5 November 2026)
+## Step 3: credit/debit notes and reversals (verified 5-6 November 2026)
 
 [Current CBIC section 34](https://taxinformation.cbic.gov.in/content-page/explore-act/1000304/1000001)
 sets the credit-note declaration deadline at 30 November following the supply

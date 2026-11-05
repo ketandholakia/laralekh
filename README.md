@@ -1,6 +1,7 @@
 # Laravix
 
-Indian GST accounting backend with a Livewire 3 sales-invoice UI. Step 2 targets
+Indian GST accounting backend with Livewire 3 sales invoices, correction notes
+and internal reversals. Step 3 targets
 PHP 8.3, Laravel 11, MySQL 8, Livewire 3 (including Alpine), Tailwind 3, Redis,
 Pest, Spatie permission and activitylog, DomPDF via its Laravel integration,
 chillerlan/php-qrcode for the invoice payment QR, and Sanctum.
@@ -79,8 +80,8 @@ validates dates and ledgers, and records an activity entry in the same transacti
 Numbers are allocated only during posting, per company/year/series, with a locked
 financial-year row also protecting first use of a series. Failed posts consume no
 number. Successful posts cannot be deleted or modified, even through SQL, because
-MySQL triggers protect vouchers, invoices and their lines. Corrections require a
-future reversal/credit/debit-note action; do not disable triggers to edit history.
+MySQL triggers protect vouchers, invoices and their lines. Corrections use the
+Step 3 reversal/credit/debit-note actions; do not disable triggers to edit history.
 Zero-value invoices require a future non-accounting document workflow.
 
 The production database target is MySQL 8 (tested on 8.4). PostgreSQL is not enabled:
@@ -124,9 +125,37 @@ the normal, inter-state, reverse charge, LUT export, composition bill of
 supply, draft preview, and multi-page cases can be regenerated with
 `php tools/render-sample-pdfs.php <output-directory>`.
 
+## Step 3: corrections and reversals
+
+From a posted invoice, authorised users can draft and post partial/full sales
+credit notes and debit notes, preview the accounting/tax effect, download PDFs,
+and inspect related notes and remaining creditable base amounts/quantities.
+Commercial notes are the default and do not adjust GST. Statutory GST notes
+require an explicit eligibility review, evidence, supported reason and, for
+credits, a reporting-date/deadline check. Notes use original supply snapshots
+and rates. Posted originals and corrections remain immutable.
+
+Internal full reversals exactly swap original voucher entries. They require
+separate permission and confirmation, cannot follow posted correction notes,
+and cannot be repeated. They are not statutory GST credit notes. Neither
+corrections nor reversals adjust physical stock.
+
+Run migrations and `php artisan db:seed --class=CorrectionPermissionSeeder`.
+Explicitly grant `corrections.view`, `corrections.create`, `corrections.post`
+and, only for designated accountants, `reversals.post` through the existing
+company-scoped Spatie roles. Seeding defines permissions without widening
+existing roles. Posting from the editor also requires draft-create permission.
+Read access to correction documents uses `corrections.view`.
+
+See [correction design and limitations](docs/corrections-design.md),
+[GST legal assumptions](docs/gst-rules.md), and [validation](docs/validation.md).
+Regenerate six isolated PDF examples by setting `LARAVIX_PDF_SAMPLES=1` and
+running `php vendor/pestphp/pest/bin/pest tests/Feature/CorrectionPdfTest.php`.
+Output goes to ignored `output/pdf/`; no application data is used.
+
 ## Deferred to later steps
 
 Purchases, inventory posting, GST return exports, e-invoicing (IRP QR and
-reporting), GSTR-2B reconciliation, credit/debit notes and reversals, and a
+reporting), GSTR-2B reconciliation, receipt/payment allocation, and a
 separate zero-value document workflow remain future work. Sanctum is installed
 for the later API/mobile step; this step's screens are session-only.

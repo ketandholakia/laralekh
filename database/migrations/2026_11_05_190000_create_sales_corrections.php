@@ -120,6 +120,16 @@ return new class extends Migration {
         Schema::dropIfExists('voucher_reversals');
         Schema::dropIfExists('sales_correction_lines');
         Schema::dropIfExists('sales_corrections');
+        // InnoDB may replace an implicit FK index with the newer covering
+        // unique index. Restore supporting indexes before removing uniqueness.
+        if (DB::getDriverName() === 'mysql') {
+            if (!Schema::hasIndex('vouchers', 'vouchers_reversal_fk_support')) {
+                Schema::table('vouchers', fn (Blueprint $t) => $t->index(['company_id', 'reverses_voucher_id'], 'vouchers_reversal_fk_support'));
+            }
+            if (!Schema::hasIndex('invoice_items', 'invoice_items_source_fk_support')) {
+                Schema::table('invoice_items', fn (Blueprint $t) => $t->index(['company_id', 'financial_year_id', 'invoice_id'], 'invoice_items_source_fk_support'));
+            }
+        }
         Schema::table('vouchers', fn (Blueprint $t) => $t->dropUnique('vouchers_single_reversal'));
         Schema::table('invoice_items', fn (Blueprint $t) => $t->dropUnique('invoice_items_source_identity'));
         Schema::table('financial_years', fn (Blueprint $t) => $t->dropColumn('annual_return_filed_on'));

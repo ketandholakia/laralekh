@@ -64,6 +64,7 @@
         @endforeach
         </div>
         <p class="mt-3 text-sm">Party receivable {{ $form['kind'] === 'credit' ? 'decreases' : 'increases' }} by INR {{ $preview['totals']['total'] }}.</p>
+        <p class="mt-2 text-sm">{{ $form['kind'] === 'credit' ? 'Debit sales and applicable output GST; credit party.' : 'Debit party; credit sales and applicable output GST.' }} Recipient reverse-charge tax is excluded from the voucher total.</p>
     </section>
     @endif
     <div class="flex flex-wrap gap-3">

@@ -20,6 +20,8 @@ Homestead.yaml
 npm-debug.log
 yarn-error.log
 /auth.json
+/output/pdf/
+/tmp/pdfs/
 /.fleet
 /.idea
 /.nova

@@ -32,7 +32,7 @@ final class CorrectionService
             if ($note->exists && ($note->status !== 'draft' || $note->invoice_id !== $invoiceId || $note->financial_year_id !== $yearId)) {
                 throw new DomainException('Only a draft in its original selected company/year can be edited.');
             }
-            if (!$note->exists && SalesCorrection::where('request_key', $input['request_key'] ?? '')->exists()) {
+            if (!$note->exists && SalesCorrection::where('request_key', $input['request_key'] ?? '')->lockForUpdate()->first()) {
                 throw new DomainException('This request was already saved. Open the existing correction.');
             }
             [$data, $calculation] = $this->prepare($invoice, $yearId, $input, $lines);
@@ -57,7 +57,7 @@ final class CorrectionService
             foreach (['date', 'reporting_date', 'annual_return_filed_on'] as $field) {
                 $input[$field] = $note->$field?->format('Y-m-d');
             }
-            $lines = $note->lines()->orderBy('position')->get()->map(fn ($line) => [
+            $lines = $note->lines()->orderBy('position')->lockForUpdate()->get()->map(fn ($line) => [
                 'invoice_item_id' => $line->invoice_item_id, 'quantity' => $line->quantity, 'amount' => (string) $line->taxable_amount,
             ])->all();
             [$data, $calculation] = $this->prepare($invoice, $note->financial_year_id, $input, $lines);
@@ -84,8 +84,8 @@ final class CorrectionService
     private function assertOriginal(Invoice $invoice): void
     {
         if ($invoice->status !== 'posted' || !$invoice->voucher_id) { throw new DomainException('Corrections require a posted original invoice.'); }
-        if (VoucherReversal::where('original_voucher_id', $invoice->voucher_id)->exists() ||
-            Voucher::where('reverses_voucher_id', $invoice->voucher_id)->exists()) {
+        if (VoucherReversal::where('original_voucher_id', $invoice->voucher_id)->lockForUpdate()->first() ||
+            Voucher::where('reverses_voucher_id', $invoice->voucher_id)->lockForUpdate()->first()) {
             throw new DomainException('The original voucher is reversed; further notes are not allowed.');
         }
     }

@@ -1,4 +1,10 @@
-# Step 2 validation
+# Validation history
+
+Latest: [Step 3 validation](#step-3-validation-6-november-2026) used PHP 8.3.36
+and MySQL 8.4.13 successfully. The historical Step 2 environment findings below
+do not describe the recovered Step 3 tooling.
+
+## Step 2 validation (historical)
 
 Validated 5 November 2026 on Windows. Step 1 was validated with PHP 8.3.36;
 this host currently has PHP 8.5.9 (the 8.3 install is no longer present), and
@@ -37,6 +43,66 @@ production target remains MySQL 8. Redis queues were still not exercised (no
 working Redis service on this host); Sanctum remains installed for a later
 API step. PDF text extraction relies on a small in-repo helper, not an external
 pdftotext dependency.
+
+## Step 3 validation (6 November 2026)
+
+Baseline was independently verified before changes: 208 tests / 428 assertions.
+The PHP 8.3 runtime was found at
+`C:/Users/Admin/AppData/Local/laravix/php83/php.exe` (8.3.36), and the isolated
+MySQL 8.4.13 tooling/data directory was recovered under the same `laravix`
+directory. These results supersede Step 2's runtime mismatch: Step 3 used
+PHP 8.3 and MySQL 8, not the host's default versions or MySQL 9.7.
+
+| Check | Result |
+| --- | --- |
+| Full Pest suite, SQLite | 265 passed / 629 assertions |
+| Full Pest suite, MySQL 8.4.13 | 265 passed / 629 assertions |
+| Correction concurrency, real MySQL workers | Over-credit, duplicate reversal, note-versus-reversal, duplicate post rejected; four valid simultaneous notes succeed; CN/RV sequences gapless |
+| Existing invoice concurrency | Ten workers: eight posts numbered 1-8 and two duplicate rejections |
+| Isolated migration database | Up, full rollback, up passed |
+| Tailwind build | Passed; existing Browserslist dataset age warning remains |
+| PHP syntax and diff whitespace | Passed for application, migrations, tests and tools |
+| PDF examples | Six PDFs / eight pages rendered by DomPDF and all pages visually inspected using Poppler |
+
+New tests cover credit/debit directions, full/partial/multiple notes, paise
+allocation, original rates after master changes, IGST, UTGST, export/SEZ LUT
+and payment modes, RCM, exempt/nil supplies, composition commercial notes,
+reporting cutoff, closed years, cross-year corrections, foreign references,
+membership/permissions, immutable SQL guards, exact swapped reversals, and
+complete transaction rollback including sequence and audit failures.
+
+MySQL race tests exposed repeatable-read snapshots established before lock
+acquisition. Capacity, reversal exclusion and series creation now use current
+locking reads; source-invoice locks serialize note/reversal decisions. Migration
+rollback exposed InnoDB replacing implicit FK indexes with new unique indexes;
+rollback now restores supporting indexes before dropping the unique indexes.
+No existing immutability trigger was disabled or weakened.
+
+Reproduce with process-level DB_CONNECTION=mysql, DB_HOST=127.0.0.1,
+DB_PORT=33360, DB_DATABASE=laravix_test_suite, DB_USERNAME=root and the local
+test password, then run Pest and `php tools/test-correction-concurrency.php`.
+The concurrency tool insists on a `laravix_test_` database and uses a new company
+per run. `php tools/test-mysql-concurrency.php` checks original invoice posting.
+For `php tools/verify-migrations.php`, use the separate
+`laravix_test_migrations` database; never point this rollback check at application
+data. Windows helper scripts used locally remain ignored.
+
+PDF samples in ignored `output/pdf/`: full credit, partial credit, debit,
+commercial draft, 48-line/three-page credit and internal reversal. Repeated
+headers, all page numbers, signatory space, exact amounts, words and warnings
+were checked; no clipping or overlap was observed. Poppler emitted a system
+Symbol-font warning, but these documents use embedded DejaVu and rendered
+correctly. PDF tests check original snapshot preservation after master edits,
+tenant access, repeated headers, document text and previews not allocating numbers.
+Documents contain signatory space, not a digital signature.
+
+No packages were added. Laravel 11 was neither upgraded nor its existing
+security advisories suppressed; the retained dependency audit remains a
+deployment blocker. Live Redis delivery and PostgreSQL are still unvalidated.
+GST eligibility/ITC reversal, actual return filing, and applicability of future
+notifications require external review; see gst-rules.md. Physical stock,
+tax-only corrections, credits against debit-note increments and statutory
+correction of an internal reversal remain unsupported.
 
 ## Step 1 validation (superseded details retained)
 

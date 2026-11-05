@@ -35,3 +35,11 @@ GST credit eligibility requires documented external review and a planned reporti
 date. This is not return filing or an assertion that a reduction has been accepted.
 Financial corrections do not adjust physical inventory.
 
+# Validation refinements
+
+MySQL repeatable-read snapshots require current locking reads for posted-credit
+capacity, reversal exclusion and number-sequence existence, even after the
+source-invoice/year locks are acquired. Real multi-process races cover these
+paths. InnoDB rollback also restores FK-supporting indexes before dropping new
+unique indexes. Original posted-document triggers remain unchanged.
+
