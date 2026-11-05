@@ -85,3 +85,42 @@ encoded; the QR here is printed only when the company configures a valid UPI ID.
 Signature/digital-signature: the template prints an authorised-signatory block
 only; no digital signature is applied.
 
+## Step 3: credit/debit notes and reversals (5 November 2026)
+
+[Current CBIC section 34](https://taxinformation.cbic.gov.in/content-page/explore-act/1000304/1000001)
+sets the credit-note declaration deadline at 30 November following the supply
+financial year, or furnishing the relevant annual return, whichever is earlier.
+The service checks the planned reporting date and the actual posting day, not
+just the note date. It requires the reviewer to confirm annual-return status and
+record evidence. A known filing date on the source financial year takes precedence
+over a later date entered on a note. This does not file a return or establish that
+GSTN accepted a reduction. Debit notes do not inherit this credit-note cutoff.
+
+The current proviso restricts reduction where an applicable recipient ITC reversal
+has not occurred, or tax incidence has been passed on in other cases. Eligibility
+therefore needs an explicit external review. Finance Act 2026 discount amendments
+on that page are marked commencement yet to be notified. This MVP supports GST
+credits for overcharge, returns and deficiency, and GST debits for undercharge;
+discretionary discounts use commercial treatment. It does not infer eligibility
+from amounts. Special relief/extension provisions and tax-only rate corrections
+are outside this implementation and need separate review.
+
+[CBIC Rule 53(1A)](https://taxinformation.cbic.gov.in/content-page/explore-rules/1000144/1000001)
+provides note particulars, including supplier/recipient details, document type,
+unique serial/date, original invoice reference, taxable value/rate/tax, delivery
+address for unregistered recipients, and signature. The note stores the supplied
+delivery address and original party/supplier snapshots; output has a signatory
+block, not an applied digital signature. Printed documents must be signed as
+applicable before issue. CBIC direct HTML fetches returned 502 here; indexed
+official text was cross-checked against the
+[CBIC consolidated rules](https://cbic-gst.gov.in/pdf/24092021-CGST-Rules-2017-Part-A-Rules.pdf).
+
+[GSTN's October 2025 IMS FAQ](https://tutorial.gst.gov.in/downloads/news/creative_faq_on_gstr9_for_24_25_dt_15_oct_25_v6_final.pdf)
+describes recipient handling of credit notes. No IMS acceptance, ITC reversal or
+return-filing status is automatically inferred or integrated in this step.
+
+Internal reversals swap ledger entries but are explicitly not GST credit notes
+or filing instructions. Commercial notes collect/reduce no GST. Neither notes
+nor reversals move physical stock. The earlier Step 2 reference to Rule 54 for
+ordinary bills of supply should read Rule 49; Rule 53 governs these notes.
+
