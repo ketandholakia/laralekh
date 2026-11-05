@@ -64,3 +64,24 @@ Current GSTN confirmation was insufficient to treat a single threshold as univer
 applicable. These must be verified with the relevant current notifications when their
 features are built. E-invoicing and GSTR-2B remain deferred.
 
+## Step 2 PDF particulars (researched 5 November 2026)
+
+The invoice/bill-of-supply template follows
+[CGST Rule 46](https://taxinformation.cbic.gov.in/content/html/tax_repository/gst/rules/cgst_rules/active/chapter6/rule46_v1.00.html)
+(tax invoice) and bill-of-supply practice under Rule 54: supplier name/address/GSTIN,
+consecutive serial number (series+number, max 16 characters per FY) and date,
+recipient details, HSN/SAC, description/quantity, taxable value after discount,
+tax rate and amounts, place of supply with state name, reverse charge indicator,
+and an authorised-signatory block. Delivery address distinct from the place of
+supply is not yet modelled (no ship-to fields); a ship-to feature must add it
+before claiming Rule 46(m) compliance.
+
+The optional UPI QR is a supplier-generated payment convenience QR
+(`upi://pay` with payee VPA, name, amount, note), per
+[GSTN's B2C dynamic QR comparison note](https://einvoice2.gst.gov.in/Documents/B2B_einvoiceQRCodevsB2CDynamicQRCode.pdf).
+It is labelled as not being the IRP e-invoice QR. The Notification 14/2020
+turnover thresholds that mandate the B2C dynamic QR are deliberately not
+encoded; the QR here is printed only when the company configures a valid UPI ID.
+Signature/digital-signature: the template prints an authorised-signatory block
+only; no digital signature is applied.
+

@@ -1,8 +1,9 @@
 # Laravix
 
-Indian GST accounting backend. Step 1 targets PHP 8.3, Laravel 11, MySQL 8,
-Livewire 3 (including Alpine), Tailwind 3, Redis, Pest, Spatie permission and
-activitylog, DomPDF via its Laravel integration, and Sanctum. No application UI yet.
+Indian GST accounting backend with a Livewire 3 sales-invoice UI. Step 2 targets
+PHP 8.3, Laravel 11, MySQL 8, Livewire 3 (including Alpine), Tailwind 3, Redis,
+Pest, Spatie permission and activitylog, DomPDF via its Laravel integration,
+chillerlan/php-qrcode for the invoice payment QR, and Sanctum.
 
 ## Setup
 
@@ -89,12 +90,43 @@ text for tests; MySQL stores money in decimal(15,2).
 See [GST research and assumptions](docs/gst-rules.md),
 [dependency audit](docs/dependency-audit.json), and [validation notes](docs/validation.md).
 
-## Proposed Step 2
+## Step 2: authentication, invoice UI and PDF
 
-Build authorised company/year selection and a thin Livewire sales-invoice screen
-with party/item lookup, validated place of supply, line discounts, live tax totals,
-draft save, posting and read-only posted detail. Render an A4 DomPDF invoice/bill of
-supply from the stored snapshots, with tax breakup, HSN/SAC, amount in Indian words,
-and the reviewed QR type. A payment QR is distinct from an IRP-signed e-invoice QR;
-e-invoicing stays deferred. Ask before adding any QR package. Include feature tests
-for authorization, tenant isolation, duplicate submission, and PDF content.
+Authentication is standard session login (throttled). Company selection is a
+membership gate: `company_user` lists which companies a user may enter, and the
+selected company/financial year live in the session, revalidated on every
+request by the `company.context` middleware. No screen or action accepts a
+company id from browser input; drafts always belong to the authorized session
+company. Switching companies discards the year selection and clears the Spatie
+role/permission relations cached on the user; `TenantContext` also keys
+Spatie's permission cache per company (roles are company-scoped, and a shared
+cache would freeze one company's view for every other company).
+
+Screens: throttled login, membership-listed company/year selection, invoice
+register (search, status and date filters, pagination), draft editor (party and
+item lookup, explicit supply type and place of supply, verified effective-dated
+rate dropdown, live tax breakup through `InvoicePreview`, which mirrors the
+posting inputs exactly), read-only posted view, and the A4 PDF. Business rules
+stay in `App\Domain\Sales\Actions\SaveInvoiceDraft`, `PostInvoice`, and the
+Step 1 services; Livewire components hold no business logic. Posting allocates
+the number inside the locking transaction; duplicate submissions fail
+server-side and consume nothing; posted invoices have no mutation paths.
+
+PDFs render from the stored supplier/party snapshots for posted documents.
+Title and declarations follow the document: tax invoice, reverse charge, LUT
+export/SEZ, or bill of supply (composition supplier or all non-taxable lines).
+The footer with `Page N of M` is stamped after rendering via DomPDF's canvas
+page script, because this DomPDF release does not substitute `{PAGE_NUM}`
+inline. The optional UPI payment QR (company `upi_id`) is a supplier-generated
+payment convenience QR and is labelled as not being an IRP e-invoice QR; QR
+turnover thresholds and e-invoicing remain out of scope. Sample PDFs covering
+the normal, inter-state, reverse charge, LUT export, composition bill of
+supply, draft preview, and multi-page cases can be regenerated with
+`php tools/render-sample-pdfs.php <output-directory>`.
+
+## Deferred to later steps
+
+Purchases, inventory posting, GST return exports, e-invoicing (IRP QR and
+reporting), GSTR-2B reconciliation, credit/debit notes and reversals, and a
+separate zero-value document workflow remain future work. Sanctum is installed
+for the later API/mobile step; this step's screens are session-only.

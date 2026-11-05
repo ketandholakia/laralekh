@@ -71,25 +71,25 @@ final class InvoicePdfController
             'paymentQr' => $paymentQr,
             'interState' => !$invoice->igst->isZero(),
         ])->setPaper('a4', 'portrait');
-        $this->withPageFooter($pdf, $isPosted);
 
         $filename = ($isPosted
             ? 'invoice-'.$invoice->series.'-'.$invoice->number
             : 'draft-invoice-preview').'.pdf';
+        $this->drawPageFooters($pdf, $isPosted);
+
         return $pdf->download($filename);
     }
 
-    // This DomPDF release does not substitute {PAGE_NUM}/{PAGE_COUNT} inline;
-    // the canvas page script is the supported way to draw per-page footers.
-    private function withPageFooter(\Barryvdh\DomPDF\PDF $pdf, bool $isPosted): void
+    // This DomPDF release neither substitutes {PAGE_NUM}/{PAGE_COUNT} inline
+    // nor applies pre-render canvas scripts. Render first, then stamp the
+    // footer onto every completed page, and let download() serialize that state.
+    private function drawPageFooters(\Barryvdh\DomPDF\PDF $pdf, bool $isPosted): void
     {
         $dompdf = $pdf->getDomPDF();
-        $canvas = \Dompdf\CanvasFactory::get_instance(
-            $dompdf, $dompdf->getPaperSize(), $dompdf->getPaperOrientation());
+        $dompdf->render(); // single render pass; no serialization yet
         $font = $dompdf->getFontMetrics()->getFont('helvetica', 'normal');
         $label = $isPosted ? '' : 'DRAFT PREVIEW - no invoice number has been allocated  ·  ';
-        $canvas->page_text(24, 20, $label.'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 7.5, [0.42, 0.45, 0.50]);
-        $dompdf->setCanvas($canvas);
+        $dompdf->getCanvas()->page_text(24, 20, $label.'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 7.5, [0.42, 0.45, 0.50]);
     }
 
     private function stateLabel(string $code): string

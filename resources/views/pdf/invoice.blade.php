@@ -21,7 +21,7 @@
     .muted { color: #6b7280; font-size: 8pt; }
     .kv { margin: 0; }
     .totals td { border: none; padding: 1.5pt 4pt; }
-    .totals .grand td { border-top: 0.75pt solid #111827; font-weight: bold; font-size: 10.5pt; }
+    .totals .grand td { border-top: 0.75pt solid #111827; font-weight: bold; font-size: 10.5pt; white-space: nowrap; }
     .signature { margin-top: 14pt; text-align: right; }
     .declaration { font-size: 8pt; color: #374151; }
 </style>
@@ -197,7 +197,7 @@
                 @if (!$val($invoice->recipient_tax)->isZero())
                     <tr><td>Tax under RCM (recipient's liability)</td><td class="num">{{ $val($invoice->recipient_tax) }}</td></tr>
                 @endif
-                <tr class="grand"><td>Total</td><td class="num">₹ {{ $val($invoice->total) }}</td></tr>
+                <tr class="grand"><td>Total</td><td class="num">₹&nbsp;{{ $val($invoice->total) }}</td></tr>
             </table>
             @if ($isPosted && $paymentQr)
                 <div style="margin-top:6pt; text-align:center;">

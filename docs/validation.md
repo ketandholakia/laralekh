@@ -1,4 +1,44 @@
-# Step 1 validation
+# Step 2 validation
+
+Validated 5 November 2026 on Windows. Step 1 was validated with PHP 8.3.36;
+this host currently has PHP 8.5.9 (the 8.3 install is no longer present), and
+composer's platform pin (8.3.0) is unchanged. On PHP 8.5, Pest flags tests with
+a `PDO::MYSQL_ATTR_SSL_CA is deprecated` notice from the stock `config/database.php`
+— these are warnings, not failures; no framework or config version was changed.
+
+| Check | Result |
+| --- | --- |
+| Pest on in-memory SQLite (PHP 8.5.9) | 208 tests, 428 assertions; all passed (85 flagged only by the PHP 8.5 deprecation notice) |
+| Same Pest suite on MySQL 9.7.2 (isolated instance) | 208 tests, 428 assertions; all passed |
+| Concurrent MySQL posting (unchanged tool) | 10 workers; 8 invoices numbered 1–8; 2 duplicates rejected |
+| MySQL migrations up/rollback/up | Passed (fresh laravix_test_migrations database) |
+| composer audit | Same 5 pre-existing Laravel 11 advisories; chillerlan/php-qrcode added none |
+| npm audit | 0 vulnerabilities |
+| Tailwind build | Passed with the new UI classes |
+| Sample PDF rendering | 7 documents via tools/render-sample-pdfs.php; visually reviewed as page images |
+| Sample PDF visual verdicts | All 10 pages passed after fixes (see below) |
+
+PDF layout issues found and fixed during visual review: the grand total wrapped
+between the rupee sign and the amount (now nowrap), and multi-page footers
+printed "Page 1 of 1" only on the first page because the canvas page script was
+registered before rendering — footers are now stamped onto completed pages
+after the single render pass, giving "Page N of 4" on every page with repeated
+table headers.
+
+Two integration caveats found while building the screens: Laravel's implicit
+route binding resolves before route middleware, so tenant-scoped models are
+resolved manually inside the entered company context; and DomPDF embeds its
+font subsets such that plain-text extraction needs space/NUL normalisation
+(test helpers do this).
+
+The isolated MySQL 9.7.2 instance used a dedicated temporary data directory on
+loopback and was shut down afterwards; no existing database was touched. The
+production target remains MySQL 8. Redis queues were still not exercised (no
+working Redis service on this host); Sanctum remains installed for a later
+API step. PDF text extraction relies on a small in-repo helper, not an external
+pdftotext dependency.
+
+## Step 1 validation (superseded details retained)
 
 Validated 5 November 2026 with PHP 8.3.36 and MySQL 8.4.13 on Windows.
 
