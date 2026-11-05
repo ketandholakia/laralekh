@@ -1,0 +1,17 @@
+{
+  "name": "laravix/laravix", "type": "project", "description": "Multi-tenant Indian GST accounting", "license": "proprietary",
+  "require": {
+    "php": "~8.3.0", "ext-bcmath": "*",
+    "barryvdh/laravel-dompdf": "^3.1", "laravel/framework": "^11.31", "laravel/sanctum": "^4.0",
+    "livewire/livewire": "^3.6", "spatie/laravel-activitylog": "^4.10", "spatie/laravel-permission": "^6.0"
+  },
+  "require-dev": {"pestphp/pest": "^3.8", "pestphp/pest-plugin-laravel": "^3.2"},
+  "autoload": {"psr-4": {"App\\": "app/", "Database\\Factories\\": "database/factories/", "Database\\Seeders\\": "database/seeders/"}},
+  "autoload-dev": {"psr-4": {"Tests\\": "tests/"}},
+  "scripts": {
+    "post-autoload-dump": ["Illuminate\\Foundation\\ComposerScripts::postAutoloadDump", "@php artisan package:discover --ansi"],
+    "test": "@php vendor/pestphp/pest/bin/pest"
+  },
+  "config": {"platform": {"php": "8.3.0"}, "optimize-autoloader": true, "preferred-install": "dist", "sort-packages": true, "allow-plugins": {"pestphp/pest-plugin": true}},
+  "minimum-stability": "stable", "prefer-stable": true
+}
