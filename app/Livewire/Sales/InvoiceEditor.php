@@ -46,11 +46,12 @@ final class InvoiceEditor extends Component
 
     public string $itemQuery = '';
 
-    // Accepts an int (programmatic use) or the route-bound tenant-scoped model.
-    public function mount(Invoice|int|null $invoice = null): void
+    // Route parameters are resolved inside the entered tenant scope by the
+    // component itself; implicit binding would run before the middleware.
+    public function mount(int|string|null $invoice = null): void
     {
         $this->authorizeAccess();
-        $invoiceId = $invoice instanceof Invoice ? $invoice->id : $invoice;
+        $invoiceId = $invoice !== null ? (int) $invoice : null;
         if ($invoiceId !== null) {
             $invoice = Invoice::with('items')->findOrFail($invoiceId);
             if ($invoice->status !== 'draft') {

@@ -15,14 +15,17 @@ final class InvoiceView extends Component
 {
     public Invoice $invoice;
 
-    public function mount(Invoice $invoice): void
+    // Route parameters are not implicitly bound: that would resolve the model
+    // before the company.context middleware enters the tenant scope.
+    public function mount(int|string $invoiceId): void
     {
         $user = auth()->user();
         $companyId = app(CompanySession::class)->companyId();
         abort_if($companyId === null, 403, 'Select a company first.');
         abort_unless($user->isMemberOf($companyId), 403);
         abort_unless($user->can('invoices.view'), 403);
-        $this->invoice = $invoice->load(['items' => fn ($q) => $q->orderBy('position'), 'party', 'voucher']);
+        $this->invoice = Invoice::findOrFail((int) $invoiceId)
+            ->load(['items' => fn ($q) => $q->orderBy('position'), 'party', 'voucher']);
     }
 
     public function render(): View

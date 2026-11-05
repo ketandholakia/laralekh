@@ -15,73 +15,6 @@ use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Database\Seeders\{ChartOfAccountsSeeder, StateSeeder};
 
-// A logged-in user whose session company and financial year are selected, with
-// the seeded chart of accounts available inside the tenant scope.
-function webSession(string $role = 'accountant', array $permissions = ACCOUNTANT_PERMISSIONS): array
-{
-    (new StateSeeder)->run();
-    $user = webUser();
-    $company = companyFixture();
-    addMembership($user, $company);
-    assignCompanyRole($user, $company, $role, $permissions);
-    app(TenantContext::class)->run($company->id, fn (): mixed => (new ChartOfAccountsSeeder)->run());
-    selectSessionCompany($user, $company, salesYear($company));
-    return [$user, $company];
-}
-
-function inTenantContext(Company $company, Closure $callback): mixed
-{
-    return app(TenantContext::class)->run($company->id, $callback);
-}
-
-function selectSessionCompany(User $user, Company $company, FinancialYear $year): void
-{
-    app(CompanySession::class)->select($user, $company->id, $year->id);
-}
-
-function salesYear(Company $company): FinancialYear
-{
-    return app(TenantContext::class)->run($company->id, fn (): FinancialYear => FinancialYear::firstOrCreate(
-        ['name' => '2026-27'], ['starts_on' => '2026-04-01', 'ends_on' => '2027-03-31'],
-    ));
-}
-
-function verifiedRate(?string $code = 'GST18', string $rate = '18'): TaxRate
-{
-    return TaxRate::firstOrCreate(['code' => $code], [
-        'rate' => $rate, 'effective_from' => '2026-04-01', 'is_verified' => true,
-        'legal_reference' => 'Test fixture only',
-    ]);
-}
-
-function masters(): array
-{
-    $ledger = Ledger::firstOrCreate(['code' => 'CUSTOMER'], [
-        'name' => 'Customer', 'ledger_group_id' => LedgerGroup::where('code', 'RECEIVABLES')->sole()->id]);
-    $party = Party::firstOrCreate(['ledger_id' => $ledger->id], ['name' => 'Customer', 'state_code' => '27']);
-    $item = Item::firstOrCreate(['sku' => 'WIDGET'], ['name' => 'Widget', 'hsn_sac' => '8471']);
-    $sales = Ledger::where('code', 'SALES')->sole();
-    return [$party, $item, $sales];
-}
-
-function draftPayload(int $partyId, array $overrides = []): array
-{
-    return [
-        'party_id' => $partyId, 'date' => '2026-11-05', 'due_date' => null, 'series' => 'SI',
-        'supply_type' => 'domestic', 'place_of_supply' => '27', 'zero_rated_mode' => 'none',
-        'zero_rated_eligible' => false, 'sez_authorized' => false, 'reverse_charge' => false,
-    ] + $overrides;
-}
-
-function linePayload(int $itemId, int $ledgerId, ?int $rateId, array $overrides = []): array
-{
-    return [
-        'item_id' => $itemId, 'sales_ledger_id' => $ledgerId, 'tax_rate_id' => $rateId,
-        'description' => 'Widget', 'hsn_sac' => '8471', 'quantity' => '1',
-        'unit_price' => '1000.00', 'discount' => '0.00', 'tax_category' => 'taxable',
-    ] + $overrides;
-}
-
 it('lists invoices only for the session company', function () {
     [$user, $company] = webSession();
     $other = companyFixture('Other');
@@ -201,10 +134,10 @@ it('treats posted invoices as read-only in the editor and view', function () {
         return app(PostInvoice::class)->handle($draft->id)->fresh(['items', 'party', 'voucher']);
     });
     inTenantContext($company, function () use ($invoice): void {
-        Livewire::test(InvoiceView::class, ['invoice' => $invoice])
+        Livewire::test(InvoiceView::class, ['invoiceId' => $invoice->id])
             ->assertOk()->assertSee('Invoice SI/1');
         // Reopening the posted invoice in the editor redirects to the read-only view.
-        Livewire::test(InvoiceEditor::class, ['invoice' => $invoice]);
+        Livewire::test(InvoiceEditor::class, ['invoice' => $invoice->id]);
         // And the draft action refuses to overwrite it.
         [$party, $item, $sales] = masters();
         $rate = verifiedRate();
@@ -226,7 +159,7 @@ it('refuses posting for users without the invoices.post permission', function ()
     });
     inTenantContext($company, function () use ($user, $draft): void {
         expect($user->can('invoices.create'))->toBeTrue()->and($user->can('invoices.post'))->toBeFalse();
-        Livewire::test(InvoiceEditor::class, ['invoice' => $draft])
+        Livewire::test(InvoiceEditor::class, ['invoice' => $draft->id])
             ->call('post')
             ->assertHasErrors('lines');
         expect(Invoice::sole()->status)->toBe('draft')->and(Voucher::count())->toBe(0);

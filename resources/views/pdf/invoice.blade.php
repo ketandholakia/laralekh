@@ -27,18 +27,14 @@
 </style>
 </head>
 <body>
+@php
+    $zero = \App\Domain\Shared\ValueObjects\Money::of('0');
+    $val = fn ($v) => $v ?? $zero;
+@endphp
 @if (!$isPosted)
     <div class="draft-watermark">DRAFT — NOT A TAX INVOICE</div>
 @endif
-<div class="page-footer">
-    @if ($isPosted)
-        {{ $supplier['name'] ?? '' }} · {{ $docNumber ?? '' }}
-    @endif
-    Page {PAGE_NUM} of {PAGE_COUNT}
-    @if (!$isPosted)
-        · DRAFT PREVIEW — no invoice number has been allocated
-    @endif
-</div>
+
 
 @if (!$isPosted)
     <div class="draft-banner">DRAFT PREVIEW — FOR REVIEW ONLY. NO INVOICE NUMBER ALLOCATED. NOT A TAX INVOICE.</div>
@@ -134,17 +130,17 @@
                 </td>
                 <td>{{ $item->hsn_sac }}</td>
                 <td class="num">{{ $item->quantity }}</td>
-                <td class="num">{{ $item->unit_price }}</td>
-                <td class="num">{{ $item->discount }}</td>
-                <td class="num">{{ $item->taxable_amount }}</td>
+                <td class="num">{{ $val($item->unit_price) }}</td>
+                <td class="num">{{ $val($item->discount) }}</td>
+                <td class="num">{{ $val($item->taxable_amount) }}</td>
                 @if ($interState)
-                    <td class="num">{{ $item->igst }}<div class="muted">@ {{ $item->rate }}%</div></td>
+                    <td class="num">{{ $val($item->igst) }}<div class="muted">@ {{ $item->rate }}%</div></td>
                 @else
-                    <td class="num">{{ $item->cgst }}<div class="muted">@ {{ $item->rate / 2 }}%</div></td>
-                    <td class="num">{{ $invoice->utgst->isZero() && $item->utgst->isZero() ? $item->sgst : $item->utgst }}
+                    <td class="num">{{ $val($item->cgst) }}<div class="muted">@ {{ $item->rate / 2 }}%</div></td>
+                    <td class="num">{{ !$val($invoice->utgst)->isZero() ? $val($item->utgst) : $val($item->sgst) }}
                         <div class="muted">@ {{ $item->rate / 2 }}%</div></td>
                 @endif
-                <td class="num">{{ $item->total }}</td>
+                <td class="num">{{ $val($item->total) }}</td>
             </tr>
         @endforeach
     </tbody>
@@ -185,28 +181,28 @@
         </td>
         <td style="width:42%; border:none; vertical-align:top;">
             <table class="totals">
-                <tr><td>Taxable value</td><td class="num">{{ $invoice->taxable_amount }}</td></tr>
-                @if (!$invoice->igst->isZero())
-                    <tr><td>IGST</td><td class="num">{{ $invoice->igst }}</td></tr>
+                <tr><td>Taxable value</td><td class="num">{{ $val($invoice->taxable_amount) }}</td></tr>
+                @if (!$val($invoice->igst)->isZero())
+                    <tr><td>IGST</td><td class="num">{{ $val($invoice->igst) }}</td></tr>
                 @endif
-                @if (!$invoice->cgst->isZero())
-                    <tr><td>CGST</td><td class="num">{{ $invoice->cgst }}</td></tr>
+                @if (!$val($invoice->cgst)->isZero())
+                    <tr><td>CGST</td><td class="num">{{ $val($invoice->cgst) }}</td></tr>
                 @endif
-                @if (!$invoice->sgst->isZero())
-                    <tr><td>SGST</td><td class="num">{{ $invoice->sgst }}</td></tr>
+                @if (!$val($invoice->sgst)->isZero())
+                    <tr><td>SGST</td><td class="num">{{ $val($invoice->sgst) }}</td></tr>
                 @endif
-                @if (!$invoice->utgst->isZero())
-                    <tr><td>UTGST</td><td class="num">{{ $invoice->utgst }}</td></tr>
+                @if (!$val($invoice->utgst)->isZero())
+                    <tr><td>UTGST</td><td class="num">{{ $val($invoice->utgst) }}</td></tr>
                 @endif
-                @if (!$invoice->recipient_tax->isZero())
-                    <tr><td>Tax under RCM (recipient's liability)</td><td class="num">{{ $invoice->recipient_tax }}</td></tr>
+                @if (!$val($invoice->recipient_tax)->isZero())
+                    <tr><td>Tax under RCM (recipient's liability)</td><td class="num">{{ $val($invoice->recipient_tax) }}</td></tr>
                 @endif
-                <tr class="grand"><td>Total</td><td class="num">₹ {{ $invoice->total }}</td></tr>
+                <tr class="grand"><td>Total</td><td class="num">₹ {{ $val($invoice->total) }}</td></tr>
             </table>
             @if ($isPosted && $paymentQr)
                 <div style="margin-top:6pt; text-align:center;">
                     {!! $paymentQr !!}
-                    <div class="muted" style="margin-top:3pt;">Scan to pay ₹ {{ $invoice->total }} via UPI
+                    <div class="muted" style="margin-top:3pt;">Scan to pay ₹ {{ $val($invoice->total) }} via UPI
                         (supplier payment QR — not an IRP e-invoice QR)</div>
                 </div>
             @endif

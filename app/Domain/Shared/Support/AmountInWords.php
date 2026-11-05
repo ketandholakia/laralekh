@@ -7,7 +7,8 @@ use InvalidArgumentException;
 
 // Converts a Money amount into Indian-format words for statutory invoice
 // fields ("Rupees ... and Paise ... Only"). Grouping uses the Indian system
-// (crore, lakh, thousand) and paise are spelled out separately.
+// (crore, lakh, thousand) and paise are spelled out separately. Magnitudes
+// above crore fold into the crore count, e.g. 1000 crore.
 final class AmountInWords
 {
     private const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
@@ -27,7 +28,7 @@ final class AmountInWords
         if ($rupees === '' && $paise === '00') {
             return 'Rupees Zero Only';
         }
-        $words = 'Rupees'.($rupees !== '' ? ' '.self::indianWords($rupees) : '');
+        $words = 'Rupees '.($rupees !== '' ? self::indianWords($rupees) : 'Zero');
         if ($paise !== '00') {
             $words .= ' and Paise '.self::indianWords($paise);
         }
@@ -40,32 +41,32 @@ final class AmountInWords
         if ($digits === '') {
             return 'Zero';
         }
-        // Indian grouping: the last three digits stand alone, the leading
-        // digits split into pairs from the right (thousand, lakh, crore, and
-        // anything beyond folds into crore, e.g. 1000 crore).
-        $tail = (int) substr($digits, -3);
-        $leading = substr($digits, 0, strlen($digits) - 3);
-        if ($leading !== '' && strlen($leading) % 2 === 1) {
-            $leading = '0'.$leading;
-        }
-        $groups = [];
-        for ($i = 0; $leading !== '' && $i < strlen($leading); $i += 2) {
-            $groups[] = (int) substr($leading, $i, 2);
-        }
+        $len = strlen($digits);
+        // Indian pairs are taken from the right: last three digits, then two
+        // digits each for thousand, lakh; everything above seven digits is a
+        // count of crore, itself spelled with the same rules.
+        $pair = fn (int $fromRight): string => substr($digits, max(0, $len - $fromRight), min(2, $len - $fromRight + 2));
         $parts = [];
-        $count = count($groups);
-        foreach ($groups as $i => $group) {
-            if ($group === 0) {
-                continue;
-            }
-            $fromRight = $count - 1 - $i;
-            $name = $fromRight === 0 ? 'Thousand' : ($fromRight === 1 ? 'Lakh' : 'Crore');
-            $parts[] = self::belowHundred($group).' '.$name;
+        if ($len > 7) {
+            $parts[] = self::indianWords(ltrim(substr($digits, 0, $len - 7), '0')).' Crore';
         }
+        if ($len > 5) {
+            $lakh = (int) $pair(7);
+            if ($lakh > 0) {
+                $parts[] = self::belowHundred($lakh).' Lakh';
+            }
+        }
+        if ($len > 3) {
+            $thousand = (int) $pair(5);
+            if ($thousand > 0) {
+                $parts[] = self::belowHundred($thousand).' Thousand';
+            }
+        }
+        $tail = (int) substr($digits, -3);
         if ($tail > 0) {
             $parts[] = self::belowThousand($tail);
         }
-        return implode(' ', array_filter($parts)) ?: 'Zero';
+        return implode(' ', $parts) ?: 'Zero';
     }
 
     private static function belowHundred(int $n): string

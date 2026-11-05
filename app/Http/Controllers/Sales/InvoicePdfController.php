@@ -17,15 +17,21 @@ use Illuminate\Support\Str;
 // never allocates an invoice number.
 final class InvoicePdfController
 {
-    public function __invoke(Invoice $invoice): Response
+    // The invoice is resolved inside the entered tenant scope; implicit route
+    // binding would run before the middleware, outside any company context.
+    public function __invoke(int $invoiceId): Response
     {
         $user = auth()->user();
         $companyId = app(CompanySession::class)->companyId();
         abort_if($companyId === null, 403);
         abort_unless($user->isMemberOf($companyId) && $user->can('invoices.view'), 403);
 
+        $invoice = Invoice::findOrFail($invoiceId);
         $invoice->load(['items' => fn ($q) => $q->orderBy('position'), 'party']);
         $isPosted = $invoice->status === 'posted';
+        // Draft models may not have persisted totals; normalise for words/QR.
+        $zero = Money::of('0');
+        $total = $invoice->total ?? $zero;
         $supplier = $isPosted ? ($invoice->supplier_snapshot ?? []) : app(TenantContext::class)
             ->run(app(CompanySession::class)->companyId(), fn (): array => $this->liveSupplier());
         $party = $isPosted ? ($invoice->party_snapshot ?? []) : [
@@ -65,11 +71,25 @@ final class InvoicePdfController
             'paymentQr' => $paymentQr,
             'interState' => !$invoice->igst->isZero(),
         ])->setPaper('a4', 'portrait');
+        $this->withPageFooter($pdf, $isPosted);
 
         $filename = ($isPosted
             ? 'invoice-'.$invoice->series.'-'.$invoice->number
             : 'draft-invoice-preview').'.pdf';
         return $pdf->download($filename);
+    }
+
+    // This DomPDF release does not substitute {PAGE_NUM}/{PAGE_COUNT} inline;
+    // the canvas page script is the supported way to draw per-page footers.
+    private function withPageFooter(\Barryvdh\DomPDF\PDF $pdf, bool $isPosted): void
+    {
+        $dompdf = $pdf->getDomPDF();
+        $canvas = \Dompdf\CanvasFactory::get_instance(
+            $dompdf, $dompdf->getPaperSize(), $dompdf->getPaperOrientation());
+        $font = $dompdf->getFontMetrics()->getFont('helvetica', 'normal');
+        $label = $isPosted ? '' : 'DRAFT PREVIEW - no invoice number has been allocated  ·  ';
+        $canvas->page_text(24, 20, $label.'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 7.5, [0.42, 0.45, 0.50]);
+        $dompdf->setCanvas($canvas);
     }
 
     private function stateLabel(string $code): string
