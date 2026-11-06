@@ -23,6 +23,7 @@ final class ReturnDatasetBuilder
         $end = $start->endOfMonth();
         $errors = [];
         $warnings = [];
+        $taxHeads = ['cgst','sgst','utgst','igst','cess'];
         $documents = Invoice::query()->with(['items.item', 'party', 'voucher'])->where('status', 'posted')
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])->orderBy('date')->orderBy('id')->get();
         $corrections = SalesCorrection::query()->with(['lines.originalItem.item', 'invoice.party'])->where('status', 'posted')
@@ -33,10 +34,10 @@ final class ReturnDatasetBuilder
         $out = ['b2b'=>[], 'b2cl'=>[], 'b2cs'=>[], 'exports'=>[], 'sez'=>[], 'notes'=>['registered'=>[], 'unregistered'=>[]],
             'nil_exempt_non_gst'=>['nil'=>[], 'exempt'=>[], 'non_gst'=>[]], 'hsn'=>[], 'documents_issued'=>[], 'reverse_charge'=>[],
             'purchases'=>['itc'=>['eligible'=>[], 'blocked'=>[], 'review'=>[]], 'rcm'=>[]]];
+        foreach (['eligible','blocked','review'] as $bucket) $out['purchases']['itc'][$bucket] = array_fill_keys($taxHeads, '0.00');
         $b2cs = [];
         $hsn = [];
         $seenNumbers = [];
-        $taxHeads = ['cgst','sgst','utgst','igst','cess'];
 
         foreach ($documents as $invoice) {
             $number = trim((string) $invoice->series).'/'.trim((string) $invoice->number);
@@ -66,9 +67,10 @@ final class ReturnDatasetBuilder
                 foreach ($record['items'] as $line) {
                     if ($line['tax_category'] !== 'taxable') continue;
                     $key = implode('|', [$invoice->place_of_supply, $line['rate'], $invoice->reverse_charge ? 'Y' : 'N']);
-                    $b2cs[$key] ??= ['place_of_supply'=>$invoice->place_of_supply,'rate'=>$line['rate'],'taxable_value'=>'0.00','cess'=>'0.00'];
+                    $b2cs[$key] ??= ['place_of_supply'=>$invoice->place_of_supply,'rate'=>$line['rate'],'taxable_value'=>'0.00','cess'=>'0.00','cgst'=>'0.00','sgst'=>'0.00','utgst'=>'0.00','igst'=>'0.00'];
                     $b2cs[$key]['taxable_value'] = bcadd($b2cs[$key]['taxable_value'], $line['taxable_amount'], 2);
                     $b2cs[$key]['cess'] = bcadd($b2cs[$key]['cess'], $line['cess'], 2);
+                    foreach (['cgst','sgst','utgst','igst'] as $head) $b2cs[$key][$head] = bcadd($b2cs[$key][$head], $line[$head], 2);
                 }
             }
         }
@@ -119,7 +121,7 @@ final class ReturnDatasetBuilder
         if ($line->tax_category === 'taxable' && !$this->rateIsVerified($line->tax_rate_id))
             $errors[] = $this->issue('unverified_tax_rate', 'Tax rate lacks an effective, verified tax-rate record.', $documentId);
         return ['description'=>(string)$line->description,'hsn_sac'=>$hsn,'quantity'=>(string)$line->quantity,
-            'unit'=>$line->unit ?? $line->item?->unit ?? null,'rate'=>(string)$line->rate,'tax_category'=>$line->tax_category,
+            'unit'=>$line->unit ?? $line->item?->unit ?? $line->originalItem?->item?->unit ?? null,'rate'=>(string)$line->rate,'tax_category'=>$line->tax_category,
             'taxable_amount'=>(string)$line->taxable_amount,'cgst'=>(string)$line->cgst,'sgst'=>(string)$line->sgst,
             'utgst'=>(string)$line->utgst,'igst'=>(string)$line->igst,'cess'=>(string)$line->cess,'total'=>(string)$line->total];
     }
@@ -135,6 +137,7 @@ final class ReturnDatasetBuilder
     private function addHsn(array &$rows, object $line, array &$errors, ?int $turnover, int $documentId): void
     {
         $item=$line->item ?? $line->originalItem?->item; $code=preg_replace('/\s+/', '', (string)$line->hsn_sac);
+        if (!$item?->unit) $errors[]=$this->issue('missing_uqc','UQC is missing for an HSN summary line.',$documentId);
         $digits=$this->requiredHsnDigits($turnover);
         if (!$digits || !preg_match('/^\d{'.$digits.',8}$/',$code)) { $errors[]=$this->issue('invalid_hsn','HSN/SAC does not meet a verified digit rule.',$documentId); return; }
         $key=$code.'|'.(string)$line->rate;
