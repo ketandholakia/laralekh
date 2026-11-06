@@ -86,6 +86,17 @@ it('rounds tax components independently at half a paise', function () {
     expect((string) $r->cgst)->toBe('0.01')->and((string) $r->sgst)->toBe('0.01')->and((string) $r->total)->toBe('0.12');
 });
 
+it('keeps multi-line invoice totals stable by summing independently rounded lines', function () {
+    $calculator = new GstCalculator;
+    $supply = (new PlaceOfSupplyResolver)->resolve('27', '27');
+    $lines = array_map(fn () => $calculator->calculate(Money::of('0.10'), '1', '10', $supply), range(1, 3));
+    $cgst = array_reduce($lines, fn (Money $sum, $line) => $sum->add($line->cgst), Money::of('0'));
+    $sgst = array_reduce($lines, fn (Money $sum, $line) => $sum->add($line->sgst), Money::of('0'));
+    $total = array_reduce($lines, fn (Money $sum, $line) => $sum->add($line->total), Money::of('0'));
+    expect((string) $cgst)->toBe('0.03')->and((string) $sgst)->toBe('0.03')
+        ->and((string) $total)->toBe('0.36')->and((string) $cgst->add($sgst))->toBe('0.06');
+});
+
 it('keeps invoice paise distinct from statutory whole-rupee rounding', function ($value, $rounded) {
     expect((string) (new GstCalculator)->roundStatutoryPayable(Money::of($value)))->toBe($rounded);
 })->with([['100.49', '100.00'], ['100.50', '101.00'], ['100.99', '101.00'], ['0.49', '0.00']]);
@@ -105,4 +116,3 @@ it('rejects contradictory RCM and zero-rated treatment', fn () => gstLine([
     'supply' => (new PlaceOfSupplyResolver)->resolve('27', '99', 'export'), 'zeroRatedMode' => 'lut',
     'zeroRatedEligible' => true, 'reverseCharge' => true,
 ]))->throws(InvalidArgumentException::class);
-

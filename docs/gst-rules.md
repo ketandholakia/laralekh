@@ -8,7 +8,7 @@ Some old official FAQs still show superseded thresholds, so they must not be use
 
 - [GST e-waybill state master](https://docs.ewaybillgst.gov.in/apidocs/state-code.html):
   codes 01–38 retained; 25 and 28 are historical/inactive. 26 is the merged UT.
-  97 (other territory) is outside this MVP. 99 means overseas in the resolver only.
+  97 (other territory) is accepted domestically and treated as inter-state. 99 means overseas in the resolver only.
   The master was visible in indexed official results; direct access returned HTTP 403.
 - [IGST section 8](https://taxinformation.cbic.gov.in/content-page/explore-act/1000616/1000001):
   same supplier state and place of supply means intra-state, except SEZ.
@@ -28,14 +28,17 @@ Some old official FAQs still show superseded thresholds, so they must not be use
   [CGST section 10](https://taxinformation.cbic.gov.in/content-page/explore-act/1000279/1000001)
   supplies the legal rule. Inter-state outward composition supplies are rejected.
 - [CGST Act section 170](https://cbic-gst.gov.in/pdf/CGST-Act-Updated-31082021.pdf):
-  statutory sums payable are rounded to whole rupees. Invoice components in this
-  MVP are individually rounded half-up to paise and summed. A separate utility
+  statutory sums payable are rounded to whole rupees. Invoice tax is calculated
+  per line: CGST and SGST/UTGST are each rounded half-up to paise from half the
+  rate; IGST is rounded half-up per line. Line amounts are summed without
+  invoice-level recalculation. A separate utility
   handles whole-rupee statutory rounding; no automatic per-line whole-rupee rounding.
 - [2025 rate-change FAQ and notification references](https://www.pib.gov.in/Pressreleaseshare.aspx?PRID=2168426&lang=2&reg=3)
   supersede the old goods schedules with Notification 9/2025-CT(R).
   [Effective-date FAQ](https://www.pib.gov.in/PressReleasePage.aspx?PRID=2163560&lang=1&reg=3)
-  identifies 22 September 2025 and exceptions. Requested 0/5/12/18/28 seeds are
-  historical templates, UNVERIFIED, not an authoritative current rate catalogue.
+  identifies 22 September 2025 and exceptions. Seeds include 0/5/18/40 from
+  2025-09-22 and historical 5/12/18/28 through 2025-09-21. All remain UNVERIFIED,
+  not an authoritative HSN-specific rate catalogue.
   No blanket expiry or HSN applicability is invented. Posting requires a verified,
   effective-dated rate. New HSN-specific rates, including applicable 40% supplies,
   must be entered after notification review. The calculator accepts valid decimal
@@ -53,7 +56,9 @@ direction, goods without movement, and general domestic services. Special servic
 place of supply. Export of services is not inferred merely from an overseas address.
 
 Prices are tax-exclusive INR; quantity has up to three decimals; discounts are fixed
-line amounts. No cess, inclusive pricing, TCS/TDS, advances, time-of-supply rate
+line amounts. Compensation cess is an explicit rate input; applicability, rate,
+and valuation remain goods/notification-specific and require professional
+verification. No inclusive pricing, TCS/TDS, advances, time-of-supply rate
 transitions, mixed/composite supplies, valuation exceptions, or automatic return filing.
 Rate selection uses invoice date only when it is the legally applicable tax date.
 A verified rate is an accountant's input, not an automated compliance conclusion.
@@ -141,4 +146,3 @@ Internal reversals swap ledger entries but are explicitly not GST credit notes
 or filing instructions. Commercial notes collect/reduce no GST. Neither notes
 nor reversals move physical stock. The earlier Step 2 reference to Rule 54 for
 ordinary bills of supply should read Rule 49; Rule 53 governs these notes.
-
