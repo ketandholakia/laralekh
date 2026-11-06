@@ -48,15 +48,17 @@ final class Gstr3bSummaryBuilder
         $review=$dataset['purchases']['itc']['review']??array_fill_keys($heads,'0.00');
         $rcm=array_fill_keys($heads,'0.00');
         foreach($dataset['purchases']['rcm']??[] as $bill)foreach($bill['items'] as $line)foreach($heads as $head)$rcm[$head]=bcadd($rcm[$head],(string)$line[$head],2);
-        $payable=[];foreach($heads as $head){
+        $payable=[];$payableTotal='0.00';foreach($heads as $head){
             $raw=bcsub(bcadd($output[$head],$rcm[$head],2),(string)$itc[$head],2);
-            $payable[$head]=(string)$this->calculator->roundStatutoryPayable(Money::of($raw));
+            $payable[$head]=$raw;$payableTotal=bcadd($payableTotal,$raw,2);
         }
         return ['period'=>$dataset['meta']['period'],'basis'=>'books reconciliation only; portal values may be auto-populated from GSTR-1/1A and GSTR-2B',
             '3_1'=>['taxable_outward'=>['taxable_value'=>$taxableOutward,'tax'=>$output],'zero_rated_taxable_value'=>$zeroRated,
                 'nil_rated_value'=>$nil,'exempt_value'=>$exempt,'non_gst_value'=>$nonGst,'reverse_charge_inward_tax'=>$rcm],
             '4_itc'=>['eligible'=>$itc,'blocked'=>$blocked,'review_required'=>$review],
             'net_payable_after_book_itc'=>$payable,
+            'net_payable_total_before_statutory_rounding'=>$payableTotal,
+            'net_payable_total_after_statutory_rounding'=>(string)$this->calculator->roundStatutoryPayable(Money::of($payableTotal)),
             'warnings'=>['Reconcile portal-generated GSTR-1/1A and GSTR-2B values before filing. RCM ITC eligibility and statutory reversal categories require CA review.']];
     }
 }

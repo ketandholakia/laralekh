@@ -12,7 +12,9 @@ it('builds the 3B books reconciliation and ties output and ITC to tax ledgers', 
         expect($summary['basis'])->toContain('reconciliation only')
             ->and($summary['3_1']['taxable_outward']['tax']['cgst'])->toBe('90.00')
             ->and($summary['3_1']['taxable_outward']['taxable_value'])->toBe('1000.00')
-            ->and($summary['net_payable_after_book_itc']['cgst'])->toBe('90.00');
+            ->and($summary['net_payable_after_book_itc']['cgst'])->toBe('90.00')
+            ->and($summary['net_payable_total_before_statutory_rounding'])->toBe('180.00')
+            ->and($summary['net_payable_total_after_statutory_rounding'])->toBe('180.00');
     });
 });
 
