@@ -38,3 +38,19 @@ it('keeps return dataset access tenant scoped', function () {
             ->toThrow(DomainException::class,'active tenant');
     });
 });
+
+it('never includes another tenant company invoices in the return dataset', function () {
+    inSalesCompany(function(Company $companyA){
+        $invoiceA=returnSalesFixture(['date'=>'2026-11-06']);
+        app(PostingService::class)->postSalesInvoice($invoiceA->id);
+        $companyB=companyFixture('Second return tenant');
+        app(TenantContext::class)->run($companyB->id,function()use($companyB){
+            $invoiceB=returnSalesFixture(['date'=>'2026-11-06']);
+            app(PostingService::class)->postSalesInvoice($invoiceB->id);
+            $datasetB=app(ReturnDatasetBuilder::class)->build($companyB,'2026-11',50000000);
+            expect($datasetB['b2cs'])->toHaveCount(1)->and($datasetB['b2cs'][0]['taxable_value'])->toBe('1000.00');
+        });
+        $datasetA=app(ReturnDatasetBuilder::class)->build($companyA,'2026-11',50000000);
+        expect($datasetA['b2cs'])->toHaveCount(1)->and($datasetA['b2cs'][0]['taxable_value'])->toBe('1000.00');
+    });
+});

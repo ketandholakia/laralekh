@@ -16,6 +16,8 @@ it('finalizes immutable snapshots and supersedes on regeneration',function(){
             ->and(app(FiledPeriodBackdatingMonitor::class)->warnings('2026-11'))->toBeArray();
         $two=$service->generate($company,'2026-11','gstr1',['validation'=>['valid'=>true],'rows'=>[2]]);
         expect($two->version)->toBe(2)->and($two->status)->toBe('draft')->and($one->fresh()->status)->toBe('superseded');
+        expect(fn()=>$one->fresh()->update(['payload'=>['corrupted'=>true]]))->toThrow(QueryException::class);
+        expect(fn()=>$one->fresh()->delete())->toThrow(QueryException::class);
     });
 });
 
