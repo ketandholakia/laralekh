@@ -30,6 +30,9 @@ it('requires overseas destination for exports', fn () => (new PlaceOfSupplyResol
     ->throws(InvalidArgumentException::class);
 it('rejects unsupported state codes', fn ($state) => (new PlaceOfSupplyResolver)->resolve('27', $state))
     ->with(['00', '25', '28', '39', '99', '7'])->throws(InvalidArgumentException::class);
+it('treats other territory as inter-state', function () {
+    $supply = (new PlaceOfSupplyResolver)->resolve('27', '97');
+    expect($supply->interState)->toBeTrue()->and($supply->placeOfSupply)->toBe('97');
+});
 it('does not treat Delhi or Puducherry as UTGST jurisdictions', fn ($state) => expect((new PlaceOfSupplyResolver)->resolve($state, $state)->usesUtgst)->toBeFalse())
     ->with(['07', '34']);
-

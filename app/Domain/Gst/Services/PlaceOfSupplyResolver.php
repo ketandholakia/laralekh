@@ -45,9 +45,8 @@ final class PlaceOfSupplyResolver
 
     private function validateState(string $state): void
     {
-        if (!preg_match('/^(0[1-9]|[12][0-9]|3[0-8])$/D', $state) || in_array($state, ['25', '28'], true)) {
+        if (!preg_match('/^(0[1-9]|[12][0-9]|3[0-8]|97)$/D', $state) || in_array($state, ['25', '28'], true)) {
             throw new InvalidArgumentException('Unsupported or retired state code.');
         }
     }
 }
-
