@@ -18,10 +18,9 @@
         <p class="mt-3 text-sm text-slate-500">{{ $note->treatment === 'commercial' ? 'Commercial adjustment: no GST liability change.' : 'GST eligibility reviewed. Return reporting and acceptance are external to this document.' }} No physical stock adjustment.</p>
     </section>
     <section class="overflow-x-auto rounded-lg border bg-white p-5">
-        <table class="w-full text-sm text-left"><thead class="border-b"><tr><th class="p-2">Description / HSN</th><th class="p-2">Qty</th><th class="p-2">Base INR</th><th class="p-2">CGST</th><th class="p-2">SGST / UTGST</th><th class="p-2">IGST</th><th class="p-2">Total INR</th></tr></thead>
-        <tbody>@foreach ($note->lines as $line)<tr class="border-b"><td class="p-2">{{ $line->description }}<span class="block text-xs">{{ $line->hsn_sac }} · {{ $line->rate }}%</span></td><td class="p-2">{{ $line->quantity }}</td><td class="p-2">{{ $line->taxable_amount }}</td><td class="p-2">{{ $line->cgst }}</td><td class="p-2">{{ $line->sgst->add($line->utgst) }}</td><td class="p-2">{{ $line->igst }}</td><td class="p-2">{{ $line->total }}</td></tr>@endforeach</tbody></table>
+        <table class="w-full text-sm text-left"><thead class="border-b"><tr><th class="p-2">Description / HSN</th><th class="p-2">Qty</th><th class="p-2">Base INR</th><th class="p-2">CGST</th><th class="p-2">SGST / UTGST</th><th class="p-2">IGST</th><th class="p-2">Cess</th><th class="p-2">Total INR</th></tr></thead>
+        <tbody>@foreach ($note->lines as $line)<tr class="border-b"><td class="p-2">{{ $line->description }}<span class="block text-xs">{{ $line->hsn_sac }} · {{ $line->rate }}%</span></td><td class="p-2">{{ $line->quantity }}</td><td class="p-2">{{ $line->taxable_amount }}</td><td class="p-2">{{ $line->cgst }}</td><td class="p-2">{{ $line->sgst->add($line->utgst) }}</td><td class="p-2">{{ $line->igst }}</td><td class="p-2">{{ $line->cess }}</td><td class="p-2">{{ $line->total }}</td></tr>@endforeach</tbody></table>
         <p class="mt-4 text-right text-xl font-semibold">Total INR {{ $note->total }}</p>
         @if (!$note->recipient_tax->isZero())<p class="mt-2 text-right text-sm">Recipient RCM tax adjustment: INR {{ $note->recipient_tax }}</p>@endif
     </section>
 </div>
-

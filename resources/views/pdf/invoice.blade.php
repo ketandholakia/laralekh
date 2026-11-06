@@ -118,6 +118,7 @@
                 <th style="width:6%;" class="num">CGST</th>
                 <th style="width:6%;" class="num">SGST/UTGST</th>
             @endif
+            <th style="width:8%;" class="num">Cess</th>
             <th style="width:12%;" class="num">Total (₹)</th>
         </tr>
     </thead>
@@ -140,6 +141,7 @@
                     <td class="num">{{ !$val($invoice->utgst)->isZero() ? $val($item->utgst) : $val($item->sgst) }}
                         <div class="muted">@ {{ $item->rate / 2 }}%</div></td>
                 @endif
+                <td class="num">{{ $val($item->cess) }}</td>
                 <td class="num">{{ $val($item->total) }}</td>
             </tr>
         @endforeach
@@ -193,6 +195,9 @@
                 @endif
                 @if (!$val($invoice->utgst)->isZero())
                     <tr><td>UTGST</td><td class="num">{{ $val($invoice->utgst) }}</td></tr>
+                @endif
+                @if (!$val($invoice->cess)->isZero())
+                    <tr><td>Compensation cess</td><td class="num">{{ $val($invoice->cess) }}</td></tr>
                 @endif
                 @if (!$val($invoice->recipient_tax)->isZero())
                     <tr><td>Tax under RCM (recipient's liability)</td><td class="num">{{ $val($invoice->recipient_tax) }}</td></tr>

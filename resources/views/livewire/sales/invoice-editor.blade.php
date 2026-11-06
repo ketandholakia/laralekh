@@ -192,6 +192,9 @@
                         @if ((float) $t['igst'] !== 0.0)
                             <div class="flex justify-between"><dt>IGST</dt><dd class="font-mono">₹{{ $t['igst'] }}</dd></div>
                         @endif
+                        @if (!\App\Domain\Shared\ValueObjects\Money::of($t['cess'])->isZero())
+                            <div class="flex justify-between"><dt>Compensation cess</dt><dd class="font-mono">₹{{ $t['cess'] }}</dd></div>
+                        @endif
                         @if ((float) $t['recipient_tax'] !== 0.0)
                             <div class="flex justify-between text-slate-500"><dt>Tax under RCM (recipient)</dt><dd class="font-mono">₹{{ $t['recipient_tax'] }}</dd></div>
                         @endif

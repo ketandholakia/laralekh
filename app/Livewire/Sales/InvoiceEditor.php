@@ -167,6 +167,7 @@ final class InvoiceEditor extends Component
             'quantity' => $quantity, 'unit_price' => $unitPrice, 'discount' => $discount,
             'tax_category' => $taxCategory, 'tax_rate_id' => $taxRateId,
             'sales_ledger_id' => $salesLedgerId, 'rate' => $rate,
+            'cess_rate' => $taxRateId ? (string) (TaxRate::whereKey($taxRateId)->value('cess_rate') ?? '0') : '0',
         ];
     }
 

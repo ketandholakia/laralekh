@@ -32,16 +32,16 @@
 @endif
 <table><thead><tr>
 <th style="width:27%">Description / HSN</th><th>Qty</th><th class="num">Base INR</th>
-<th class="num">Rate %</th><th class="num">CGST</th><th class="num">SGST / UTGST</th><th class="num">IGST</th><th class="num">Total INR</th>
+<th class="num">Rate %</th><th class="num">CGST</th><th class="num">SGST / UTGST</th><th class="num">IGST</th><th class="num">Cess</th><th class="num">Total INR</th>
 </tr></thead><tbody>
 @foreach ($note->lines as $line)
 <tr><td>{{ $line->description }}<div class="muted">HSN/SAC {{ $line->hsn_sac }}</div></td><td>{{ $line->quantity }}</td>
 <td class="num">{{ $line->taxable_amount }}</td><td class="num">{{ $line->rate }}</td><td class="num">{{ $line->cgst }}</td>
-<td class="num">{{ $line->sgst->add($line->utgst) }}</td><td class="num">{{ $line->igst }}</td><td class="num">{{ $line->total }}</td></tr>
+<td class="num">{{ $line->sgst->add($line->utgst) }}</td><td class="num">{{ $line->igst }}</td><td class="num">{{ $line->cess }}</td><td class="num">{{ $line->total }}</td></tr>
 @endforeach
 </tbody></table>
 <div class="summary">
-<p class="num"><strong>Base INR {{ $note->taxable_amount }} | CGST {{ $note->cgst }} | SGST {{ $note->sgst }} | UTGST {{ $note->utgst }} | IGST {{ $note->igst }}</strong></p>
+<p class="num"><strong>Base INR {{ $note->taxable_amount }} | CGST {{ $note->cgst }} | SGST {{ $note->sgst }} | UTGST {{ $note->utgst }} | IGST {{ $note->igst }} | Cess {{ $note->cess }}</strong></p>
 <p class="num"><strong>Total adjustment INR {{ $note->total }}</strong></p>
 @if (!$note->recipient_tax->isZero())<p>Recipient reverse-charge tax adjustment INR {{ $note->recipient_tax }} (excluded from payable).</p>@endif
 <p><strong>Amount in words:</strong> {{ $words }}</p>
@@ -49,4 +49,3 @@
 @if ($note->treatment === 'commercial')<p class="muted">Rate identifies the original supply only; no GST is charged or reduced by this commercial note.</p>@endif
 <p class="signature">For {{ $note->supplier_snapshot['name'] ?? '' }}<br><br>Authorised signatory</p>
 </div></body></html>
-

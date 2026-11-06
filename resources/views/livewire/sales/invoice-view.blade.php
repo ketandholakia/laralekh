@@ -74,7 +74,7 @@
                                 <td class="py-2 pr-2 text-right font-mono">{{ $item->discount }}</td>
                                 <td class="py-2 pr-2 text-right font-mono">{{ $item->taxable_amount }}</td>
                                 <td class="py-2 pr-2 text-right font-mono">
-                                    {{ (string) $item->cgst->add($item->sgst)->add($item->utgst)->add($item->igst) }}
+                                    {{ (string) $item->cgst->add($item->sgst)->add($item->utgst)->add($item->igst)->add($item->cess) }}
                                     @if ($item->tax_category !== 'taxable')<span class="text-xs text-slate-400">({{ str_replace('_',' ',$item->tax_category) }})</span>@endif
                                 </td>
                                 <td class="py-2 text-right font-mono">{{ $item->total }}</td>
@@ -94,6 +94,7 @@
                     @if (!$invoice->cgst->isZero())<div class="flex justify-between"><dt>CGST</dt><dd class="font-mono">₹{{ $invoice->cgst }}</dd></div>@endif
                     @if (!$invoice->sgst->isZero())<div class="flex justify-between"><dt>SGST</dt><dd class="font-mono">₹{{ $invoice->sgst }}</dd></div>@endif
                     @if (!$invoice->utgst->isZero())<div class="flex justify-between"><dt>UTGST</dt><dd class="font-mono">₹{{ $invoice->utgst }}</dd></div>@endif
+                    @if (!$invoice->cess->isZero())<div class="flex justify-between"><dt>Compensation cess</dt><dd class="font-mono">₹{{ $invoice->cess }}</dd></div>@endif
                     @if (!$invoice->recipient_tax->isZero())<div class="flex justify-between text-slate-500"><dt>RCM tax (payable by recipient)</dt><dd class="font-mono">₹{{ $invoice->recipient_tax }}</dd></div>@endif
                     <div class="flex justify-between border-t border-slate-200 pt-2 mt-2 font-semibold"><dt>Total</dt><dd class="font-mono">₹{{ $invoice->total }}</dd></div>
                 </dl>
