@@ -74,6 +74,10 @@ separately. This is a configurable accounting starting point, not a legal
 conclusion. Posted purchase bills are immutable; corrections should use supplier-
 linked debit notes rather than editing posted bills. Per-line ITC classification
 is explicit; blocked/review taxes are added to the selected cost ledger.
+Purchase calculations use the supplier's recorded registration category to
+distinguish composition from regular suppliers. A composition buyer's input GST
+is capitalised to the selected cost ledger even if a line is marked eligible.
+Supplier registration data and buyer ITC eligibility must be independently verified.
 Purchase debit notes currently have schema only (no posting or UI workflow); the
 note's ITC reversal, tax reporting period, supplier communication, and matching
 against supplier credit/debit documents require CA review before use.

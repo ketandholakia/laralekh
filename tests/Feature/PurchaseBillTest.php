@@ -55,6 +55,16 @@ it('posts reverse charge to a dedicated payable ledger', function () {
     });
 });
 
+it('does not recognize purchase ITC for a composition buyer', function () {
+    (new StateSeeder)->run(); $company=companyFixture();
+    app(TenantContext::class)->run($company->id,function()use($company){
+        $company->update(['gst_regime'=>'composition']); $bill=purchaseFixture();
+        app(PostPurchaseBill::class)->handle($bill->id); $lines=$bill->fresh('voucher.lines.ledger')->voucher->lines;
+        expect($lines->first(fn($line)=>$line->ledger->code==='INPUT_CGST'))->toBeNull()
+            ->and((string)$lines->first(fn($line)=>$line->ledger->code==='PURCHASES')->debit)->toBe('1180.00');
+    });
+});
+
 it('rejects duplicate supplier document numbers within a year', function () {
     (new StateSeeder)->run(); $company=companyFixture();
     app(TenantContext::class)->run($company->id,function(){ $bill=purchaseFixture();

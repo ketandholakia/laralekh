@@ -28,7 +28,8 @@ final class PostPayment
                 if(!$bill||$bill->party_id!==$payment->party_id||$bill->status!=='posted') throw new DomainException('Allocation must reference a posted bill for this supplier.');
                 $value=Money::of((string)$amount); if($value->isZero()||$value->isNegative()) throw new DomainException('Allocation must be positive.');
                 $paid=SupplierPaymentAllocation::where('purchase_bill_id',$bill->id)->whereNotExists(fn($q)=>$q->selectRaw(1)->from('supplier_payment_allocation_reversals')->whereColumn('allocation_id','supplier_payment_allocations.id'))->lockForUpdate()->get()->reduce(fn($s,$r)=>$s->add($r->amount),Money::of('0'));
-                $outstanding=$bill->total->subtract($paid); if($value->greaterThan($outstanding)) throw new DomainException('Allocation exceeds bill outstanding.');
+                $billPayable = $bill->reverse_charge ? $bill->taxable_amount : $bill->total;
+                $outstanding=$billPayable->subtract($paid); if($value->greaterThan($outstanding)) throw new DomainException('Allocation exceeds bill outstanding.');
                 $canonical[]=[$bill,$value]; $allocated=$allocated->add($value);
             }
             if(!$allocated->equals($payment->amount)) throw new DomainException('Payment must be fully allocated; partial bill allocations are supported.');

@@ -43,14 +43,16 @@ final class PostPurchaseBill
                 }
                 $result = $this->gst->calculate(unitPrice: $line->unit_price, quantity: $line->quantity, rate: $rateValue,
                     supply: $supply, discount: $line->discount, category: $line->tax_category,
-                    regime: $company->gst_regime, cessRate: $cessRate);
+                    // The supplier's registration regime determines whether GST is charged;
+                    // the buyer's composition status affects only ITC eligibility/capitalisation.
+                    regime: $supplier->registration_type === 'composition' ? 'composition' : 'regular', cessRate: $cessRate);
                 $line->fill($result->amounts())->save();
                 $capitalized = $result->taxableAmount;
                 $debits[$ledger->id] = ($debits[$ledger->id] ?? Money::of('0'))->add($capitalized);
                 foreach ($taxes as $tax) {
                     $amount = $result->$tax;
                     if ($amount->isZero()) continue;
-                    if ($line->itc_eligibility === 'eligible') {
+                    if ($line->itc_eligibility === 'eligible' && $company->gst_regime === 'regular') {
                         $inputLedger = Ledger::where('code', 'INPUT_'.strtoupper($tax))->sole(); $this->ledger($inputLedger->id, 'asset');
                         $debits[$inputLedger->id] = ($debits[$inputLedger->id] ?? Money::of('0'))->add($amount);
                     } else $debits[$ledger->id] = $debits[$ledger->id]->add($amount);
