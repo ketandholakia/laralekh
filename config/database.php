@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Str;
+use Pdo\Mysql;
 
 // PHP 8.5 deprecates the PDO::MYSQL_ATTR_* constants in favour of \Pdo\Mysql::ATTR_*;
 // older runtimes only define the original constant. Laravel may require this
@@ -8,7 +9,7 @@ use Illuminate\Support\Str;
 if (! function_exists('laravix_mysql_ssl_ca')) {
     function laravix_mysql_ssl_ca(): mixed
     {
-        return class_exists(\Pdo\Mysql::class) ? \Pdo\Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA;
+        return class_exists(Mysql::class) ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA;
     }
 }
 
