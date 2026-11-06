@@ -11,10 +11,11 @@ it('uses the exact official Offline Tool CSV headers and column order',function(
         $files=app(OfficialGstr1CsvExporter::class)->export($dataset);
         foreach($files as $filename=>$csv){
             $stream=fopen('php://temp','r+');fwrite($stream,$csv);rewind($stream);$actual=fgetcsv($stream);fclose($stream);
-            $template=fopen(config('gst_returns.csv_templates.directory').DIRECTORY_SEPARATOR.$filename,'rb');$expected=fgetcsv($template);fclose($template);
+            $template=file_get_contents(config('gst_returns.csv_templates.directory').DIRECTORY_SEPARATOR.$filename);
+            $expected=str_getcsv(preg_split('/\r\n|\n|\r/',$template,2)[0]??'');
             expect($actual)->toBe($expected);
         }
-        expect($files)->toHaveKeys(['b2b,sez,de.csv','b2cl.csv','b2cs.csv','exp.csv','cdnr.csv','cdnur.csv','hsn.csv','docs.csv']);
+        expect($files)->toHaveKeys(['b2b,sez,de.csv','b2cl.csv','b2cs.csv','exp.csv','cdnr.csv','cdnur.csv','hsn(b2b).csv','hsn(b2c).csv','docs.csv']);
     });
 });
 

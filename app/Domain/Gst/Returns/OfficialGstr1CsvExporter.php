@@ -15,7 +15,7 @@ final class OfficialGstr1CsvExporter
     {
         $report=$this->validation->forDataset($dataset);
         if(!$report['valid'])throw new DomainException('CSV export blocked: '.implode(', ',array_unique(array_column($report['errors'],'code'))));
-        $tables=['b2b,sez,de.csv'=>[],'b2cl.csv'=>[],'b2cs.csv'=>[],'exp.csv'=>[],'cdnr.csv'=>[],'cdnur.csv'=>[],'hsn.csv'=>[],'docs.csv'=>[]];
+        $tables=['b2b,sez,de.csv'=>[],'b2cl.csv'=>[],'b2cs.csv'=>[],'exp.csv'=>[],'cdnr.csv'=>[],'cdnur.csv'=>[],'hsn(b2b).csv'=>[],'hsn(b2c).csv'=>[],'docs.csv'=>[]];
         foreach($dataset['b2b']??[] as $doc)$this->addInvoiceRows($tables['b2b,sez,de.csv'],$doc,'b2b');
         foreach($dataset['sez']??[] as $doc)$this->addInvoiceRows($tables['b2b,sez,de.csv'],$doc,'sez');
         foreach($dataset['b2cl']??[] as $doc)$this->addInvoiceRows($tables['b2cl.csv'],$doc,'b2cl');
@@ -25,9 +25,9 @@ final class OfficialGstr1CsvExporter
         foreach($dataset['exports']['without_payment']??[] as $doc)$this->addExportRows($tables['exp.csv'],$doc,'WOPAY');
         foreach(['registered'=>'cdnr.csv','unregistered'=>'cdnur.csv'] as $bucket=>$filename)foreach($dataset['notes'][$bucket]??[] as $note)
             if($bucket==='registered'||($note['gstr1_table']??'CDNUR')==='CDNUR')$this->addNoteRows($tables[$filename],$note,$bucket);
-        foreach($dataset['hsn']??[] as $line){
+        foreach(['b2b'=>'hsn(b2b).csv','b2c'=>'hsn(b2c).csv'] as $bucket=>$filename)foreach($dataset['hsn'][$bucket]??[] as $line){
             $total=bcadd($line['taxable_value'],bcadd(bcadd($line['igst'],$line['cgst'],2),bcadd(bcadd($line['sgst'],$line['utgst'],2),$line['cess'],2),2),2);
-            $tables['hsn.csv'][]=['HSN'=>$line['hsn'],'Description'=>$line['description'],'UQC'=>$line['uqc'],'Total Quantity'=>$line['quantity'],'Total Value'=>$total,
+            $tables[$filename][]=['HSN'=>$line['hsn'],'Description'=>$line['description'],'UQC'=>$line['uqc'],'Total Quantity'=>$line['quantity'],'Total Value'=>$total,
                 'Taxable Value'=>$line['taxable_value'],'Integrated Tax Amount'=>$line['igst'],'Central Tax Amount'=>$line['cgst'],
                 'State/UT Tax Amount'=>bcadd($line['sgst'],$line['utgst'],2),'Cess Amount'=>$line['cess'],'Rate'=>$line['rate']??''];
         }
@@ -70,7 +70,7 @@ final class OfficialGstr1CsvExporter
     {
         $path=config('gst_returns.csv_templates.directory').DIRECTORY_SEPARATOR.$filename;
         if(!is_file($path))throw new DomainException('Official GSTR-1 CSV template is missing: '.$filename);
-        $stream=fopen($path,'rb');$header=str_getcsv((string)fgets($stream));fclose($stream);
+        $template=file_get_contents($path);$firstLine=preg_split('/\r\n|\n|\r/',$template,2)[0]??'';$header=str_getcsv($firstLine);
         $output=fopen('php://temp','r+');fputcsv($output,$header,',','"','\\',"\r\n");
         foreach($rows as $row){$values=[];foreach($header as $column)$values[]=$row[$column]??'';fputcsv($output,$values,',','"','\\',"\r\n");}
         rewind($output);$csv=stream_get_contents($output);fclose($output);return $csv;

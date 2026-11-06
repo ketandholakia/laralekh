@@ -1,0 +1,3 @@
+GSTIN/UIN of Recipient,Receiver Name,Invoice Number,Invoice date,Invoice Value,Place Of Supply,Reverse Charge,Applicable % of Tax Rate,Invoice Type,E-Commerce GSTIN,Rate,Taxable Value,Cess Amount
+27ABCDE1234F1Z5,Acme,SI/1,3-Nov-26,1180.00,27-Maharashtra,N,,Regular B2B,,18.000,1000.00,0.00
+27ABCDE1234F1Z5,Acme SEZ,SEZ/1,7-Nov-26,1000.00,27-Maharashtra,N,,SEZ supplies without payment,,18.000,1000.00,0.00
