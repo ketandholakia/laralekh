@@ -14,6 +14,12 @@ $app=require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 if(config('database.default')!=='mysql'||!str_starts_with((string)config('database.connections.mysql.database'),'laravix_test_'))
     throw new RuntimeException('Use a dedicated laravix_test_ MySQL database.');
+try {
+    Illuminate\Support\Facades\DB::connection('mysql')->getPdo();
+} catch (Throwable $error) {
+    fwrite(STDERR, "Cannot connect to MySQL at ".config('database.connections.mysql.host').":".config('database.connections.mysql.port').". Start it from the repository root with `pwsh -File .\\local-mysql.ps1`, wait for MySQL to be ready, then retry `pwsh -File .\\tools\\run-series-concurrency.ps1`. Original error: ".$error->getMessage()."\n");
+    exit(2);
+}
 $migrator=$app->make('migrator'); if(!$migrator->repositoryExists())$migrator->getRepository()->createRepository();
 $migrator->run(database_path('migrations')); (new Database\Seeders\StateSeeder)->run();
 $company=Company::create(['name'=>'Series concurrency '.bin2hex(random_bytes(5)),'state_code'=>'27']);
