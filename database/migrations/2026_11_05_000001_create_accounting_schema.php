@@ -18,12 +18,12 @@ return new class extends Migration {
         $t->timestamps();
     }
 
-    private function reference(Blueprint $t, string $column, string $table, bool $nullable = false, bool $year = false): void
+    private function reference(Blueprint $t, string $column, string $table, bool $nullable = false, bool $year = false, ?string $name = null): void
     {
         $t->unsignedBigInteger($column)->nullable($nullable);
         $local = $year ? ['company_id', 'financial_year_id', $column] : ['company_id', $column];
         $remote = $year ? ['company_id', 'financial_year_id', 'id'] : ['company_id', 'id'];
-        $t->foreign($local)->references($remote)->on($table)->restrictOnDelete();
+        $t->foreign($local, $name)->references($remote)->on($table)->restrictOnDelete();
     }
 
     private function money(Blueprint $t, string $name): void
@@ -132,7 +132,7 @@ return new class extends Migration {
             $t->unsignedBigInteger('number');
             $t->enum('status', ['draft', 'posted'])->default('draft');
             $t->timestamp('posted_at')->nullable();
-            $this->reference($t, 'reverses_voucher_id', 'vouchers', true);
+            $this->reference($t, 'reverses_voucher_id', 'vouchers', true, false, 'vouchers_reverses_voucher_fk');
             $t->text('narration')->nullable();
             $t->unique(['company_id', 'financial_year_id', 'series', 'number'], 'vouchers_series_number_unique');
         });
@@ -213,4 +213,3 @@ return new class extends Migration {
         }
     }
 };
-

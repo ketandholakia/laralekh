@@ -7,26 +7,27 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('supplier_payments', function (Blueprint $t) {
             $t->id(); $t->foreignId('company_id')->constrained()->restrictOnDelete(); $t->unsignedBigInteger('financial_year_id');
-            $t->foreign(['company_id','financial_year_id'])->references(['company_id','id'])->on('financial_years')->restrictOnDelete();
+            $t->foreign(['company_id','financial_year_id'],'supplier_payments_tenant_year_fk')->references(['company_id','id'])->on('financial_years')->restrictOnDelete();
             $t->unsignedBigInteger('party_id'); $t->foreign(['company_id','party_id'])->references(['company_id','id'])->on('parties')->restrictOnDelete();
             $t->unsignedBigInteger('ledger_id'); $t->foreign(['company_id','ledger_id'])->references(['company_id','id'])->on('ledgers')->restrictOnDelete();
-            $t->unsignedBigInteger('voucher_id')->nullable(); $t->foreign(['company_id','financial_year_id','voucher_id'])->references(['company_id','financial_year_id','id'])->on('vouchers')->restrictOnDelete();
+            $t->unsignedBigInteger('voucher_id')->nullable(); $t->foreign(['company_id','financial_year_id','voucher_id'],'supplier_payments_voucher_fk')->references(['company_id','financial_year_id','id'])->on('vouchers')->restrictOnDelete();
             $t->date('date'); $t->string('series',10)->default('SP'); $t->unsignedBigInteger('number')->nullable();
             $t->enum('status',['draft','posted'])->default('draft'); $this->money($t,'amount'); $t->json('supplier_snapshot')->nullable(); $t->timestamps();
-            $t->unique(['company_id','financial_year_id','series','number']);
+            $t->unique(['company_id','financial_year_id','series','number'],'supplier_payments_number_unique');
+            $t->unique(['company_id','financial_year_id','id'],'supplier_payments_tenant_year_id_unique');
         });
         Schema::create('supplier_payment_allocations', function (Blueprint $t) {
             $t->id(); $t->foreignId('company_id')->constrained()->restrictOnDelete(); $t->unsignedBigInteger('financial_year_id');
-            $t->foreign(['company_id','financial_year_id'])->references(['company_id','id'])->on('financial_years')->restrictOnDelete();
-            $t->unsignedBigInteger('payment_id'); $t->foreign(['company_id','financial_year_id','payment_id'])->references(['company_id','financial_year_id','id'])->on('supplier_payments')->restrictOnDelete();
+            $t->foreign(['company_id','financial_year_id'],'supplier_allocations_tenant_year_fk')->references(['company_id','id'])->on('financial_years')->restrictOnDelete();
+            $t->unsignedBigInteger('payment_id'); $t->foreign(['company_id','financial_year_id','payment_id'],'supplier_allocations_payment_fk')->references(['company_id','financial_year_id','id'])->on('supplier_payments')->restrictOnDelete();
             $t->unsignedBigInteger('bill_financial_year_id'); $t->unsignedBigInteger('purchase_bill_id');
-            $t->foreign(['company_id','bill_financial_year_id','purchase_bill_id'])->references(['company_id','financial_year_id','id'])->on('purchase_bills')->restrictOnDelete();
+            $t->foreign(['company_id','bill_financial_year_id','purchase_bill_id'],'supplier_allocations_bill_fk')->references(['company_id','financial_year_id','id'])->on('purchase_bills')->restrictOnDelete();
             $this->money($t,'amount'); $t->timestamps(); $t->unique(['company_id','id']);
         });
         Schema::create('supplier_payment_allocation_reversals', function (Blueprint $t) {
             $t->id(); $t->foreignId('company_id')->constrained()->restrictOnDelete(); $t->unsignedBigInteger('financial_year_id');
-            $t->foreign(['company_id','financial_year_id'])->references(['company_id','id'])->on('financial_years')->restrictOnDelete();
-            $t->unsignedBigInteger('allocation_id')->unique(); $t->foreign(['company_id','allocation_id'])->references(['company_id','id'])->on('supplier_payment_allocations')->restrictOnDelete();
+            $t->foreign(['company_id','financial_year_id'],'supplier_alloc_reversals_year_fk')->references(['company_id','id'])->on('financial_years')->restrictOnDelete();
+            $t->unsignedBigInteger('allocation_id')->unique(); $t->foreign(['company_id','allocation_id'],'supplier_alloc_reversals_source_fk')->references(['company_id','id'])->on('supplier_payment_allocations')->restrictOnDelete();
             $t->timestamps();
         });
     }

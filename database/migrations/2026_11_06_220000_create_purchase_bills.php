@@ -39,7 +39,7 @@ return new class extends Migration {
         Schema::create('purchase_bill_items', function (Blueprint $t) {
             $this->tenant($t);
             $t->unsignedBigInteger('purchase_bill_id');
-            $t->foreign(['company_id', 'financial_year_id', 'purchase_bill_id'])->references(['company_id', 'financial_year_id', 'id'])->on('purchase_bills')->restrictOnDelete();
+            $t->foreign(['company_id', 'financial_year_id', 'purchase_bill_id'], 'purchase_bill_items_parent_fk')->references(['company_id', 'financial_year_id', 'id'])->on('purchase_bills')->restrictOnDelete();
             $this->reference($t, 'item_id', 'items', true); $this->reference($t, 'purchase_ledger_id', 'ledgers');
             $this->reference($t, 'tax_rate_id', 'tax_rates', true);
             $t->unsignedInteger('position'); $t->string('description'); $t->string('hsn_sac', 8)->default('');

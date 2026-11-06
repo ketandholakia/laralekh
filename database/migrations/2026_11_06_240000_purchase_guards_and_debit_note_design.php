@@ -21,21 +21,22 @@ return new class extends Migration {
         Schema::create('purchase_debit_notes',function(Blueprint $t){
             $t->id();$t->foreignId('company_id')->constrained()->restrictOnDelete();$t->unsignedBigInteger('financial_year_id');
             $t->foreign(['company_id','financial_year_id'])->references(['company_id','id'])->on('financial_years')->restrictOnDelete();
-            $t->unsignedBigInteger('purchase_bill_id');$t->foreign(['company_id','financial_year_id','purchase_bill_id'])->references(['company_id','financial_year_id','id'])->on('purchase_bills')->restrictOnDelete();
-            $t->unsignedBigInteger('voucher_id')->nullable();$t->foreign(['company_id','financial_year_id','voucher_id'])->references(['company_id','financial_year_id','id'])->on('vouchers')->restrictOnDelete();
+            $t->unsignedBigInteger('purchase_bill_id');$t->foreign(['company_id','financial_year_id','purchase_bill_id'],'purchase_debit_notes_bill_fk')->references(['company_id','financial_year_id','id'])->on('purchase_bills')->restrictOnDelete();
+            $t->unsignedBigInteger('voucher_id')->nullable();$t->foreign(['company_id','financial_year_id','voucher_id'],'purchase_debit_notes_voucher_fk')->references(['company_id','financial_year_id','id'])->on('vouchers')->restrictOnDelete();
             $t->date('date');$t->string('series',10);$t->unsignedBigInteger('number')->nullable();$t->enum('status',['draft','posted'])->default('draft');$t->text('reason');$t->json('supplier_snapshot');
             foreach(['taxable_amount','cgst','sgst','utgst','igst','cess','total'] as $field)$this->money($t,$field);$t->timestamps();
-            $t->unique(['company_id','financial_year_id','series','number']);
+            $t->unique(['company_id','financial_year_id','series','number'],'purchase_debit_notes_number_unique');
+            $t->unique(['company_id','financial_year_id','id'],'purchase_debit_notes_tenant_year_id_unique');
         });
         Schema::create('purchase_debit_note_lines',function(Blueprint $t){
             $t->id();$t->foreignId('company_id')->constrained()->restrictOnDelete();$t->unsignedBigInteger('financial_year_id');
             $t->foreign(['company_id','financial_year_id'])->references(['company_id','id'])->on('financial_years')->restrictOnDelete();
-            $t->unsignedBigInteger('purchase_debit_note_id');$t->foreign(['company_id','financial_year_id','purchase_debit_note_id'])->references(['company_id','financial_year_id','id'])->on('purchase_debit_notes')->restrictOnDelete();
+            $t->unsignedBigInteger('purchase_debit_note_id');$t->foreign(['company_id','financial_year_id','purchase_debit_note_id'],'purchase_debit_note_lines_parent_fk')->references(['company_id','financial_year_id','id'])->on('purchase_debit_notes')->restrictOnDelete();
             $t->unsignedBigInteger('bill_financial_year_id');$t->unsignedBigInteger('purchase_bill_id');$t->unsignedBigInteger('purchase_bill_item_id');
             $t->foreign(['company_id','bill_financial_year_id','purchase_bill_id','purchase_bill_item_id'],'purchase_debit_source_fk')->references(['company_id','financial_year_id','purchase_bill_id','id'])->on('purchase_bill_items')->restrictOnDelete();
             $t->unsignedInteger('position');$t->string('description');$t->decimal('quantity',15,3)->default('0.000');$t->string('itc_treatment',40);
             foreach(['taxable_amount','cgst','sgst','utgst','igst','cess','total'] as $field)$this->money($t,$field);$t->timestamps();
-            $t->unique(['purchase_debit_note_id','position']);
+            $t->unique(['purchase_debit_note_id','position'],'purchase_debit_lines_position_unique');
         });
     }
     public function down():void {
