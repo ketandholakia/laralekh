@@ -68,8 +68,12 @@ notification. This software does not infer product applicability, assessable val
 or a cess rate from the GST slab. Confirm the current consolidated notifications
 and exact HSN before setting `cess_rate`. Cess credit/refund treatment also needs
 CA review. Reverse-charge timing and eligibility/availability of corresponding
-ITC are especially fact-specific and must be professionally reviewed; the current
-posting treatment is intentionally isolated in the purchase posting service.
+ITC are especially fact-specific and must be professionally reviewed; purchase
+posting records RCM tax in a dedicated liability ledger and eligible input tax
+separately. This is a configurable accounting starting point, not a legal
+conclusion. Posted purchase bills are immutable; corrections should use supplier-
+linked debit notes rather than editing posted bills. Per-line ITC classification
+is explicit; blocked/review taxes are added to the selected cost ledger.
 Rate selection uses invoice date only when it is the legally applicable tax date.
 A verified rate is an accountant's input, not an automated compliance conclusion.
 

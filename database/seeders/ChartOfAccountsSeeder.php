@@ -39,6 +39,7 @@ class ChartOfAccountsSeeder extends Seeder
         }
         $ledgers['OUTPUT_CESS'] = ['Output cess', 'OUTPUT_GST'];
         $ledgers['INPUT_CESS'] = ['Input cess', 'INPUT_GST'];
+        $ledgers['RCM_PAYABLE'] = ['Reverse charge payable', 'OUTPUT_GST'];
         foreach ($ledgers as $code => [$name, $group]) {
             Ledger::firstOrCreate(['code' => $code], [
                 'name' => $name, 'ledger_group_id' => LedgerGroup::where('code', $group)->sole()->id,

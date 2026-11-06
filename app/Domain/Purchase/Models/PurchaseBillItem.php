@@ -10,4 +10,5 @@ class PurchaseBillItem extends TenantModel
         'sgst' => MoneyCast::class, 'utgst' => MoneyCast::class, 'igst' => MoneyCast::class,
         'cess' => MoneyCast::class, 'total' => MoneyCast::class];
     public function bill() { return $this->belongsTo(PurchaseBill::class, 'purchase_bill_id'); }
+    public function item() { return $this->belongsTo(\App\Domain\Inventory\Models\Item::class); }
 }
