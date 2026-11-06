@@ -53,5 +53,11 @@ Route::middleware('auth')->group(function (): void {
             Route::get('/invoices/{invoice}', \App\Livewire\Sales\InvoiceView::class)->name('invoices.show');
             Route::get('/invoices/{invoice}/pdf', \App\Http\Controllers\Sales\InvoicePdfController::class)->name('invoices.pdf');
         });
+        Route::middleware('can:purchases.view')->group(function (): void {
+            Route::get('/purchase-bills', \App\Livewire\Purchase\PurchaseBillList::class)->name('purchases.index');
+            Route::get('/purchase-bills/create', \App\Livewire\Purchase\PurchaseBillEditor::class)->middleware('can:purchases.create')->name('purchases.create');
+            Route::get('/purchase-bills/{bill}/edit', \App\Livewire\Purchase\PurchaseBillEditor::class)->middleware('can:purchases.create')->name('purchases.edit');
+            Route::get('/purchase-bills/{bill}', \App\Livewire\Purchase\PurchaseBillView::class)->name('purchases.show');
+        });
     });
 });
