@@ -27,7 +27,9 @@ final class ReturnDatasetBuilder
         $documents = Invoice::query()->with(['items.item', 'party', 'voucher'])->where('status', 'posted')
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])->orderBy('date')->orderBy('id')->get();
         $corrections = SalesCorrection::query()->with(['lines.originalItem.item', 'invoice.party'])->where('status', 'posted')
-            ->whereBetween('reporting_date', [$start->toDateString(), $end->toDateString()])->orderBy('reporting_date')->orderBy('id')->get();
+            ->where(function($query)use($start,$end){$query->whereBetween('reporting_date',[$start->toDateString(),$end->toDateString()])
+                ->orWhere(fn($fallback)=>$fallback->whereNull('reporting_date')->whereBetween('date',[$start->toDateString(),$end->toDateString()]));})
+            ->orderByRaw('COALESCE(reporting_date, date)')->orderBy('id')->get();
         $purchases = PurchaseBill::query()->with(['items.item', 'party', 'voucher'])->where('status', 'posted')
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])->orderBy('date')->orderBy('id')->get();
 
@@ -36,6 +38,7 @@ final class ReturnDatasetBuilder
             'purchases'=>['itc'=>['eligible'=>[], 'blocked'=>[], 'review'=>[]], 'rcm'=>[]]];
         foreach (['eligible','blocked','review'] as $bucket) $out['purchases']['itc'][$bucket] = array_fill_keys($taxHeads, '0.00');
         $b2cs = [];
+        $b2csNonTaxable = ['nil_rated'=>'0.00','exempt'=>'0.00','non_gst'=>'0.00'];
         $hsn = [];
         $seenNumbers = [];
 
@@ -65,7 +68,11 @@ final class ReturnDatasetBuilder
             } elseif ($invoice->place_of_supply !== $company->state_code && bccomp((string)$invoice->total, (string)$this->threshold($period), 2) > 0) $out['b2cl'][] = $record;
             else {
                 foreach ($record['items'] as $line) {
-                    if ($line['tax_category'] !== 'taxable') continue;
+                    if ($line['tax_category'] !== 'taxable') {
+                        $bucket=match($line['tax_category']){'nil_rated'=>'nil_rated','exempt'=>'exempt',default=>'non_gst'};
+                        $b2csNonTaxable[$bucket]=bcadd($b2csNonTaxable[$bucket],$line['taxable_amount'],2);
+                        continue;
+                    }
                     $key = implode('|', [$invoice->place_of_supply, $line['rate'], $invoice->reverse_charge ? 'Y' : 'N']);
                     $b2cs[$key] ??= ['place_of_supply'=>$invoice->place_of_supply,'rate'=>$line['rate'],'taxable_value'=>'0.00','cess'=>'0.00','cgst'=>'0.00','sgst'=>'0.00','utgst'=>'0.00','igst'=>'0.00'];
                     $b2cs[$key]['taxable_value'] = bcadd($b2cs[$key]['taxable_value'], $line['taxable_amount'], 2);
@@ -74,21 +81,39 @@ final class ReturnDatasetBuilder
                 }
             }
         }
-        $out['b2cs'] = array_values($b2cs);
-
         foreach ($corrections as $note) {
             $key = $note->series.'/'.$note->number;
             if (isset($seenNumbers[$key])) $errors[] = $this->issue('duplicate_document_number', "Duplicate posted note number {$key}.", $note->id);
             $seenNumbers[$key] = true;
             $snapshot = $note->party_snapshot ?? [];
             $registered = !empty($snapshot['gstin']);
+            $originalValue=(string)($note->invoice?->total??'0.00');
+            $originalPos=(string)($note->original_snapshot['place_of_supply']??$note->invoice?->place_of_supply??'');
+            $unregisteredTable=$note->invoice?->supply_type==='export'?'CDNUR':($originalPos!==$company->state_code && bccomp($originalValue,(string)$this->threshold($period),2)>0?'CDNUR':'B2CS');
             $out['notes'][$registered ? 'registered' : 'unregistered'][] = [
                 'id'=>$note->id,'document_number'=>$key,'date'=>($note->reporting_date ?? $note->date)->toDateString(),
-                'kind'=>$note->kind,'treatment'=>$note->treatment,'recipient'=>$snapshot,'place_of_supply'=>$note->original_snapshot['place_of_supply'] ?? null,
+                'kind'=>$note->kind,'treatment'=>$note->treatment,'recipient'=>$snapshot,'place_of_supply'=>$originalPos,
+                'value'=>(string)$note->total,'original_supply_type'=>$note->invoice?->supply_type,
+                'original_zero_rated_mode'=>$note->invoice?->zero_rated_mode,'original_value'=>(string)($note->invoice?->total??'0.00'),
+                'gstr1_table'=>$registered?'CDNR':$unregisteredTable,
+                'unregistered_type'=>$note->invoice?->supply_type==='export'?($note->invoice?->zero_rated_mode==='with_payment'?'EXPWP':'EXPWOP'):'B2CL',
+                'items'=>$note->lines->map(fn($line)=>['description'=>$line->description,'hsn_sac'=>$line->hsn_sac,'quantity'=>(string)$line->quantity,
+                    'rate'=>(string)$line->rate,'taxable_amount'=>(string)$line->taxable_amount,'cgst'=>(string)$line->cgst,'sgst'=>(string)$line->sgst,
+                    'utgst'=>(string)$line->utgst,'igst'=>(string)$line->igst,'cess'=>(string)$line->cess])->all(),
                 'taxable_amount'=>(string)$note->taxable_amount,'cgst'=>(string)$note->cgst,'sgst'=>(string)$note->sgst,
                 'utgst'=>(string)$note->utgst,'igst'=>(string)$note->igst,'cess'=>(string)$note->getAttribute('cess')];
             foreach ($note->lines as $line) $this->addHsn($hsn, $line, $errors, $annualTurnoverRupees, $note->id);
+            if (!$registered && $unregisteredTable==='B2CS' && $note->treatment==='gst') foreach($note->lines as $line){
+                $rate=(string)$line->rate;$key=implode('|',[$originalPos,$rate,'N']);
+                $b2cs[$key]??=['place_of_supply'=>$originalPos,'rate'=>$rate,'taxable_value'=>'0.00','cess'=>'0.00','cgst'=>'0.00','sgst'=>'0.00','utgst'=>'0.00','igst'=>'0.00'];
+                $sign=$note->kind==='credit'?-1:1;
+                foreach(['taxable_value'=>'taxable_amount','cess'=>'cess','cgst'=>'cgst','sgst'=>'sgst','utgst'=>'utgst','igst'=>'igst'] as $to=>$from){
+                    $amount=(string)$line->{$from};$b2cs[$key][$to]=bcadd($b2cs[$key][$to],$sign<0?bcsub('0.00',$amount,2):$amount,2);
+                }
+            }
         }
+        $out['b2cs'] = array_values($b2cs);
+        $out['b2cs_non_taxable'] = $b2csNonTaxable;
 
         foreach ($purchases as $bill) {
             $record = ['id'=>$bill->id,'document_number'=>$bill->supplier_bill_number,'date'=>$bill->date->toDateString(),
@@ -104,8 +129,10 @@ final class ReturnDatasetBuilder
         foreach ($out['b2b'] as $r) $this->validatePos($r, $errors);
         foreach ($out['b2cl'] as $r) $this->validatePos($r, $errors);
         foreach ($out['sez'] as $r) $this->validatePos($r, $errors);
+        foreach ($out['b2cs'] as $r) if(!State::query()->where('code',$r['place_of_supply'])->where('is_active',true)->exists())$errors[]=$this->issue('invalid_place_of_supply','B2CS place of supply must be an active state/UT code.',0);
         $out['hsn'] = array_values($hsn);
         $out['documents_issued'] = $this->documentsIssued($documents, $corrections);
+        if($out['documents_issued'])$warnings[]=['code'=>'document_cancellation_register_unavailable','message'=>'The source tables do not track cancelled documents; cancellation count is reported as zero and must be reviewed.','severity'=>'warning'];
         $out['validation'] = ['errors'=>$errors,'warnings'=>$warnings,'valid'=>count($errors)===0];
         $out['meta'] = ['company_id'=>$company->id,'period'=>$period,'turnover_rupees'=>$annualTurnoverRupees,
             'b2cl_threshold_rupees'=>$this->threshold($period),'built_at'=>now()->toIso8601String()];
@@ -141,17 +168,17 @@ final class ReturnDatasetBuilder
         $digits=$this->requiredHsnDigits($turnover);
         if (!$digits || !preg_match('/^\d{'.$digits.',8}$/',$code)) { $errors[]=$this->issue('invalid_hsn','HSN/SAC does not meet a verified digit rule.',$documentId); return; }
         $key=$code.'|'.(string)$line->rate;
-        $rows[$key]??=['hsn'=>$code,'description'=>$line->description,'uqc'=>$item?->unit,'quantity'=>'0.000','taxable_value'=>'0.00','igst'=>'0.00','cgst'=>'0.00','sgst'=>'0.00','utgst'=>'0.00','cess'=>'0.00'];
+        $rows[$key]??=['hsn'=>$code,'description'=>$line->description,'uqc'=>$item?->unit,'rate'=>(string)$line->rate,'quantity'=>'0.000','taxable_value'=>'0.00','igst'=>'0.00','cgst'=>'0.00','sgst'=>'0.00','utgst'=>'0.00','cess'=>'0.00'];
         $rows[$key]['quantity']=bcadd($rows[$key]['quantity'],(string)$line->quantity,3);
         foreach(['taxable_value'=>'taxable_amount','igst'=>'igst','cgst'=>'cgst','sgst'=>'sgst','utgst'=>'utgst','cess'=>'cess'] as $to=>$from)$rows[$key][$to]=bcadd($rows[$key][$to],(string)$line->{$from},2);
     }
     private function requiredHsnDigits(?int $turnover): ?int
-    { if (!config('gst_returns.rules.hsn_digits.verified') || $turnover===null) return null; return $turnover<=500000000?4:6; }
+    { if (!config('gst_returns.rules.hsn_digits.verified') || $turnover===null) return null; return $turnover<=50000000?4:6; }
     private function threshold(string $period): int
     { foreach(config('gst_returns.rules.b2cl_threshold.versions',[]) as $rule) if($period>=$rule['from']&&($rule['to']===null||$period<=$rule['to'])) {if(!$rule['verified'])throw new DomainException('B2CL threshold is unverified.');return $rule['value'];} throw new DomainException('B2CL threshold is not configured for period '.$period.'.'); }
     private function validatePos(array $record,array &$errors):void
     { if(!preg_match('/^\d{2}$/',(string)$record['place_of_supply']) || !State::query()->where('code',$record['place_of_supply'])->where('is_active',true)->exists())$errors[]=$this->issue('invalid_place_of_supply','Place of supply must be an active state/UT code.',$record['id']); }
     private function documentsIssued($invoices,$notes):array
-    { $groups=[]; foreach($invoices as $d)$groups[$d->series][]=$d->number;foreach($notes as $d)$groups[$d->series][]=$d->number; $out=[];foreach($groups as $series=>$nums){sort($nums);$out[]=['nature_of_document'=>$series,'from'=>(string)min($nums),'to'=>(string)max($nums),'total'=>count($nums),'cancelled'=>0];}return $out; }
+    { $groups=[]; foreach($invoices as $d)$groups['Invoices for outward supply'][]=$d->number;foreach($notes as $d)$groups[$d->kind==='credit'?'Credit Note':'Debit Note'][]=$d->number; $out=[];foreach($groups as $nature=>$nums){sort($nums);$out[]=['nature_of_document'=>$nature,'from'=>(string)min($nums),'to'=>(string)max($nums),'total'=>count($nums),'cancelled'=>0];}return $out; }
     private function issue(string $code,string $message,int $id):array{return ['code'=>$code,'message'=>$message,'document_id'=>$id,'severity'=>'error'];}
 }
