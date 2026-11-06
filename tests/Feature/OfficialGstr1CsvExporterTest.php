@@ -19,13 +19,15 @@ it('uses the exact official Offline Tool CSV headers and column order',function(
     });
 });
 
-it('blocks CSV export when required recipient GSTIN checksum verification is not configured',function(){
+it('allows a structurally valid GSTIN while warning that portal registration is unverified',function(){
     inSalesCompany(function(Company $company){
-        $invoice=returnSalesFixture(['date'=>'2026-11-06']);$invoice->party->update(['registration_type'=>'regular','gstin'=>'27ABCDE1234F1Z5']);
+        $invoice=returnSalesFixture(['date'=>'2026-11-06']);$invoice->party->update(['registration_type'=>'regular','gstin'=>'27AAPFU0939F1ZV']);
         app(PostingService::class)->postSalesInvoice($invoice->id);
         $dataset=app(ReturnDatasetBuilder::class)->build($company,'2026-11',50000000);
-        expect(collect(app(ReturnValidationReport::class)->forDataset($dataset)['errors'])
-            ->contains(fn($issue)=>$issue['code']==='gstin_checksum_unverified'))->toBeTrue();
+        $report=app(ReturnValidationReport::class)->forDataset($dataset);
+        expect($report['valid'])->toBeTrue()
+            ->and(collect($report['warnings'])->pluck('code'))->toContain('gstin_portal_existence_unverified')
+            ->and(app(OfficialGstr1CsvExporter::class)->export($dataset))->toHaveKey('b2b,sez,de.csv');
     });
 });
 

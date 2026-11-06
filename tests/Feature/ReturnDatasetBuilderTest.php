@@ -8,7 +8,7 @@ use App\Domain\Shared\Tenancy\TenantContext;
 it('classifies posted outward invoices into return dataset tables using period rules', function () {
     inSalesCompany(function (Company $company) {
         $registered = returnSalesFixture(['date'=>'2026-11-06','place_of_supply'=>'27']);
-        $registered->party->update(['registration_type'=>'regular','gstin'=>'27ABCDE1234F1Z5']);
+        $registered->party->update(['registration_type'=>'regular','gstin'=>'27AAPFU0939F1ZV']);
         app(PostingService::class)->postSalesInvoice($registered->id);
         $registered->party->update(['registration_type'=>'unregistered','gstin'=>null]);
         $largeInterstate=returnSalesFixture(['date'=>'2026-11-06','place_of_supply'=>'24'],['unit_price'=>'100000.01']);

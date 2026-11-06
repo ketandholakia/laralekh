@@ -18,7 +18,6 @@ return [
             'note' => 'From May 2025, HSN is selected from the GST Portal database; this application cannot establish database membership from the source ledgers.',
         ],
         'tax_rate_verification' => ['verified' => false, 'source' => null],
-        'gstin_checksum' => ['verified' => false, 'source' => null],
         'place_of_supply' => ['verified' => false, 'source' => null],
         'blocked_itc_rules' => ['verified' => false, 'source' => null],
         'document_issued_categories' => ['verified' => false, 'verified_values' => ['Invoices for outward supply'], 'source' => 'GST Portal, Creation of Outward Supplies Return in GSTR-1, Table 13 manual; template row in official Offline Tool 3.2.4 docs.csv. Other category labels/series handling require official confirmation.'],
