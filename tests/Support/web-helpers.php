@@ -144,3 +144,16 @@ function receiptSession(string $role = 'accountant', array $permissions = [...AC
 {
     return webSession($role, $permissions);
 }
+
+// Asserts a callable aborts with exactly HTTP 403 (theLivewire guard pattern).
+function assert403(Closure $fn): void
+{
+    try {
+        $fn();
+        throw new RuntimeException('Expected a 403 abort, but the call succeeded.');
+    } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+        if ($e->getStatusCode() !== 403) {
+            throw new RuntimeException('Expected HTTP 403, got '.$e->getStatusCode().': '.$e->getMessage());
+        }
+    }
+}

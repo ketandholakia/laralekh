@@ -78,8 +78,15 @@ final class ReceiptEditor extends Component
             ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'gstin' => (string) $p->gstin])->all();
     }
 
+    // Same permission names the routes use, re-checked on every state change.
+    private function guard(string $permission): void
+    {
+        abort_unless(auth()->user()?->can($permission), 403);
+    }
+
     public function selectParty(int $id): void
     {
+        $this->guard('receipts.create');
         $party = Party::findOrFail($id);
         $this->partyId = $party->id;
         $this->partyName = $party->name;
@@ -153,6 +160,7 @@ final class ReceiptEditor extends Component
 
     public function save(): void
     {
+        $this->guard('receipts.create');
         try {
             $receipt = app(SaveReceiptDraft::class)->handle($this->receiptId, $this->input());
         } catch (ValidationException $e) {
@@ -167,10 +175,7 @@ final class ReceiptEditor extends Component
 
     public function post(): void
     {
-        if (!auth()->user()->can('receipts.post')) {
-            $this->addError('amount', 'You are not allowed to post receipts.');
-            return;
-        }
+        $this->guard('receipts.post');
         try {
             $receipt = app(SaveReceiptDraft::class)->handle($this->receiptId, $this->input());
             $posted = app(PostReceipt::class)->handle($receipt->id, $this->allocations);

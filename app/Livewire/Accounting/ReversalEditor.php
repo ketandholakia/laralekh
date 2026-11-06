@@ -20,6 +20,7 @@ final class ReversalEditor extends Component
     public function mount(int|string $voucher): void { $this->voucherId = (int) $voucher; $this->date = now()->toDateString(); }
     public function post(): void
     {
+        abort_unless(auth()->user()?->can('reversals.post'), 403);
         $this->resetErrorBag();
         try {
             $reversal = app(ReverseVoucher::class)->handle($this->voucherId, $this->date, $this->reason, $this->confirmed);

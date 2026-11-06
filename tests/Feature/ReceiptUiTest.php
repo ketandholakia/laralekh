@@ -61,17 +61,13 @@ it('refuses posting receipts without the receipts.post permission', function () 
     $this->actingAs($user);
     inTenantContext($company, function (): void {
         [$party] = masters();
-        Livewire::test(ReceiptEditor::class)
+        $component = Livewire::test(ReceiptEditor::class)
             ->set('partyQuery', 'Customer')->call('selectParty', $party->id)
-            ->set('ledgerId', cashLedger()->id)->set('date', '2026-11-06')->set('amount', '100.00')
-            ->call('post')
-            ->assertHasErrors('amount');
+            ->set('ledgerId', cashLedger()->id)->set('date', '2026-11-06')->set('amount', '100.00');
+        assert403(fn () => $component->instance()->post());
         expect(Receipt::count())->toBe(0); // posting refused before any write
         // Saving a draft still works without the posting permission.
-        Livewire::test(ReceiptEditor::class)
-            ->set('partyQuery', 'Customer')->call('selectParty', $party->id)
-            ->set('ledgerId', cashLedger()->id)->set('date', '2026-11-06')->set('amount', '100.00')
-            ->call('save');
+        $component->call('save');
         expect(Receipt::sole()->status)->toBe('draft')->and(Receipt::sole()->number)->toBeNull();
     });
 });
@@ -113,18 +109,13 @@ it('blocks allocation and undo for users without the respective permissions', fu
         return app(PostReceipt::class)->handle(receiptDraft($party, '200.00')->id, [$invoice->id => '200.00']);
     });
     $invoiceId = null;
-    inTenantContext($company, function () use ($receipt, $user, &$invoiceId): void {
+    inTenantContext($company, function () use ($receipt, &$invoiceId): void {
         $invoiceId = Invoice::sole();
-        // No receipts.allocate: the allocate action is refused server-side.
-        // Livewire turns the abort into a failed response instead of throwing;
-        // the server-side refusal is proven by nothing being allocated and by
-        // the permission verdict itself.
-        $user->forgetCachedPermissionRelations();
-        expect(auth()->user()->can('receipts.allocate'))->toBeFalse();
-        $before = ReceiptAllocation::count();
-        Livewire::test(ReceiptView::class, ['receiptId' => $receipt->id])
-            ->set('newAllocations.'.$invoiceId->id, '200.00')->call('allocate');
-        expect(ReceiptAllocation::count())->toBe($before); // nothing new allocated
+        // No receipts.allocate: the allocate action aborts with 403.
+        $component = Livewire::test(ReceiptView::class, ['receiptId' => $receipt->id]);
+        assert403(fn () => $component->instance()->allocate());
+        // The posting-time allocation is untouched; nothing new was applied.
+        expect(ReceiptAllocation::count())->toBe(1);
     });
 });
 

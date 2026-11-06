@@ -60,6 +60,7 @@ final class CorrectionEditor extends Component
 
     public function save(): void
     {
+        abort_unless(auth()->user()?->can('corrections.create'), 403);
         $this->resetErrorBag();
         try {
             $note = app(SaveSalesCorrection::class)->handle($this->noteId, $this->invoiceId, $this->input(), $this->selected());
@@ -71,7 +72,7 @@ final class CorrectionEditor extends Component
 
     public function post(): void
     {
-        app(CorrectionAccess::class)->authorize('corrections.post');
+        abort_unless(auth()->user()?->can('corrections.post'), 403);
         $this->resetErrorBag();
         if (!$this->noteId) { $this->addError('correction', 'Save the draft before posting.'); return; }
         try {

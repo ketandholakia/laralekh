@@ -159,9 +159,8 @@ it('refuses posting for users without the invoices.post permission', function ()
     });
     inTenantContext($company, function () use ($user, $draft): void {
         expect($user->can('invoices.create'))->toBeTrue()->and($user->can('invoices.post'))->toBeFalse();
-        Livewire::test(InvoiceEditor::class, ['invoice' => $draft->id])
-            ->call('post')
-            ->assertHasErrors('lines');
+        $component = Livewire::test(InvoiceEditor::class, ['invoice' => $draft->id]);
+        assert403(fn () => $component->instance()->post());
         expect(Invoice::sole()->status)->toBe('draft')->and(Voucher::count())->toBe(0);
     });
 });

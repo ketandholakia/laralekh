@@ -63,14 +63,9 @@ final class ReceiptView extends Component
         return $rows;
     }
 
-    public function ensurePermission(string $permission): void
-    {
-        abort_unless(auth()->user()->can($permission), 403);
-    }
-
     public function allocate(): void
     {
-        $this->ensurePermission('receipts.allocate');
+        abort_unless(auth()->user()?->can('receipts.allocate'), 403);
         try {
             $count = app(AllocateReceipt::class)->handle($this->receipt->id, $this->newAllocations);
         } catch (ValidationException $e) {
@@ -86,7 +81,7 @@ final class ReceiptView extends Component
 
     public function undoAllocations(): void
     {
-        $this->ensurePermission('reversals.post');
+        abort_unless(auth()->user()?->can('reversals.post'), 403);
         try {
             app(UndoReceiptAllocations::class)->handle($this->receipt->id, $this->undoSelection);
         } catch (ValidationException $e) {
@@ -101,7 +96,7 @@ final class ReceiptView extends Component
 
     public function reverse(): void
     {
-        $this->ensurePermission('reversals.post');
+        abort_unless(auth()->user()?->can('reversals.post'), 403);
         try {
             $yearId = app(CompanySession::class)->financialYearId();
             if ($yearId === null) {

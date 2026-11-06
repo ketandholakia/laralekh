@@ -107,8 +107,17 @@ final class InvoiceEditor extends Component
                 'state_code' => (string) $p->state_code])->all();
     }
 
+    // Every public method that changes component state re-checks the same
+    // permission its route middleware uses; mount alone is not a boundary
+    // because a component can stay open across permission changes.
+    private function guard(string $permission): void
+    {
+        abort_unless(auth()->user()?->can($permission), 403);
+    }
+
     public function selectParty(int $id): void
     {
+        $this->guard('invoices.create');
         $party = Party::findOrFail($id);
         $this->partyId = $party->id;
         $this->partyName = $party->name;
@@ -133,6 +142,7 @@ final class InvoiceEditor extends Component
     // every amount, so the prefill is only a convenience.
     public function addItem(int $id): void
     {
+        $this->guard('invoices.create');
         $item = Item::findOrFail($id);
         $rateId = TaxRate::query()
             ->when($item->tax_rate_code !== null && $item->tax_rate_code !== '',
@@ -149,11 +159,13 @@ final class InvoiceEditor extends Component
 
     public function addBlankLine(): void
     {
+        $this->guard('invoices.create');
         $this->lines[] = $this->lineState(0, '', '', '1', '0.00', '0.00', 'taxable', null, $this->defaultSalesLedgerId(), '0');
     }
 
     public function removeLine(int $index): void
     {
+        $this->guard('invoices.create');
         unset($this->lines[$index]);
         $this->lines = array_values($this->lines);
     }
@@ -255,6 +267,7 @@ final class InvoiceEditor extends Component
 
     public function save(): void
     {
+        $this->guard('invoices.create');
         try {
             $invoice = app(SaveInvoiceDraft::class)->handle($this->invoiceId, $this->invoiceInput(), $this->lines);
         } catch (ValidationException $e) {
@@ -269,10 +282,7 @@ final class InvoiceEditor extends Component
 
     public function post(): void
     {
-        if (!auth()->user()->can('invoices.post')) {
-            $this->addError('lines', 'You are not allowed to post invoices.');
-            return;
-        }
+        $this->guard('invoices.post');
         try {
             $invoice = app(SaveInvoiceDraft::class)->handle($this->invoiceId, $this->invoiceInput(), $this->lines);
             $invoice = app(PostInvoice::class)->handle($invoice->id);
