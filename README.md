@@ -1,7 +1,7 @@
 # Laravix
 
-Indian GST accounting backend with Livewire 3 sales invoices, correction notes
-and internal reversals. Step 3 targets
+Indian GST accounting backend with Livewire 3 sales invoices, correction
+notes, internal reversals and customer receipts. Step 4 targets
 PHP 8.3, Laravel 11, MySQL 8, Livewire 3 (including Alpine), Tailwind 3, Redis,
 Pest, Spatie permission and activitylog, DomPDF via its Laravel integration,
 chillerlan/php-qrcode for the invoice payment QR, and Sanctum.
@@ -153,9 +153,37 @@ Regenerate six isolated PDF examples by setting `LARAVIX_PDF_SAMPLES=1` and
 running `php vendor/pestphp/pest/bin/pest tests/Feature/CorrectionPdfTest.php`.
 Output goes to ignored `output/pdf/`; no application data is used.
 
+## Step 4: customer receipts and statements
+
+Receipts post Dr cash/bank / Cr customer with a per-year SR number allocated
+inside the transaction; at-posting and later allocations link receipts to
+posted invoices without creating accounting entries. Outstanding balances are
+derived (never stored on invoices): totals less credit notes plus debit notes
+less active allocations. Unallocated funds are customer advances shown
+separately from what is owed; excess customer credits are surfaced, not
+absorbed. Allocations may cross financial years within a company/customer and
+are undone through immutable linked records; exact receipt reversals swap the
+posted entries and atomically undo active allocations. The generic invoice
+reversal refuses invoices with active allocations.
+
+Screens (all membership/permission checked server-side): receipt register with
+customer/date/status filters, draft editor with live posting preview and
+at-posting allocations, read-only posted view with separately authorised
+allocate (`receipts.allocate`) and undo/reverse (`reversals.post`) actions,
+customer outstanding view (open invoices, unapplied advances, excess credits)
+and an as-of customer statement reconciled to the receivable ledger. PDFs: a
+commercial money receipt from posting-time snapshots (explicitly not a statutory
+GST receipt voucher) and a statement with repeated headers and per-page
+footers. Regenerate samples with `php tools/render-receipt-samples.php <dir>`.
+Run migrations and `php artisan db:seed --class=ReceiptPermissionSeeder`, then
+grant `receipts.view/create/post/allocate` through company-scoped roles.
+
+See [settlement design and limitations](docs/settlements-design.md).
+
 ## Deferred to later steps
 
-Purchases, inventory posting, GST return exports, e-invoicing (IRP QR and
-reporting), GSTR-2B reconciliation, receipt/payment allocation, and a
-separate zero-value document workflow remain future work. Sanctum is installed
+Purchases, supplier payments, inventory posting, GST return exports, the
+advance-tax receipt-voucher workflow, e-invoicing (IRP QR and reporting),
+GSTR-2B reconciliation, refund of excess customer credits, and a separate
+zero-value document workflow remain future work. Sanctum is installed
 for the later API/mobile step; this step's screens are session-only.

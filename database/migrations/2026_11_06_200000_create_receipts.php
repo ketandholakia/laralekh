@@ -9,12 +9,14 @@ use Illuminate\Support\Facades\{DB, Schema};
 // reversal are themselves immutable linked records, so settlement history can
 // only grow. Invoice outstanding balances are derived, never stored on invoices.
 return new class extends Migration {
-    private function tenant(Blueprint $t): void
+    private function tenant(Blueprint $t, ?string $fkName = null): void
     {
         $t->id();
         $t->foreignId('company_id')->constrained()->restrictOnDelete();
         $t->unsignedBigInteger('financial_year_id');
-        $t->foreign(['company_id', 'financial_year_id'])->references(['company_id', 'id'])->on('financial_years');
+        // MySQL caps identifiers at 64 characters; long table names need an
+        // explicit FK name because the Laravel default would exceed it.
+        $t->foreign(['company_id', 'financial_year_id'], $fkName)->references(['company_id', 'id'])->on('financial_years');
         $t->unique(['company_id', 'financial_year_id', 'id'], $t->getTable().'_tenant_year');
         $t->timestamps();
     }
@@ -88,7 +90,7 @@ return new class extends Migration {
             $t->json('undone_allocations')->nullable();
         });
         Schema::create('receipt_allocation_reversals', function (Blueprint $t) {
-            $this->tenant($t);
+            $this->tenant($t, 'receipt_alloc_revs_tenant_fk');
             $t->unsignedBigInteger('allocation_id');
             $t->foreign(['company_id', 'financial_year_id', 'allocation_id'], 'allocation_reversals_source_fk')
                 ->references(['company_id', 'financial_year_id', 'id'])->on('receipt_allocations');

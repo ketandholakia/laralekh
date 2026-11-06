@@ -31,8 +31,18 @@ final class ReceiptService
      * @param array<int|string, string> $allocations invoice_id => decimal amount
      * @return list<array{invoice: Invoice, amount: Money}>
      */
-    public function validateAllocations(Receipt $receipt, array $allocations): array
+    public function validateAllocations(Receipt $receipt, array $allocations, bool $requirePosted = true): array
     {
+        // Lock the receipt first: this serializes allocation against receipt
+        // reversal and against other allocations of the same receipt, and
+        // establishes a current read for the funds check under REPEATABLE READ.
+        $receipt = Receipt::whereKey($receipt->id)->lockForUpdate()->firstOrFail();
+        if ($requirePosted && $receipt->status !== 'posted') {
+            throw new DomainException('Only a posted receipt can be allocated.');
+        }
+        if (ReceiptReversal::query()->where('original_receipt_id', $receipt->id)->lockForUpdate()->exists()) {
+            throw new DomainException('This receipt has been reversed and can no longer be allocated.');
+        }
         $funds = $this->settlement->availableReceiptFunds($receipt);
         $canonical = [];
         $total = Money::of('0');
@@ -109,7 +119,9 @@ final class ReceiptService
             if ($year->is_closed || $receipt->date->lt($year->starts_on) || $receipt->date->gt($year->ends_on)) {
                 throw new DomainException('Receipt date must be inside the selected open financial year.');
             }
-            $canonical = $this->validateAllocations($receipt, $allocations);
+            // The receipt is still a draft at this point; post() itself has
+            // already verified it is an unposted draft under lock.
+            $canonical = $this->validateAllocations($receipt, $allocations, requirePosted: false);
 
             $entries = [
                 ['ledger_id' => $paymentLedger->id, 'debit' => $receipt->amount, 'credit' => Money::of('0')],

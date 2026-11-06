@@ -1,8 +1,8 @@
 # Validation history
 
-Latest: [Step 3 validation](#step-3-validation-6-november-2026) used PHP 8.3.36
-and MySQL 8.4.13 successfully. The historical Step 2 environment findings below
-do not describe the recovered Step 3 tooling.
+Latest: [Step 4 validation](#step-4-validation-6-november-2026) used PHP 8.5.9
+and MySQL 9.7.2 on this host; the Step 3 PHP 8.3/MySQL 8.4 tooling is not
+reproducible here any more (see the Step 4 section for the verified mismatch).
 
 ## Step 2 validation (historical)
 
@@ -43,6 +43,50 @@ production target remains MySQL 8. Redis queues were still not exercised (no
 working Redis service on this host); Sanctum remains installed for a later
 API step. PDF text extraction relies on a small in-repo helper, not an external
 pdftotext dependency.
+
+## Step 4 validation (6 November 2026)
+
+Baseline was independently verified before changes: 265 tests / 629 assertions
+on SQLite and MySQL. The Step 3 report's tooling paths were NOT reproducible on
+this host: `C:/Users/Admin/AppData/Local/laravix/php83/php.exe` (PHP 8.3.36)
+and the recovered MySQL 8.4.13 directory are absent; the host has PHP 8.5.9
+(`C:/tools/php85`) and MySQL 9.7.2 (`C:/tools/mysql`). All Step 4 verification
+therefore used PHP 8.5.9 and an isolated MySQL 9.7.2 instance (temp data
+directory, loopback port 33079, shut down afterwards; no application database
+touched). The composer platform pin remains 8.3.0; no framework version was
+changed. On PHP 8.5, Pest flags deprecation notices from the stock
+`config/database.php`; flagged tests still pass.
+
+| Check | Result |
+| --- | --- |
+| Pest on in-memory SQLite | 290 tests, 747 assertions; all passed (167 PHP 8.5 deprecation flags) |
+| Same suite on MySQL 9.7.2 | 290 tests, 747 assertions; all passed |
+| Receipt races, real MySQL workers (5 fresh-DB runs) | duplicate post, concurrent allocation, over-allocation, same-invoice payments, allocation-versus-reversal (both orderings), double undo rejected; gapless SR numbering |
+| Existing races after receipts | Invoice posting and correction/reversal race tools still PASS |
+| Migration up/rollback/up (MySQL) | Passed |
+| Identifier audit (MySQL) | Fixed: `receipt_allocation_reversals` tenant FK auto-name exceeded MySQL's 64-char identifier limit; explicit short name now used and verified present |
+| composer audit | Same 5 pre-existing Laravel 11 advisories; no new packages |
+| npm audit | 0 vulnerabilities |
+| Receipt/statement PDF samples | 5 documents / 6 pages visually inspected; all pages pass |
+
+New tests cover partial/multiple payments, multi-invoice allocations,
+advances, later allocation, cross-year settlement, corrections interacting
+with receipts, over-allocation and foreign-customer refusals, allocation undo,
+exact receipt reversal, generic-reversal guards, duplicate posts, rollback
+consuming no number, statement reconciliation/as-of rows, and PDF content.
+
+Race testing exposed two real defects fixed during this step: allocation did
+not lock the receipt row (so it did not serialise against reversal), and the
+worker/tool initially ran the allocation decision outside a transaction; the
+shipped `AllocateReceipt` action always transacted. The allocation-versus-
+reversal race is correct in either serialisation order and is asserted as such.
+
+Advance-payment GST treatment was re-verified against current CBIC sources
+(sections 13(2)(a) and 31(3)(d), Rule 31(3)(c)); this MVP does not issue
+statutory receipt vouchers or compute advance tax — see
+[settlement design](settlements-design.md). Receipts allocated against invoices
+have no GST consequence. Redis and PostgreSQL remain unvalidated. Windows
+helper scripts used locally remain ignored.
 
 ## Step 3 validation (6 November 2026)
 

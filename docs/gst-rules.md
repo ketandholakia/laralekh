@@ -64,6 +64,24 @@ Current GSTN confirmation was insufficient to treat a single threshold as univer
 applicable. These must be verified with the relevant current notifications when their
 features are built. E-invoicing and GSTR-2B remain deferred.
 
+## Step 4: receipts and advance payments (verified 6 November 2026)
+
+[CGST section 13(2)(a)](https://taxinformation.cbic.gov.in/content/html/tax_repository/gst/acts/2017_CGST_act/active/chapter4/section13_v1.00.html)
+makes the advance receipt the time of supply for services, and
+[section 31(3)(d)](https://taxinformation.cbic.gov.in/content/html/tax_repository/gst/acts/2017_CGST_act/active/chapter7/section31_v1.00.html)
+requires a receipt voucher on receiving an advance, with provisional receipt
+vouchers where the amount is not determinable
+([Rule 31(3)(c)](https://cbic-gst.gov.in/pdf/24092021-CGST-Rules-2017-Part-A-Rules.pdf);
+the [GST Council flyer](https://gstcouncil.gov.in/sites/default/files/e-version-gst-flyers/51_GST_Flyer_Chapter6.pdf)
+summarises both). This MVP does not implement that workflow: no statutory
+receipt voucher is issued and no advance-period tax is computed, so unallocated
+receipts are accounting records of money held on account only and are labelled
+as such on the PDF and in the customer view. Receipts allocated against posted
+invoices settle supplies already invoiced and carry no GST consequence. Goods
+advance rules differ by notification; no goods-specific advance tax is assumed.
+Refunds of excess customer credits and advance adjustments against future
+invoices remain future work.
+
 ## Step 2 PDF particulars (researched 5 November 2026)
 
 The invoice/bill-of-supply template follows
