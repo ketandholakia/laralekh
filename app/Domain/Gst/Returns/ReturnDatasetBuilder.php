@@ -39,7 +39,7 @@ final class ReturnDatasetBuilder
         foreach (['eligible','blocked','review'] as $bucket) $out['purchases']['itc'][$bucket] = array_fill_keys($taxHeads, '0.00');
         $b2cs = [];
         $b2csNonTaxable = ['nil_rated'=>'0.00','exempt'=>'0.00','non_gst'=>'0.00'];
-        $hsn = [];
+        $hsn = ['b2b'=>[],'b2c'=>[]];
         $seenNumbers = [];
 
         foreach ($documents as $invoice) {
@@ -53,11 +53,13 @@ final class ReturnDatasetBuilder
                 'place_of_supply'=>$invoice->place_of_supply,'supply_type'=>$invoice->supply_type,'zero_rated_mode'=>$invoice->zero_rated_mode,
                 'recipient'=>$recipient,'items'=>[],'taxes'=>array_fill_keys($taxHeads,'0.00')];
             foreach ($invoice->items as $line) {
-                $this->validateTaxRate($line->tax_rate_id, $invoice->date->toDateString(), $errors, $invoice->id);
-                $record['items'][] = $this->line($line, $errors, $invoice->id, $annualTurnoverRupees);
+                $record['items'][] = $this->line($line, $errors, $invoice->id, $annualTurnoverRupees, $invoice->date->toDateString());
                 foreach ($taxHeads as $head) $record['taxes'][$head] = bcadd($record['taxes'][$head], (string) $line->{$head}, 2);
-                if ($line->tax_category === 'taxable') $this->addHsn($hsn, $line, $errors, $annualTurnoverRupees, $invoice->id);
-                else $out['nil_exempt_non_gst'][$line->tax_category][] = $this->line($line, $errors, $invoice->id, $annualTurnoverRupees);
+                if ($line->tax_category === 'taxable') $this->addHsn($hsn[$registered?'b2b':'b2c'], $line, $errors, $annualTurnoverRupees, $invoice->id);
+                else {
+                    $bucket=match($line->tax_category){'nil_rated'=>'nil','exempt'=>'exempt',default=>'non_gst'};
+                    $out['nil_exempt_non_gst'][$bucket][] = $this->line($line, $errors, $invoice->id, $annualTurnoverRupees, $invoice->date->toDateString());
+                }
             }
             if ($invoice->reverse_charge) $out['reverse_charge'][] = $record;
             if ($invoice->supply_type === 'export') $out['exports'][$invoice->zero_rated_mode === 'with_payment' ? 'with_payment' : 'without_payment'][] = $record;
@@ -102,7 +104,7 @@ final class ReturnDatasetBuilder
                     'utgst'=>(string)$line->utgst,'igst'=>(string)$line->igst,'cess'=>(string)$line->cess])->all(),
                 'taxable_amount'=>(string)$note->taxable_amount,'cgst'=>(string)$note->cgst,'sgst'=>(string)$note->sgst,
                 'utgst'=>(string)$note->utgst,'igst'=>(string)$note->igst,'cess'=>(string)$note->getAttribute('cess')];
-            foreach ($note->lines as $line) $this->addHsn($hsn, $line, $errors, $annualTurnoverRupees, $note->id);
+            foreach ($note->lines as $line) $this->addHsn($hsn[$registered?'b2b':'b2c'], $line, $errors, $annualTurnoverRupees, $note->id);
             if (!$registered && $unregisteredTable==='B2CS' && $note->treatment==='gst') foreach($note->lines as $line){
                 $rate=(string)$line->rate;$key=implode('|',[$originalPos,$rate,'N']);
                 $b2cs[$key]??=['place_of_supply'=>$originalPos,'rate'=>$rate,'taxable_value'=>'0.00','cess'=>'0.00','cgst'=>'0.00','sgst'=>'0.00','utgst'=>'0.00','igst'=>'0.00'];
@@ -119,7 +121,9 @@ final class ReturnDatasetBuilder
             $record = ['id'=>$bill->id,'document_number'=>$bill->supplier_bill_number,'date'=>$bill->date->toDateString(),
                 'reverse_charge'=>$bill->reverse_charge,'place_of_supply'=>$bill->place_of_supply,'taxes'=>array_fill_keys($taxHeads,'0.00'),'items'=>[]];
             foreach ($bill->items as $line) {
-                $record['items'][] = $this->line($line, $errors, $bill->id, $annualTurnoverRupees);
+                $record['items'][] = $this->line($line, $errors, $bill->id, $annualTurnoverRupees, $bill->date->toDateString());
+                if ($line->tax_category === 'taxable' && !config('gst_returns.rules.blocked_itc_rules.verified'))
+                    $errors[] = $this->issue('unverified_itc_eligibility', 'Input-tax eligibility has not been verified against current statutory restrictions; review this purchase with a CA.', $bill->id);
                 $bucket = match ($line->itc_eligibility) { 'eligible'=>'eligible','blocked'=>'blocked',default=>'review' };
                 foreach ($taxHeads as $head) $out['purchases']['itc'][$bucket][$head] = bcadd($out['purchases']['itc'][$bucket][$head] ?? '0.00', (string)$line->{$head}, 2);
             }
@@ -130,7 +134,7 @@ final class ReturnDatasetBuilder
         foreach ($out['b2cl'] as $r) $this->validatePos($r, $errors);
         foreach ($out['sez'] as $r) $this->validatePos($r, $errors);
         foreach ($out['b2cs'] as $r) if(!State::query()->where('code',$r['place_of_supply'])->where('is_active',true)->exists())$errors[]=$this->issue('invalid_place_of_supply','B2CS place of supply must be an active state/UT code.',0);
-        $out['hsn'] = array_values($hsn);
+        $out['hsn'] = ['b2b'=>array_values($hsn['b2b']),'b2c'=>array_values($hsn['b2c'])];
         $out['documents_issued'] = $this->documentsIssued($documents, $corrections);
         if($out['documents_issued'])$warnings[]=['code'=>'document_cancellation_register_unavailable','message'=>'The source tables do not track cancelled documents; cancellation count is reported as zero and must be reviewed.','severity'=>'warning'];
         $out['validation'] = ['errors'=>$errors,'warnings'=>$warnings,'valid'=>count($errors)===0];
@@ -139,13 +143,13 @@ final class ReturnDatasetBuilder
         return $out;
     }
 
-    private function line(object $line, array &$errors, int $documentId, ?int $turnover): array
+    private function line(object $line, array &$errors, int $documentId, ?int $turnover, ?string $documentDate = null, bool $checkRate = true): array
     {
         $hsn = preg_replace('/\s+/', '', (string)$line->hsn_sac);
         $digits = $this->requiredHsnDigits($turnover);
         if ($line->tax_category === 'taxable' && (!$digits || !preg_match('/^\d{'.$digits.',8}$/', $hsn)))
             $errors[] = $this->issue('missing_or_invalid_hsn', 'HSN/SAC missing or fails the configured turnover rule; turnover/Hsn rule may be unverified.', $documentId);
-        if ($line->tax_category === 'taxable' && !$this->rateIsVerified($line->tax_rate_id))
+        if ($checkRate && $line->tax_category === 'taxable' && !$this->rateIsVerified($line->tax_rate_id, $documentDate))
             $errors[] = $this->issue('unverified_tax_rate', 'Tax rate lacks an effective, verified tax-rate record.', $documentId);
         return ['description'=>(string)$line->description,'hsn_sac'=>$hsn,'quantity'=>(string)$line->quantity,
             'unit'=>$line->unit ?? $line->item?->unit ?? $line->originalItem?->item?->unit ?? null,'rate'=>(string)$line->rate,'tax_category'=>$line->tax_category,

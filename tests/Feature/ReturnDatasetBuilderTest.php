@@ -13,7 +13,7 @@ it('classifies posted outward invoices into return dataset tables using period r
         $registered->party->update(['registration_type'=>'unregistered','gstin'=>null]);
         $largeInterstate=returnSalesFixture(['date'=>'2026-11-06','place_of_supply'=>'24'],['unit_price'=>'100000.01']);
         app(PostingService::class)->postSalesInvoice($largeInterstate->id);
-        $out=app(ReturnDatasetBuilder::class)->build($company,'2026-11',500000000);
+        $out=app(ReturnDatasetBuilder::class)->build($company,'2026-11',50000000);
         expect($out['b2b'])->toHaveCount(1)->and($out['b2cl'])->toHaveCount(1)
             ->and($out['b2cs'])->toBeEmpty()->and($out['validation']['valid'])->toBeTrue()
             ->and($out['meta']['b2cl_threshold_rupees'])->toBe(100000);
@@ -34,7 +34,7 @@ it('fails closed if turnover is missing for HSN validation and refuses compositi
 it('keeps return dataset access tenant scoped', function () {
     inSalesCompany(function (Company $company) {
         expect(fn()=>app(TenantContext::class)->run(companyFixture('Other tenant')->id,
-            fn()=>app(ReturnDatasetBuilder::class)->build($company,'2026-11',500000000)))
+            fn()=>app(ReturnDatasetBuilder::class)->build($company,'2026-11',50000000)))
             ->toThrow(DomainException::class,'active tenant');
     });
 });
