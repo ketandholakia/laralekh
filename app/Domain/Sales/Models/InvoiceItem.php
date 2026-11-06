@@ -9,4 +9,5 @@ class InvoiceItem extends TenantModel
         'utgst' => MoneyCast::class, 'igst' => MoneyCast::class, 'total' => MoneyCast::class, 'recipient_tax' => MoneyCast::class,
         'recipient_cess' => MoneyCast::class, 'rate' => 'decimal:3'];
     public function invoice() { return $this->belongsTo(Invoice::class); }
+    public function item() { return $this->belongsTo(\App\Domain\Inventory\Models\Item::class); }
 }
