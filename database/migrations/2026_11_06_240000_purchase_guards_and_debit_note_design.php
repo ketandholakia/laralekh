@@ -88,6 +88,12 @@ return new class extends Migration
         }
         Schema::dropIfExists('purchase_debit_note_lines');
         Schema::dropIfExists('purchase_debit_notes');
-        Schema::table('purchase_bill_items',fn (Blueprint $t) => $t->dropUnique('purchase_bill_item_identity'));
+        // InnoDB re-points the parent FK's supporting index onto the covering
+        // unique index added in up(); restore a supporting index before
+        // dropping the unique index (same pattern as vouchers/corrections).
+        if (DB::getDriverName() === 'mysql' && ! Schema::hasIndex('purchase_bill_items', 'purchase_bill_items_parent_fk_support')) {
+            Schema::table('purchase_bill_items', fn (Blueprint $t) => $t->index(['company_id', 'financial_year_id', 'purchase_bill_id'], 'purchase_bill_items_parent_fk_support'));
+        }
+        Schema::table('purchase_bill_items', fn (Blueprint $t) => $t->dropUnique('purchase_bill_item_identity'));
     }
 };
