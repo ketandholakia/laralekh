@@ -58,6 +58,18 @@ it('posts outward RCM without output tax credits', function () {
     });
 });
 
+it('persists itemised recipient cess separately under reverse charge', function () {
+    inSalesCompany(function () {
+        $rate=TaxRate::create(['code'=>'RCM_CESS','rate'=>'18','cess_rate'=>'12.5','effective_from'=>'2026-04-01','is_verified'=>true]);
+        $invoice=salesFixture(['reverse_charge'=>true],['tax_rate_id'=>$rate->id]);
+        app(PostingService::class)->postSalesInvoice($invoice->id);
+        $line=$invoice->items()->sole()->fresh();
+        expect((string)$line->recipient_cess)->toBe('125.00')
+            ->and((string)$line->recipient_tax)->toBe('305.00')
+            ->and((string)$invoice->fresh()->recipient_cess)->toBe('125.00');
+    });
+});
+
 it('posts non-zero compensation cess to its output liability ledger', function () {
     inSalesCompany(function () {
         $invoice = salesFixture([], ['tax_rate_id' => TaxRate::create([

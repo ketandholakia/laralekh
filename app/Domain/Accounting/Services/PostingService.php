@@ -65,7 +65,8 @@ final class PostingService
                     zeroRatedEligible: $invoice->zero_rated_eligible, sezAuthorized: $invoice->sez_authorized,
                     cessRate: $taxRate->cess_rate ?? '0',
                 );
-                $line->fill($result->amounts() + ['rate' => $rate, 'recipient_tax' => $result->recipientTax])->save();
+                $line->fill($result->amounts() + ['rate' => $rate, 'recipient_tax' => $result->recipientTax,
+                    'recipient_cess' => $result->recipientCess])->save();
                 foreach ($result->amounts() as $field => $amount) {
                     $totals[$field] = $totals[$field]->add($amount);
                 }
