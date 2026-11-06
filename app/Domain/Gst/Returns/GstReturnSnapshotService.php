@@ -17,10 +17,21 @@ final class GstReturnSnapshotService
             $previous=GstReturnSnapshot::query()->where('period',$period)->where('type',$type)->orderByDesc('version')->lockForUpdate()->get();
             $version=($previous->first()?->version??0)+1;
             foreach($previous->whereIn('status',['draft','final']) as $snapshot)$snapshot->update(['status'=>'superseded']);
-            $encoded=json_encode($payload,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+            $payload=self::canonicalize($payload);
             return GstReturnSnapshot::create(['period'=>$period,'type'=>$type,'schema_version'=>$schemaVersion,'version'=>$version,
-                'payload'=>$payload,'sha256'=>hash('sha256',$encoded),'generated_by'=>Auth::id(),'generated_at'=>now(),'status'=>'draft']);
+                'payload'=>$payload,'sha256'=>self::hashPayload($payload),'generated_by'=>Auth::id(),'generated_at'=>now(),'status'=>'draft']);
         });
+    }
+    public static function hashPayload(array $payload):string
+    {
+        $canonical=self::canonicalize($payload);
+        return hash('sha256',json_encode($canonical,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+    }
+    private static function canonicalize(array $value):array
+    {
+        foreach($value as $key=>$item)if(is_array($item))$value[$key]=self::canonicalize($item);
+        if(!array_is_list($value))ksort($value,SORT_STRING);
+        return $value;
     }
     public function finalize(int $snapshotId):GstReturnSnapshot
     {

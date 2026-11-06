@@ -8,7 +8,7 @@ it('finalizes immutable snapshots and supersedes on regeneration',function(){
     inSalesCompany(function(Company $company){
         $service=app(GstReturnSnapshotService::class);$one=$service->generate($company,'2026-11','gstr1',['validation'=>['valid'=>true],'rows'=>[1]]);
         $one=$service->finalize($one->id);
-        expect($one->status)->toBe('final')->and($one->sha256)->toBe(hash('sha256',json_encode($one->payload,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)));
+        expect($one->status)->toBe('final')->and($one->sha256)->toBe(GstReturnSnapshotService::hashPayload($one->payload));
         expect(fn()=>$one->update(['payload'=>['corrupted'=>true]]))->toThrow(QueryException::class);
         expect(fn()=>$one->delete())->toThrow(QueryException::class);
         $filing=app(GstReturnFilingService::class)->markFiled($one->id,'ARN-2026-TEST','2026-11-05');

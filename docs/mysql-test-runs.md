@@ -16,3 +16,13 @@ PASS: parallel sales and purchase postings are sequential; failed posts rolled b
 ```
 
 This ran both sales and purchase parallel-post races, plus injected posting failures to verify sequence allocations roll back without gaps. The dedicated database was freshly created for this run.
+
+## Full Pest suite: SQLite and MySQL
+
+`tools/test-pest-both-databases.ps1` runs the full suite first on in-memory SQLite, then on a separately named dedicated MySQL database. Verified 2026-11-06 with:
+
+```powershell
+pwsh -File .\tools\test-pest-both-databases.ps1 laravix_test_pest_part0_20261106
+```
+
+Both runs reported `205 deprecated, 127 passed (889 assertions)`. The initial MySQL run exposed a snapshot-hash portability issue caused by MySQL JSON key normalization. Hashing now uses recursive canonical JSON key ordering; the rerun passed on both databases. Existing PHP/Pest deprecation warnings remain, with no failed tests.
