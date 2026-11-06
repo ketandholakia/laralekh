@@ -74,6 +74,9 @@ separately. This is a configurable accounting starting point, not a legal
 conclusion. Posted purchase bills are immutable; corrections should use supplier-
 linked debit notes rather than editing posted bills. Per-line ITC classification
 is explicit; blocked/review taxes are added to the selected cost ledger.
+Purchase debit notes currently have schema only (no posting or UI workflow); the
+note's ITC reversal, tax reporting period, supplier communication, and matching
+against supplier credit/debit documents require CA review before use.
 Rate selection uses invoice date only when it is the legally applicable tax date.
 A verified rate is an accountant's input, not an automated compliance conclusion.
 

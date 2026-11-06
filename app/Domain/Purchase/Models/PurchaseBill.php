@@ -11,4 +11,5 @@ class PurchaseBill extends TenantModel
         'cess' => MoneyCast::class, 'total' => MoneyCast::class];
     public function items() { return $this->hasMany(PurchaseBillItem::class)->orderBy('position'); }
     public function party() { return $this->belongsTo(\App\Domain\Masters\Models\Party::class); }
+    public function voucher() { return $this->belongsTo(\App\Domain\Accounting\Models\Voucher::class); }
 }
