@@ -152,6 +152,25 @@ it('rejects unverified future or expired rates', function ($mode) {
     });
 })->with(['unverified', 'future', 'expired']);
 
+it('rejects superseded 12 and 28 percent slabs from 22 September 2025 onward', function ($rate, $date, $passes) {
+    inSalesCompany(function () use ($rate, $date, $passes) {
+        $priorYear = FinancialYear::firstOrCreate(['name' => '2025-26'], ['starts_on' => '2025-04-01', 'ends_on' => '2026-03-31']);
+        $i = salesFixture(['date' => $date, 'financial_year_id' => $priorYear->id], ['financial_year_id' => $priorYear->id, 'tax_rate_id' => TaxRate::create([
+            'code' => 'OLD_'.$rate, 'rate' => $rate, 'effective_from' => '2017-07-01',
+            'effective_to' => '2025-09-21', 'is_verified' => true,
+        ])->id]);
+        if ($passes) {
+            expect(app(PostingService::class)->postSalesInvoice($i->id)->status)->toBe('posted');
+        } else {
+            expect(fn () => app(PostingService::class)->postSalesInvoice($i->id))
+                ->toThrow(DomainException::class, 'verified GST rate');
+        }
+    });
+})->with([
+    ['12', '2025-09-21', true], ['28', '2025-09-21', true],
+    ['12', '2025-09-22', false], ['28', '2025-09-22', false],
+]);
+
 it('blocks raw SQL changes to posted documents and their lines', function ($table, $operation) {
     inSalesCompany(function () use ($table, $operation) {
         $i = salesFixture(); $v = app(PostingService::class)->postSalesInvoice($i->id);
@@ -247,4 +266,3 @@ it('rejects invalid invoice series without consuming a number', function ($serie
         expect(NumberSequence::count())->toBe(0);
     });
 })->with(['bad space', '*BAD', '']);
-
