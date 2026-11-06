@@ -106,6 +106,25 @@ it('uses CGST and UTGST for applicable union territories', function ($state) {
     expect((string) $r->utgst)->toBe('90.00')->and((string) $r->sgst)->toBe('0.00');
 })->with(['04', '26', '31', '35', '38']);
 
+it('calculates cess only on regular taxable supplies and routes RCM cess to recipient', function () {
+    $resolver = new PlaceOfSupplyResolver;
+    $calculator = new GstCalculator;
+    $intra = $calculator->calculate(Money::of('100'), '1', '18', $resolver->resolve('27', '27'), cessRate: '12.5');
+    $inter = $calculator->calculate(Money::of('100'), '1', '18', $resolver->resolve('27', '24'), cessRate: '12.5');
+    $rcm = $calculator->calculate(Money::of('100'), '1', '18', $resolver->resolve('27', '24'), reverseCharge: true, cessRate: '12.5');
+    $composition = $calculator->calculate(Money::of('100'), '1', '18', $resolver->resolve('27', '27'), regime: 'composition', cessRate: '12.5');
+    $lut = $calculator->calculate(Money::of('100'), '1', '18', $resolver->resolve('27', '99', 'export'), zeroRatedMode: 'lut', zeroRatedEligible: true, cessRate: '12.5');
+    expect((string) $intra->cess)->toBe('12.50')->and((string) $intra->total)->toBe('130.50')
+        ->and((string) $inter->igst)->toBe('18.00')->and((string) $inter->cess)->toBe('12.50')
+        ->and((string) $rcm->recipientTax)->toBe('30.50')->and((string) $rcm->recipientCess)->toBe('12.50')
+        ->and((string) $composition->cess)->toBe('0.00')->and((string) $lut->cess)->toBe('0.00');
+});
+
+it('rounds cess half-up to paise', function () {
+    $r = gstLine(['unitPrice' => Money::of('0.10'), 'rate' => '0', 'cessRate' => '5']);
+    expect((string) $r->cess)->toBe('0.01')->and((string) $r->total)->toBe('0.11');
+});
+
 it('rejects malformed quantities', fn ($q) => gstLine(['quantity' => $q]))
     ->with(['0', '-1', '1.0001', '1e2', 'abc'])->throws(InvalidArgumentException::class);
 it('rejects malformed rates', fn ($r) => gstLine(['rate' => $r]))

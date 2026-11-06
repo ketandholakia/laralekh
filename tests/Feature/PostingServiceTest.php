@@ -58,6 +58,19 @@ it('posts outward RCM without output tax credits', function () {
     });
 });
 
+it('posts non-zero compensation cess to its output liability ledger', function () {
+    inSalesCompany(function () {
+        $invoice = salesFixture([], ['tax_rate_id' => TaxRate::create([
+            'code' => 'TEST_CESS', 'rate' => '18', 'cess_rate' => '12.5',
+            'effective_from' => '2026-04-01', 'is_verified' => true,
+        ])->id]);
+        $voucher = app(PostingService::class)->postSalesInvoice($invoice->id);
+        $cessLine = $voucher->lines->first(fn ($line) => $line->ledger->code === 'OUTPUT_CESS');
+        expect($cessLine)->not->toBeNull()->and((string) $cessLine->credit)->toBe('125.00')
+            ->and((string) $invoice->fresh()->cess)->toBe('125.00');
+    });
+});
+
 it('posts LUT exports without output tax', function () {
     inSalesCompany(function () {
         $i = salesFixture(['supply_type' => 'export', 'place_of_supply' => '99', 'zero_rated_mode' => 'lut', 'zero_rated_eligible' => true]);

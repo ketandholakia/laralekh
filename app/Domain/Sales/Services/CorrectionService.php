@@ -144,10 +144,10 @@ final class CorrectionService
             }
             $amounts[$id] = ($amounts[$id] ?? Money::of('0'))->add($line['taxable_amount']);
         }
-        foreach (['cgst', 'sgst', 'utgst', 'igst'] as $tax) {
+        foreach (['cgst', 'sgst', 'utgst', 'igst', 'cess'] as $tax) {
             $amount = $calculation['totals'][$tax];
             if ($amount->isZero()) { continue; }
-            $line = $original->first(fn ($l) => $l->ledger->code === 'OUTPUT_'.strtoupper($tax));
+            $line = $original->first(fn ($l) => $l->ledger->code === ($tax === 'cess' ? 'OUTPUT_CESS' : 'OUTPUT_'.strtoupper($tax)));
             if (!$line) { throw new DomainException('Original output tax ledger cannot be resolved; review its classification.'); }
             $this->assertLedger($line->ledger_id, 'liability');
             $amounts[$line->ledger_id] = ($amounts[$line->ledger_id] ?? Money::of('0'))->add($amount);
@@ -168,4 +168,3 @@ final class CorrectionService
         }
     }
 }
-

@@ -19,6 +19,7 @@ final class GstCalculator
         string $zeroRatedMode = 'none',
         bool $zeroRatedEligible = false,
         bool $sezAuthorized = false,
+        string $cessRate = '0',
     ): GstBreakdown {
         $discount ??= Money::of('0');
         if (!preg_match('/^\d{1,12}(?:\.\d{1,3})?$/D', $quantity) || bccomp($quantity, '0', 3) <= 0) {
@@ -62,7 +63,10 @@ final class GstCalculator
             throw new InvalidArgumentException('Outward reverse-charge classification needs separate review for this regime.');
         }
         $zero = Money::of('0');
-        $cgst = $sgst = $utgst = $igst = $recipientTax = $zero;
+        if (!preg_match('/^\d{1,3}(?:\.\d{1,3})?$/D', $cessRate) || bccomp($cessRate, '100', 3) > 0) {
+            throw new InvalidArgumentException('Invalid cess percentage.');
+        }
+        $cgst = $sgst = $utgst = $igst = $cess = $recipientTax = $recipientCess = $zero;
         if ($category === 'taxable' && $regime === 'regular' && $zeroRatedMode !== 'lut') {
             if ($supply->interState) {
                 $igst = Money::rounded(bcdiv(bcmul((string) $base, $rate, 5), '100', 7));
@@ -70,13 +74,15 @@ final class GstCalculator
                 $cgst = Money::rounded(bcdiv(bcmul((string) $base, $rate, 5), '200', 7));
                 if ($supply->usesUtgst) { $utgst = $cgst; } else { $sgst = $cgst; }
             }
+            $cess = Money::rounded(bcdiv(bcmul((string) $base, $cessRate, 5), '100', 7));
         }
-        $tax = $cgst->add($sgst)->add($utgst)->add($igst);
+        $tax = $cgst->add($sgst)->add($utgst)->add($igst)->add($cess);
         if ($reverseCharge) {
             $recipientTax = $tax;
-            $cgst = $sgst = $utgst = $igst = $tax = $zero;
+            $recipientCess = $cess;
+            $cgst = $sgst = $utgst = $igst = $cess = $tax = $zero;
         }
-        return new GstBreakdown($base, $cgst, $sgst, $utgst, $igst, $base->add($tax), $recipientTax, $category);
+        return new GstBreakdown($base, $cgst, $sgst, $utgst, $igst, $cess, $base->add($tax), $recipientTax, $recipientCess, $category);
     }
 
     public function roundStatutoryPayable(Money $amount): Money
@@ -85,4 +91,3 @@ final class GstCalculator
         return Money::of(bcadd((string) $amount, $adjustment, 0));
     }
 }
-

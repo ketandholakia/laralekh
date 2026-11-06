@@ -42,9 +42,10 @@ final class PostingService
                 throw new DomainException('Cannot post an invoice without items.');
             }
 
-            $totals = array_fill_keys(['taxable_amount', 'cgst', 'sgst', 'utgst', 'igst', 'total'], Money::of('0'));
+            $totals = array_fill_keys(['taxable_amount', 'cgst', 'sgst', 'utgst', 'igst', 'cess', 'total'], Money::of('0'));
             $credits = [];
             $recipientTax = Money::of('0');
+            $recipientCess = Money::of('0');
             foreach ($items as $line) {
                 Item::whereKey($line->item_id)->sole(); // Tenant validation also covers persisted drafts.
                 $salesLedger = $this->ledger($line->sales_ledger_id, 'income');
@@ -62,20 +63,22 @@ final class PostingService
                     discount: $line->discount, category: $line->tax_category, reverseCharge: $invoice->reverse_charge,
                     regime: $company->gst_regime, zeroRatedMode: $invoice->zero_rated_mode,
                     zeroRatedEligible: $invoice->zero_rated_eligible, sezAuthorized: $invoice->sez_authorized,
+                    cessRate: $taxRate->cess_rate ?? '0',
                 );
                 $line->fill($result->amounts() + ['rate' => $rate, 'recipient_tax' => $result->recipientTax])->save();
                 foreach ($result->amounts() as $field => $amount) {
                     $totals[$field] = $totals[$field]->add($amount);
                 }
                 $recipientTax = $recipientTax->add($result->recipientTax);
+                $recipientCess = $recipientCess->add($result->recipientCess);
                 $credits[$salesLedger->id] = ($credits[$salesLedger->id] ?? Money::of('0'))->add($result->taxableAmount);
             }
             if ($totals['total']->isZero()) {
                 throw new DomainException('Zero-value invoices need a separate non-accounting document workflow.');
             }
-            foreach (['cgst', 'sgst', 'utgst', 'igst'] as $tax) {
+            foreach (['cgst', 'sgst', 'utgst', 'igst', 'cess'] as $tax) {
                 if (!$totals[$tax]->isZero()) {
-                    $ledger = Ledger::where('code', 'OUTPUT_'.strtoupper($tax))->sole();
+                    $ledger = Ledger::where('code', $tax === 'cess' ? 'OUTPUT_CESS' : 'OUTPUT_'.strtoupper($tax))->sole();
                     $this->ledger($ledger->id, 'liability');
                     $credits[$ledger->id] = ($credits[$ledger->id] ?? Money::of('0'))->add($totals[$tax]);
                 }
@@ -103,6 +106,7 @@ final class PostingService
             $invoice->fill($totals + [
                 'voucher_id' => $voucher->id, 'number' => $number, 'status' => 'posted',
                 'recipient_tax' => $recipientTax,
+                'recipient_cess' => $recipientCess,
                 'supplier_snapshot' => $company->only(['name', 'gstin', 'state_code', 'address', 'gst_regime']),
                 'party_snapshot' => $party->only(['name', 'gstin', 'state_code', 'address', 'registration_type']),
             ])->save();
@@ -145,4 +149,3 @@ final class PostingService
         return $ledger;
     }
 }
-

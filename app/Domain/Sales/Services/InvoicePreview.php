@@ -37,7 +37,7 @@ final class InvoicePreview
     ): array {
         $supply = $this->placeOfSupply->resolve($company->state_code, $placeOfSupply, $supplyType);
         $lineBreakup = [];
-        $sums = array_fill_keys(['taxable', 'cgst', 'sgst', 'utgst', 'igst', 'total', 'recipient_tax'], Money::of('0'));
+        $sums = array_fill_keys(['taxable', 'cgst', 'sgst', 'utgst', 'igst', 'cess', 'total', 'recipient_tax'], Money::of('0'));
         foreach ($lines as $line) {
             $breakdown = $this->calculator->calculate(
                 unitPrice: Money::of($line['unit_price']),
@@ -50,7 +50,8 @@ final class InvoicePreview
                 regime: $company->gst_regime,
                 zeroRatedMode: $zeroRatedMode,
                 zeroRatedEligible: $zeroRatedEligible,
-                sezAuthorized: $sezAuthorized,
+                    sezAuthorized: $sezAuthorized,
+                    cessRate: $line['cess_rate'] ?? '0',
             );
             $lineBreakup[] = $this->stringify($breakdown);
             foreach ($sums as $field => $running) {
@@ -60,6 +61,7 @@ final class InvoicePreview
                     'sgst' => $breakdown->sgst,
                     'utgst' => $breakdown->utgst,
                     'igst' => $breakdown->igst,
+                    'cess' => $breakdown->cess,
                     'total' => $breakdown->total,
                     default => $breakdown->recipientTax,
                 });
@@ -82,6 +84,7 @@ final class InvoicePreview
             'sgst' => (string) $b->sgst,
             'utgst' => (string) $b->utgst,
             'igst' => (string) $b->igst,
+            'cess' => (string) $b->cess,
             'total' => (string) $b->total,
         ];
     }

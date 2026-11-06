@@ -60,6 +60,16 @@ line amounts. Compensation cess is an explicit rate input; applicability, rate,
 and valuation remain goods/notification-specific and require professional
 verification. No inclusive pricing, TCS/TDS, advances, time-of-supply rate
 transitions, mixed/composite supplies, valuation exceptions, or automatic return filing.
+The [PIB FAQ of 3 September 2025](https://www.pib.gov.in/PressReleasePage.aspx?PRID=2163560)
+states that specified tobacco products and pan masala retained existing GST and
+compensation cess rates during the phased change; the [18 September FAQ](https://www.pib.gov.in/PressReleasePage.aspx?PRID=2168426)
+identifies the relevant GST rate notifications and separately amended cess
+notification. This software does not infer product applicability, assessable value,
+or a cess rate from the GST slab. Confirm the current consolidated notifications
+and exact HSN before setting `cess_rate`. Cess credit/refund treatment also needs
+CA review. Reverse-charge timing and eligibility/availability of corresponding
+ITC are especially fact-specific and must be professionally reviewed; the current
+posting treatment is intentionally isolated in the purchase posting service.
 Rate selection uses invoice date only when it is the legally applicable tax date.
 A verified rate is an accountant's input, not an automated compliance conclusion.
 

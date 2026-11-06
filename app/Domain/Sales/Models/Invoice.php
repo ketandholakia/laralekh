@@ -8,6 +8,7 @@ class Invoice extends TenantModel
 {
     protected $casts = ['date' => 'immutable_date', 'due_date' => 'immutable_date', 'taxable_amount' => MoneyCast::class,
         'cgst' => MoneyCast::class, 'sgst' => MoneyCast::class, 'utgst' => MoneyCast::class, 'igst' => MoneyCast::class,
+        'cess' => MoneyCast::class, 'recipient_cess' => MoneyCast::class,
         'total' => MoneyCast::class, 'recipient_tax' => MoneyCast::class, 'supplier_snapshot' => 'array', 'party_snapshot' => 'array',
         'reverse_charge' => 'boolean', 'sez_authorized' => 'boolean', 'zero_rated_eligible' => 'boolean'];
     public function items() { return $this->hasMany(InvoiceItem::class); }
@@ -15,4 +16,3 @@ class Invoice extends TenantModel
     public function voucher() { return $this->belongsTo(Voucher::class); }
     public function corrections() { return $this->hasMany(SalesCorrection::class); }
 }
-

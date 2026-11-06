@@ -9,8 +9,8 @@ use DomainException;
 
 final class CorrectionCalculator
 {
-    public const TAXES = ['cgst', 'sgst', 'utgst', 'igst', 'recipient_tax'];
-    public const TOTALS = ['taxable_amount', 'cgst', 'sgst', 'utgst', 'igst', 'recipient_tax', 'total'];
+    public const TAXES = ['cgst', 'sgst', 'utgst', 'igst', 'cess', 'recipient_tax'];
+    public const TOTALS = ['taxable_amount', 'cgst', 'sgst', 'utgst', 'igst', 'cess', 'recipient_tax', 'total'];
 
     public function remaining(Invoice $invoice): array
     {
@@ -80,7 +80,7 @@ final class CorrectionCalculator
                     supply: $supply, category: $item->tax_category, reverseCharge: $invoice->reverse_charge,
                     regime: $invoice->supplier_snapshot['gst_regime'], zeroRatedMode: $invoice->zero_rated_mode,
                     zeroRatedEligible: $invoice->zero_rated_eligible, sezAuthorized: $invoice->sez_authorized);
-                $basis = ['cgst' => $tax->cgst, 'sgst' => $tax->sgst, 'utgst' => $tax->utgst, 'igst' => $tax->igst, 'recipient_tax' => $tax->recipientTax];
+                $basis = ['cgst' => $tax->cgst, 'sgst' => $tax->sgst, 'utgst' => $tax->utgst, 'igst' => $tax->igst, 'cess' => $tax->cess, 'recipient_tax' => $tax->recipientTax];
             }
             $total = $amount;
             foreach (self::TAXES as $tax) {
@@ -95,4 +95,3 @@ final class CorrectionCalculator
         return ['lines' => $rows, 'totals' => $totals, 'remaining' => $remaining];
     }
 }
-

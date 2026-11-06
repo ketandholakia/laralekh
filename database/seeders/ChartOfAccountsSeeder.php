@@ -37,6 +37,8 @@ class ChartOfAccountsSeeder extends Seeder
             $ledgers['OUTPUT_'.$tax] = ['Output '.$tax, 'OUTPUT_GST'];
             $ledgers['INPUT_'.$tax] = ['Input '.$tax, 'INPUT_GST'];
         }
+        $ledgers['OUTPUT_CESS'] = ['Output cess', 'OUTPUT_GST'];
+        $ledgers['INPUT_CESS'] = ['Input cess', 'INPUT_GST'];
         foreach ($ledgers as $code => [$name, $group]) {
             Ledger::firstOrCreate(['code' => $code], [
                 'name' => $name, 'ledger_group_id' => LedgerGroup::where('code', $group)->sole()->id,
@@ -44,4 +46,3 @@ class ChartOfAccountsSeeder extends Seeder
         }
     }
 }
-
