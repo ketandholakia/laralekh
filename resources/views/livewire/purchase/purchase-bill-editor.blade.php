@@ -20,5 +20,5 @@
         <input class="rounded border p-2" placeholder="ITC reason" wire:model="lines.{{ $index }}.itc_reason">
     </div>@endforeach
     <button class="rounded border px-3 py-2" wire:click="addLine">Add line</button>
-    <div class="mt-6 flex gap-3"><button class="rounded border px-4 py-2" wire:click="save">Save draft</button><button class="rounded bg-slate-900 px-4 py-2 text-white" wire:click="post">Save and post</button></div>
+    <div class="mt-6 flex gap-3"><button class="rounded border px-4 py-2" wire:click="save">Save draft</button>@can('purchases.post')<button class="rounded bg-slate-900 px-4 py-2 text-white" wire:click="post">Save and post</button>@endcan</div>
 </div>

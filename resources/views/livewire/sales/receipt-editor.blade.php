@@ -115,9 +115,11 @@
             <section class="bg-white rounded-lg border border-slate-200 p-4 space-y-2">
                 <button type="button" wire:click="save" wire:loading.attr="disabled" wire:target="save"
                         class="w-full rounded border border-indigo-600 px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50 disabled:opacity-50">Save draft</button>
+                @can('receipts.post')
                 <button type="button" wire:click="post" wire:loading.attr="disabled" wire:target="post"
                         wire:confirm="Post this receipt? The number is allocated and the entries become final."
                         class="w-full rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50">Post receipt</button>
+                @endcan
                 <p class="text-xs text-slate-400">Posting debits the cash/bank ledger and credits the customer, then applies the allocations.</p>
             </section>
         </aside>

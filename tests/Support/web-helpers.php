@@ -70,10 +70,10 @@ function inSalesCompany(Closure $callback): mixed
 
 // A logged-in user whose session company and financial year are selected, with
 // the seeded chart of accounts available inside the tenant scope.
-function webSession(string $role = 'accountant', array $permissions = ACCOUNTANT_PERMISSIONS): array
+function webSession(string $role = 'accountant', array $permissions = ACCOUNTANT_PERMISSIONS, string $email = 'worker@example.test'): array
 {
     (new StateSeeder)->run();
-    $user = webUser();
+    $user = webUser($email);
     $company = companyFixture();
     addMembership($user, $company);
     assignCompanyRole($user, $company, $role, $permissions);
@@ -163,9 +163,9 @@ function receiptDraft(Party $party, string $amount, array $overrides = []): Rece
     ], $overrides));
 }
 
-function receiptSession(string $role = 'accountant', array $permissions = [...ACCOUNTANT_PERMISSIONS, 'receipts.view', 'receipts.create', 'receipts.post', 'receipts.allocate', 'reversals.post']): array
+function receiptSession(string $role = 'accountant', array $permissions = [...ACCOUNTANT_PERMISSIONS, 'receipts.view', 'receipts.create', 'receipts.post', 'receipts.allocate', 'reversals.post'], string $email = 'worker@example.test'): array
 {
-    return webSession($role, $permissions);
+    return webSession($role, $permissions, $email);
 }
 
 // Asserts a callable aborts with exactly HTTP 403 (theLivewire guard pattern).

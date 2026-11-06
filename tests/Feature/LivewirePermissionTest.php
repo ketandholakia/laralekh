@@ -190,3 +190,47 @@ it('aborts purchase bill editor state changes for purchases.view-only users', fu
             ->and(\App\Domain\Accounting\Models\Voucher::count())->toBe(0);
     });
 });
+
+it('hides the post buttons from create-only users in the editors', function () {
+    // Invoice editor: create-only user sees Save draft but not Post invoice.
+    [$user, $company] = webSession('inv-creator', ['invoices.view', 'invoices.create'], 'inv-creator@example.test');
+    $this->actingAs($user);
+    $draft = inTenantContext($company, function (): Invoice {
+        [$party, $item, $sales] = masters();
+        $rate = verifiedRate();
+
+        return app(\App\Domain\Sales\Actions\SaveInvoiceDraft::class)->handle(
+            null, draftPayload($party->id), [linePayload($item->id, $sales->id, $rate->id)]);
+    });
+    inTenantContext($company, function () use ($draft): void {
+        Livewire::test(\App\Livewire\Sales\InvoiceEditor::class, ['invoice' => $draft->id])
+            ->assertOk()->assertSee('Save draft')->assertDontSee('Post invoice');
+    });
+
+    // Receipt editor: create-only user sees Save draft but not Post receipt.
+    [$user, $company] = receiptSession('rcpt-creator', ['receipts.view', 'receipts.create']);
+    $this->actingAs($user);
+    inTenantContext($company, function () use ($company): void {
+        [$party] = masters();
+        Livewire::test(\App\Livewire\Sales\ReceiptEditor::class)
+            ->assertOk()->assertSee('Save draft')->assertDontSee('Post receipt');
+    });
+
+    // Purchase editor: create-only user sees Save draft but not Save and post.
+    [$user, $company] = webSession('pur-creator', ['purchases.view', 'purchases.create'], 'pur-creator@example.test');
+    $this->actingAs($user);
+    inTenantContext($company, function () use ($company): void {
+        session(['company_id' => $company->id, 'financial_year_id' => salesYear($company)->id]);
+        $year = salesYear($company);
+        $payables = \App\Domain\Accounting\Models\LedgerGroup::where('code', 'PAYABLES')->sole();
+        $ledger = \App\Domain\Accounting\Models\Ledger::firstOrCreate(['code' => 'SUPPLIER'],
+            ['name' => 'Supplier', 'ledger_group_id' => $payables->id]);
+        $party = \App\Domain\Masters\Models\Party::firstOrCreate(['ledger_id' => $ledger->id],
+            ['name' => 'Supplier', 'state_code' => '27']);
+        $bill = \App\Domain\Purchase\Models\PurchaseBill::create(['financial_year_id' => $year->id,
+            'party_id' => $party->id, 'supplier_bill_number' => 'SUP-2',
+            'supplier_bill_date' => '2026-11-05', 'date' => '2026-11-05', 'place_of_supply' => '27']);
+        Livewire::test(\App\Livewire\Purchase\PurchaseBillEditor::class, ['bill' => $bill->id])
+            ->assertOk()->assertSee('Save draft')->assertDontSee('Save and post');
+    });
+});
