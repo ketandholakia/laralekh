@@ -1,8 +1,8 @@
 # Validation history
 
-Latest: [Step 4 validation](#step-4-validation-6-november-2026) used PHP 8.5.9
-and MySQL 9.7.2 on this host; the Step 3 PHP 8.3/MySQL 8.4 tooling is not
-reproducible here any more (see the Step 4 section for the verified mismatch).
+Latest: [Laravel 13 upgrade validation](#laravel-13-upgrade-7-november-2026)
+on branch `upgrade-laravel-13` — PHP 8.5.9 host, MySQL 8.4.13 via Docker.
+Earlier sections are historical.
 
 ## Step 2 validation (historical)
 
@@ -65,6 +65,39 @@ total. The bucket moved 216 -> 217 exactly when the purchase-viewer 403 test
 was added, because every test that boots the app triggers the framework's
 remaining PDO::MYSQL_ATTR_SSL_CA deprecation (see Step 4 validation: the
 source is Laravel's own vendor config defaults, not this project's config).
+
+## Laravel 13 upgrade (7 November 2026, branch `upgrade-laravel-13`)
+
+Approved major upgrade (replaces the no-major-upgrades rule). Versions and the
+full guide review are in docs/audit/laravel-audit.md §6b. Summary:
+
+| Check | Result |
+| --- | --- |
+| SQLite (in-memory), PHP 8.5.9 | `Tests: 1 todo, 344 passed (954 assertions)` — no deprecated bucket |
+| MySQL 8.4.13 (Docker mysql:8.4) | `Tests: 1 todo, 344 passed (954 assertions)` |
+| pest --list-tests | 345 cases = 344 passed + 1 pre-existing todo |
+| Deprecation count | 218 -> **0**: Laravel 13's config uses `Pdo\Mysql::ATTR_SSL_CA`, removing the framework-config deprecation source |
+| Migration up/rollback/up (MySQL 8.4) | PASS |
+| Race tools on MySQL 8.4 | invoice posting, corrections/reversals, receipts — all PASS |
+| composer audit | 0 advisories (was 5 against laravel/framework 11) |
+| npm audit | 0 vulnerabilities |
+| Pint | PASS, 208 files |
+
+Code changes required by the upgrade (schema + test infra only; no application
+behaviour changed):
+
+- `activity_log.attribute_changes` (json, nullable) added to the base schema —
+  activitylog v5 writes it; without it every activity insert failed.
+- `phpunit.xml` memory_limit 512M — PHPUnit 13 retains more state per run and
+  the PDF text-extraction tests exceeded the 128M default on the full suite.
+- composer.json PHP floor `~8.3.0` -> `^8.4.1`, platform pin 8.4.1 (Pest 5 /
+  PHPUnit 13 / activitylog 5 require php >= 8.4.1).
+
+Config-sync notes: session serialization deliberately kept at `php` to avoid
+invalidating sessions; `cache.serializable_classes` left at the framework
+default (the app caches only arrays/scalars) — add an explicit allow-list when
+objects ever enter the cache. The GSTR-1 JSON exporter test remains `todo`
+(unchanged from before the upgrade).
 
 ## Step 4 validation (6 November 2026)
 

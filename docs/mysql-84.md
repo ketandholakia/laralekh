@@ -39,9 +39,10 @@ docker compose down -v
 
 ## Verified
 
-2026-11-07: Docker Desktop 29.2.0 with `mysql:8.4` (8.4.13) — full Pest suite
-218 deprecated / 127 passed (954 assertions), migration up/rollback/up PASS,
-and all three race tools PASS.
+2026-11-07 (after the Laravel 13 upgrade): Docker Desktop 29.2.0 with
+`mysql:8.4` (8.4.13) — full Pest suite `1 todo, 344 passed (954 assertions)`
+with **no deprecation bucket**, migration up/rollback/up PASS, and all three
+race tools PASS. (Pre-upgrade run: 218 deprecated / 127 passed.)
 
 ## Notes
 

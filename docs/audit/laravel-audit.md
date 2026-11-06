@@ -1,4 +1,4 @@
-# Laravix full repository audit
+# Laravix full repository audit (docs/audit/laravel-audit.md)
 
 Audit date: 7 November 2026. Scope: the full verification checklist — test
 suite reconciliation, dependency/deprecation status, authorization surfaces,
@@ -70,7 +70,7 @@ item 3 of the review), and every underlying method aborts 403 server-side:
 - correction-editor: save
 - reversal-editor: post
 
-## 3. Dependency and deprecation status
+## 3. Dependency and deprecation status (pre-upgrade state; see §6b)
 
 - Installed framework: **laravel/framework v11.57.1** (composer.lock), within
   the requested `"^11.31"`. **v11.57.1 is the newest 11.x tag** (GitHub tag
@@ -146,7 +146,62 @@ databases, barrier-synchronised worker processes:
 - Receipts/statements: 5 documents / 6 pages inspected; statement reconciles
   to the receivable ledger; receipt PDFs labelled as non-statutory.
 
-## 9. Open blockers
+## 6b. Laravel 13 upgrade (branch `upgrade-laravel-13`, 7 November 2026)
+
+Approved major upgrade replacing the no-major-upgrades rule (commit history on
+the branch: dependency bump, schema fix, docs).
+
+Dependency changes (composer.lock verified):
+
+| Package | Before | After | Note |
+| --- | --- | --- | --- |
+| laravel/framework | v11.57.1 | **v13.40.0** | guide: framework ^13.0 |
+| pestphp/pest | v3.8.x | **v5.3.5** | guide: pest ^4.0 minimum; 5.x required by pest-plugin-laravel v5 |
+| pestphp/pest-plugin-laravel | v3.2.x | **v5.0.1** | requires framework ^13.23 |
+| phpunit/phpunit | 11.x | **13.4.5** | guide: ^12.0 minimum; 13.x required by pest 5 |
+| spatie/laravel-permission | 6.25.0 | **8.5.0** | v7 modernisation (Laravel ^12, PHP ^8.4); v8 enum contracts; registrar API used here (cacheKey, forgetCachedPermissions, set/getPermissionsTeamId, findOrCreate, teams) verified present in 8.5.0 source |
+| spatie/laravel-activitylog | 4.12.3 | **5.1.4** | PHP 8.4+; fluent activity() chain intact; adds attribute_changes column (schema fix commit) |
+| livewire/livewire | v3.8.11 | v3.8.11 (unchanged) | 3.8.11 already supports illuminate ^13.0 — no Livewire 4 migration needed |
+| laravel/sanctum | v4.3.3 | v4.3.3 | unchanged |
+| barryvdh/laravel-dompdf | v3.1.2 | v3.1.2 | unchanged |
+| nesbot/carbon | 3.15.1 | 3.15.1 | Carbon 3 already in use (L12 requirement satisfied) |
+| chillerlan/php-qrcode, laravel/pint | unchanged | unchanged | framework-independent |
+
+Project PHP floor: `~8.3.0` -> `^8.4.1` (composer platform pin 8.3.0 -> 8.4.1),
+forced by Pest 5 / PHPUnit 13 / activitylog 5 (all require php >= 8.4.1). Host
+PHP is 8.5.9. laravel/tinker and laravel/boost are not installed, so their
+guide entries do not apply.
+
+Upgrade-guide items reviewed against this codebase — all no-ops: HasUuids
+v7 (not used), DatabaseTokenRepository signature, Concurrency::run mapping,
+container default-value resolution, multi-schema inspection, Blueprint
+constructor, mergeIfMissing, route-name precedence, local disk root, image/SVG
+rule, upsert uniqueBy validation, MySQL DELETE JOIN grammar, model booting
+nested instantiation (no `new static` inside boot), polymorphic pivot names,
+collection serialization eager-load restore, queue/contract additions,
+pagination view names, Str factories, Js::from, polyfill globals (no
+laravel/helpers). One review note: the 12->13 CSRF middleware rename
+(VerifyCsrfToken -> PreventRequestForgery) requires no change here because no
+test or route references the class directly.
+
+Config decisions: `cache.serializable_classes => false` NOT added yet (the
+framework default applies and the app caches only arrays/scalars; adding it is
+a config-sync task, not a behaviour change); `session.serialization` kept at
+`php` to avoid invalidating sessions (guide's recommended safe path; revisit
+when sessions matter).
+
+Results after the upgrade (see §1/§4/§5 for full tables):
+
+- SQLite: `Tests: 1 todo, 344 passed (954 assertions)` — the "deprecated"
+  bucket is gone entirely (was 218): Laravel 13's shipped config uses
+  `Pdo\Mysql::ATTR_SSL_CA`, removing the last PHP 8.5 deprecation source.
+- MySQL 8.4.13 (Docker): identical `1 todo, 344 passed (954 assertions)`.
+- pest --list-tests: 345 cases = 344 passed + 1 todo. Reconciled.
+- Migration up/rollback/up and all three race tools PASS on 8.4.13.
+- composer audit: **0 advisories** (was 5 against laravel/framework 11.x).
+  npm audit: 0 vulnerabilities (unchanged).
+
+## 9. Open blockers (blockers 1–2 resolved by the §6b upgrade)
 
 1. Laravel 11 security advisories (5, one critical) — upgrade path blocked by
    the no-major-upgrade rule; explicit decision required.
