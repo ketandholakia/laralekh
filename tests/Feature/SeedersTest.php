@@ -19,10 +19,9 @@ it('seeds per-company accounts and rates idempotently without overwriting custom
             (new ChartOfAccountsSeeder)->run(); (new GstSlabSeeder)->run();
             Ledger::where('code', 'SALES')->update(['name' => 'Custom sales']);
             (new ChartOfAccountsSeeder)->run(); (new GstSlabSeeder)->run();
-            expect(Ledger::count())->toBe(15)->and(TaxRate::count())->toBe(5)
+            expect(Ledger::count())->toBe(17)->and(TaxRate::count())->toBe(8)
                 ->and(TaxRate::where('is_verified', true)->count())->toBe(0)
                 ->and(Ledger::where('code', 'SALES')->sole()->name)->toBe('Custom sales');
         });
     }
 });
-
