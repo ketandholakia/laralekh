@@ -18,7 +18,13 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/companies', [CompanySelectionController::class, 'index'])->name('company.select');
     Route::post('/companies', [CompanySelectionController::class, 'store'])->name('company.store');
 
-    Route::middleware('company.context')->group(function (): void {
+        Route::middleware('company.context')->group(function (): void {
+            Route::middleware('can:returns.view')->group(function (): void {
+                Route::get('/gst/returns', \App\Livewire\Gst\Returns\Dashboard::class)->name('gst.returns.index');
+                Route::get('/gst/returns/{period}', \App\Livewire\Gst\Returns\Detail::class)->name('gst.returns.show');
+            });
+            Route::get('/gst/returns/{period}/csv/{filename}', \App\Http\Controllers\Gst\ReturnsCsvController::class)
+                ->middleware('can:returns.export')->name('gst.returns.csv');
         Route::middleware('can:corrections.view')->group(function (): void {
             Route::get('/corrections/{correction}/pdf', \App\Http\Controllers\Sales\CorrectionPdfController::class)->name('corrections.pdf');
             Route::get('/reversals/{reversal}/pdf', \App\Http\Controllers\Accounting\ReversalPdfController::class)->name('reversals.pdf');

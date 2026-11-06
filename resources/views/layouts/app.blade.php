@@ -17,6 +17,7 @@
             <a href="{{ route('invoices.index') }}" class="hover:text-indigo-600">Invoices</a>
             <a href="{{ route('receipts.index') }}" class="hover:text-indigo-600">Receipts</a>
             <a href="{{ route('customers.index') }}" class="hover:text-indigo-600">Customers</a>
+            @can('returns.view')<a href="{{ route('gst.returns.index') }}" class="hover:text-indigo-600">GST returns</a>@endcan
             <a href="{{ route('company.select') }}" class="hover:text-indigo-600">Company</a>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
