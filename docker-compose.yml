@@ -1,0 +1,27 @@
+# Isolated MySQL 8.4 for the Pest suite. Start with:
+#   docker compose up -d mysql84
+# then run the suite with (Git Bash / bash):
+#   DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_PORT=33061 DB_DATABASE=laravix_test_suite \
+#     DB_USERNAME=root DB_PASSWORD=laravix84 php vendor/pestphp/pest/bin/pest
+# The database name must start with laravix_test_ (enforced by tests/TestCase.php).
+# The container stores nothing outside its volume; `docker compose down -v` removes it.
+services:
+  mysql84:
+    image: mysql:8.4
+    container_name: laravix-mysql84
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: laravix84
+      MYSQL_DATABASE: laravix_test_suite
+    ports:
+      - '33061:3306'
+    volumes:
+      - laravix-mysql84:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uroot', '-plaravix84']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  laravix-mysql84:
