@@ -17,11 +17,19 @@ if(config('database.default')!=='mysql'||!str_starts_with((string)config('databa
 try {
     Illuminate\Support\Facades\DB::connection('mysql')->getPdo();
 } catch (Throwable $error) {
-    fwrite(STDERR, "Cannot connect to MySQL at ".config('database.connections.mysql.host').":".config('database.connections.mysql.port').". Start it from the repository root with `pwsh -File .\\local-mysql.ps1`, wait for MySQL to be ready, then retry `pwsh -File .\\tools\\run-series-concurrency.ps1`. Original error: ".$error->getMessage()."\n");
+    $hint=str_contains($error->getMessage(),'Unknown database')
+        ? ' Create the dedicated test database with: & "$env:LOCALAPPDATA/laravix/mysql-8.4.13-winx64/bin/mysql.exe" --no-defaults --host=127.0.0.1 --port=33360 --user=root -e "CREATE DATABASE IF NOT EXISTS laravix_test_suite".'
+        : ' Start the instance from the repository root with: pwsh -File .\\local-mysql.ps1.';
+    fwrite(STDERR, "Cannot connect to MySQL at ".config('database.connections.mysql.host').":".config('database.connections.mysql.port').".".$hint." Then retry: pwsh -File .\\tools\\run-series-concurrency.ps1. Original error: ".$error->getMessage()."\n");
     exit(2);
 }
 $migrator=$app->make('migrator'); if(!$migrator->repositoryExists())$migrator->getRepository()->createRepository();
-$migrator->run(database_path('migrations')); (new Database\Seeders\StateSeeder)->run();
+try { $migrator->run(database_path('migrations')); }
+catch (Throwable $error) {
+    fwrite(STDERR,"Series concurrency test NOT RUN: the dedicated MySQL database could not be migrated. Resolve the migration failure before treating 0.2 as verified. Existing migrations are not changed by this harness. Original error: ".$error->getMessage()."\n");
+    exit(3);
+}
+(new Database\Seeders\StateSeeder)->run();
 $company=Company::create(['name'=>'Series concurrency '.bin2hex(random_bytes(5)),'state_code'=>'27']);
 $ids=$app->make(TenantContext::class)->run($company->id,function() {
     (new Database\Seeders\ChartOfAccountsSeeder)->run();
