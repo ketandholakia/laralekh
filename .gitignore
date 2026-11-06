@@ -21,6 +21,7 @@ npm-debug.log
 yarn-error.log
 /auth.json
 /output/pdf/
+/laravix.zip
 /tmp/pdfs/
 /.fleet
 /.idea
