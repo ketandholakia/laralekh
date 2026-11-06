@@ -22,7 +22,6 @@ use App\Domain\Sales\Models\ReceiptAllocationReversal;
 use App\Domain\Sales\Services\SettlementService;
 use App\Domain\Shared\Models\Activity;
 use App\Domain\Shared\Tenancy\CompanySession;
-use DomainException;
 use Illuminate\Validation\ValidationException;
 
 it('posts a receipt with exact Dr cash / Cr customer entries and a series number', function () {

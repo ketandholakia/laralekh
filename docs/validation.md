@@ -44,6 +44,28 @@ working Redis service on this host); Sanctum remains installed for a later
 API step. PDF text extraction relies on a small in-repo helper, not an external
 pdftotext dependency.
 
+## Test-count reconciliation (7 November 2026)
+
+Pest's summary line reports buckets, not a grand total: a passing test that
+emits a deprecation notice is counted under "deprecated" INSTEAD of "passed"
+(it did not fail). The two buckets therefore sum to the true test-case count.
+
+Current run (commit under review):
+
+    Tests:  217 deprecated,  127 passed  (945 assertions)
+
+`pest --list-tests` lists exactly 344 test cases (dataset rows counted
+individually), and 217 + 127 = 344 — the buckets reconcile exactly.
+
+Earlier reports that appear inconsistent are artifacts of two things: (a) the
+Step 4 doc's "290 tests / 747 assertions" was true at that commit before the
+later purchase-bill, GST-returns and cancellation commits added ~54 cases; and
+(b) one prose line quoted the deprecated bucket ("216"/"217") as if it were a
+total. The bucket moved 216 -> 217 exactly when the purchase-viewer 403 test
+was added, because every test that boots the app triggers the framework's
+remaining PDO::MYSQL_ATTR_SSL_CA deprecation (see Step 4 validation: the
+source is Laravel's own vendor config defaults, not this project's config).
+
 ## Step 4 validation (6 November 2026)
 
 Baseline was independently verified before changes: 265 tests / 629 assertions
