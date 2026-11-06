@@ -37,8 +37,12 @@ final class PurchaseBillEditor extends Component
             $model = PurchaseBill::with('items')->findOrFail((int) $bill);
             abort_if($model->status !== 'draft', 403);
             $this->billId = $model->id;
-            $this->data = $model->only(['party_id', 'supplier_bill_number', 'supplier_bill_date', 'date', 'reverse_charge']);
-            $this->lines = $model->items->map(fn ($l) => $l->only(['item_id', 'purchase_ledger_id', 'tax_rate_id', 'description', 'hsn_sac', 'quantity', 'unit_price', 'discount', 'tax_category', 'itc_eligibility', 'itc_reason']))->all();
+            // Livewire public properties must hold plain scalars: stringify
+            // dates and Money-cast fields instead of keeping model casts.
+            $this->data = collect($model->only(['party_id', 'supplier_bill_number', 'supplier_bill_date', 'date', 'reverse_charge']))
+                ->map(fn ($value) => $value instanceof \DateTimeInterface ? $value->format('Y-m-d') : $value)->all();
+            $this->lines = $model->items->map(fn ($l) => collect($l->only(['item_id', 'purchase_ledger_id', 'tax_rate_id', 'description', 'hsn_sac', 'quantity', 'unit_price', 'discount', 'tax_category', 'itc_eligibility', 'itc_reason']))
+                ->map(fn ($value) => $value instanceof \DateTimeInterface ? $value->format('Y-m-d') : (is_object($value) ? (string) $value : $value))->all())->all();
         } else {
             $this->data['date'] = now()->toDateString();
             $this->data['supplier_bill_date'] = now()->toDateString();
@@ -50,11 +54,13 @@ final class PurchaseBillEditor extends Component
 
     public function addLine(): void
     {
+        abort_unless(auth()->user()?->can('purchases.create'), 403);
         $this->lines[] = ['item_id' => '', 'purchase_ledger_id' => '', 'tax_rate_id' => '', 'description' => '', 'hsn_sac' => '', 'quantity' => '1', 'unit_price' => '0.00', 'discount' => '0.00', 'tax_category' => 'taxable', 'itc_eligibility' => 'eligible', 'itc_reason' => ''];
     }
 
     public function save(): void
     {
+        abort_unless(auth()->user()?->can('purchases.create'), 403);
         $bill = app(SavePurchaseBillDraft::class)->handle($this->billId, $this->data, $this->lines);
         $this->billId = $bill->id;
         session()->flash('status', 'Purchase bill draft saved.');
@@ -62,8 +68,10 @@ final class PurchaseBillEditor extends Component
 
     public function post(): void
     {
-        abort_unless(auth()->user()->can('purchases.post'), 403);
-        $this->save();
+        abort_unless(auth()->user()?->can('purchases.post'), 403);
+        // Inline the draft save so posting needs purchases.post only.
+        $bill = app(SavePurchaseBillDraft::class)->handle($this->billId, $this->data, $this->lines);
+        $this->billId = $bill->id;
         $bill = app(PostPurchaseBill::class)->handle($this->billId);
         $this->redirectRoute('purchases.show', $bill->id);
     }

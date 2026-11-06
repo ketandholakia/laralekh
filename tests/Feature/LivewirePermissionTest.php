@@ -143,3 +143,50 @@ it('aborts the reversal editor post for users without reversals.post', function 
             ->and(Voucher::whereKey($voucherId)->sole()->status)->toBe('posted');
     });
 });
+
+it('aborts purchase bill editor state changes for purchases.view-only users', function () {
+    [$creator, $company] = webSession('purchase-user', ['invoices.view', 'purchases.view', 'purchases.create', 'purchases.post']);
+    $viewer = webUser('pur-viewer@example.test');
+    addMembership($viewer, $company);
+    assignCompanyRole($viewer, $company, 'purchase-viewer', ['purchases.view']);
+
+    $this->actingAs($creator);
+    $draft = inTenantContext($company, function () use ($company): \App\Domain\Purchase\Models\PurchaseBill {
+        session(['company_id' => $company->id, 'financial_year_id' => salesYear($company)->id]);
+        $year = salesYear($company);
+        $payables = \App\Domain\Accounting\Models\LedgerGroup::where('code', 'PAYABLES')->sole();
+        $ledger = \App\Domain\Accounting\Models\Ledger::firstOrCreate(['code' => 'SUPPLIER'],
+            ['name' => 'Supplier', 'ledger_group_id' => $payables->id]);
+        $party = \App\Domain\Masters\Models\Party::firstOrCreate(['ledger_id' => $ledger->id],
+            ['name' => 'Supplier', 'state_code' => '27']);
+        $item = \App\Domain\Inventory\Models\Item::firstOrCreate(['sku' => 'PURCHASE-STOCK'],
+            ['name' => 'Purchase stock', 'hsn_sac' => '1234', 'tracks_stock' => true]);
+        $rate = \App\Domain\Gst\Models\TaxRate::where('code', 'PURCHASE_18')
+            ->whereDate('effective_from', '2026-04-01')->first()
+            ?? \App\Domain\Gst\Models\TaxRate::create(['code' => 'PURCHASE_18',
+                'effective_from' => '2026-04-01', 'rate' => '18', 'is_verified' => true]);
+        $bill = \App\Domain\Purchase\Models\PurchaseBill::create(['financial_year_id' => $year->id,
+            'party_id' => $party->id, 'supplier_bill_number' => 'SUP-1',
+            'supplier_bill_date' => '2026-11-05', 'date' => '2026-11-05', 'place_of_supply' => '27']);
+        $bill->items()->create(['financial_year_id' => $year->id, 'item_id' => $item->id,
+            'purchase_ledger_id' => \App\Domain\Accounting\Models\Ledger::where('code', 'PURCHASES')->sole()->id,
+            'tax_rate_id' => $rate->id, 'position' => 1, 'description' => 'Stock', 'hsn_sac' => '1234',
+            'quantity' => '1', 'unit_price' => '1000.00', 'discount' => '0.00']);
+
+        return $bill;
+    });
+
+    $component = inTenantContext($company, fn () => Livewire::test(\App\Livewire\Purchase\PurchaseBillEditor::class, ['bill' => $draft->id]));
+
+    $this->actingAs($viewer);
+    inTenantContext($company, function () use ($component, $draft): void {
+        assert403(fn () => $component->instance()->addLine());
+        assert403(fn () => $component->instance()->save());
+        assert403(fn () => $component->instance()->post());
+        // Nothing was written: still a one-line draft, no voucher.
+        expect($draft->fresh()->status)->toBe('draft')
+            ->and($draft->fresh()->items->count())->toBe(1)
+            ->and($draft->fresh()->voucher_id)->toBeNull()
+            ->and(\App\Domain\Accounting\Models\Voucher::count())->toBe(0);
+    });
+});
