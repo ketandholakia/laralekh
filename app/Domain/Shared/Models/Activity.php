@@ -1,10 +1,11 @@
 <?php
+
 namespace App\Domain\Shared\Models;
 
 use App\Domain\Shared\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
-use Spatie\Activitylog\Models\Activity as SpatieActivity;
 use LogicException;
+use Spatie\Activitylog\Models\Activity as SpatieActivity;
 
 class Activity extends SpatieActivity
 {
@@ -21,4 +22,3 @@ class Activity extends SpatieActivity
         static::deleting(fn () => throw new LogicException('Audit entries are immutable.'));
     }
 }
-

@@ -1,12 +1,20 @@
 <?php
-use App\Domain\Sales\Services\CorrectionService;
-use App\Domain\Accounting\Services\ReversalService;
-use App\Domain\Accounting\Models\{Voucher, VoucherReversal, NumberSequence, Ledger, LedgerGroup};
-use App\Domain\Masters\Models\FinancialYear;
-use App\Domain\Shared\Models\Activity;
-use Illuminate\Support\Facades\{Event, DB};
 
-beforeEach(fn () => $this->travelTo(\Carbon\Carbon::parse('2026-11-05 12:00:00')));
+use App\Domain\Accounting\Models\Ledger;
+use App\Domain\Accounting\Models\LedgerGroup;
+use App\Domain\Accounting\Models\NumberSequence;
+use App\Domain\Accounting\Models\Voucher;
+use App\Domain\Accounting\Models\VoucherReversal;
+use App\Domain\Accounting\Services\ReversalService;
+use App\Domain\Masters\Models\FinancialYear;
+use App\Domain\Sales\Services\CorrectionService;
+use App\Domain\Shared\Models\Activity;
+use Carbon\Carbon;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+
+beforeEach(fn () => $this->travelTo(Carbon::parse('2026-11-05 12:00:00')));
 
 it('preserves supply treatments across both note directions', function ($supply, $line, $field, $tax, $total, $state) {
     inSalesCompany(function ($company) use ($supply, $line, $field, $tax, $total, $state) {
@@ -43,7 +51,9 @@ it('uses commercial treatment for composition suppliers', function () {
 it('rejects excessive quantities invalid dates and closed years', function ($scenario) {
     inSalesCompany(function () use ($scenario) {
         $i = correctionSource();
-        if ($scenario === 'closed') { FinancialYear::whereKey($i->financial_year_id)->update(['is_closed' => true]); }
+        if ($scenario === 'closed') {
+            FinancialYear::whereKey($i->financial_year_id)->update(['is_closed' => true]);
+        }
         $input = match ($scenario) {
             'before' => ['date' => '2026-10-31'], 'future' => ['date' => '2026-11-06'],
             'invalid' => ['date' => '2026-02-30'], default => [],
@@ -63,7 +73,7 @@ it('allows reporting exactly at the deadline but rejects later reporting', funct
 it('posts a commercial correction in a later open year while preserving the original year', function () {
     inSalesCompany(function () {
         $i = correctionSource();
-        $this->travelTo(\Carbon\Carbon::parse('2027-04-02'));
+        $this->travelTo(Carbon::parse('2027-04-02'));
         FinancialYear::whereKey($i->financial_year_id)->update(['is_closed' => true]);
         $year = FinancialYear::create(['name' => '2027-28', 'starts_on' => '2027-04-01', 'ends_on' => '2028-03-31']);
         $n = app(CorrectionService::class)->saveDraft(null, $i->id, $year->id,
@@ -76,7 +86,8 @@ it('posts a commercial correction in a later open year while preserving the orig
 
 it('rejects a foreign original line and changed ledger classification', function () {
     inSalesCompany(function () {
-        $i = correctionSource(); $other = correctionSource();
+        $i = correctionSource();
+        $other = correctionSource();
         expect(fn () => app(CorrectionService::class)->saveDraft(null, $i->id, $i->financial_year_id, correctionInput(),
             [['invoice_item_id' => $other->items->first()->id, 'amount' => '100.00', 'quantity' => '0']]))->toThrow(DomainException::class);
         $n = saveCorrection($i);
@@ -88,8 +99,13 @@ it('rejects a foreign original line and changed ledger classification', function
 
 it('rolls back all reversal state and reuses the number after audit failure', function () {
     inSalesCompany(function () {
-        $i = correctionSource(); $fail = true;
-        Event::listen('eloquent.creating: '.Activity::class, function () use (&$fail) { if ($fail) { throw new RuntimeException('audit failed'); } });
+        $i = correctionSource();
+        $fail = true;
+        Event::listen('eloquent.creating: '.Activity::class, function () use (&$fail) {
+            if ($fail) {
+                throw new RuntimeException('audit failed');
+            }
+        });
         $post = fn () => app(ReversalService::class)->reverse($i->voucher_id, $i->financial_year_id, '2026-11-05', 'Duplicate entry');
         expect($post)->toThrow(RuntimeException::class, 'audit failed');
         expect(VoucherReversal::count())->toBe(0)->and(Voucher::where('type', 'reversal')->count())->toBe(0)
@@ -104,7 +120,6 @@ it('protects posted reversal metadata from direct mutation', function () {
         $i = correctionSource();
         $r = app(ReversalService::class)->reverse($i->voucher_id, $i->financial_year_id, '2026-11-05', 'Duplicate entry');
         expect(fn () => DB::table('voucher_reversals')->where('id', $r->id)->update(['reason' => 'Changed']))
-            ->toThrow(\Illuminate\Database\QueryException::class);
+            ->toThrow(QueryException::class);
     });
 });
-

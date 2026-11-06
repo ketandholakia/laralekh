@@ -1,12 +1,30 @@
 <?php
+
 // Shared helpers for HTTP/permission feature tests. Names are distinct from the
 // Step 1 domain-test helpers (companyFixture, salesFixture, inSalesCompany).
 
+use App\Domain\Accounting\Models\Ledger;
+use App\Domain\Accounting\Models\LedgerGroup;
+use App\Domain\Gst\Models\TaxRate;
+use App\Domain\Inventory\Models\Item;
 use App\Domain\Masters\Models\Company;
+use App\Domain\Masters\Models\FinancialYear;
+use App\Domain\Masters\Models\Party;
+use App\Domain\Sales\Actions\PostInvoice;
+use App\Domain\Sales\Actions\SaveInvoiceDraft;
+use App\Domain\Sales\Actions\SaveReceiptDraft;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\Receipt;
 use App\Domain\Shared\Models\Role;
-use App\Domain\Shared\Tenancy\{CompanySession, TenantContext};
+use App\Domain\Shared\Tenancy\CompanySession;
+use App\Domain\Shared\Tenancy\TenantContext;
 use App\Models\User;
-use Illuminate\Support\Facades\{DB, Hash};
+use Database\Seeders\ChartOfAccountsSeeder;
+use Database\Seeders\StateSeeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Permission;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 function webUser(string $email = 'worker@example.test', string $password = 'password123'): User
 {
@@ -25,7 +43,7 @@ function assignCompanyRole(User $user, Company $company, string $roleName, array
         $role = Role::create(['name' => $roleName]);
         // Spatie resolves string names but never creates them; define first.
         $role->syncPermissions(array_map(
-            fn (string $name) => \Spatie\Permission\Models\Permission::findOrCreate($name, 'web'),
+            fn (string $name) => Permission::findOrCreate($name, 'web'),
             $permissions,
         ));
         $user->assignRole($role);
@@ -38,13 +56,15 @@ const CLERK_PERMISSIONS = ['invoices.view', 'invoices.create'];
 function companyFixture(string $name = 'Company'): Company
 {
     DB::table('states')->insertOrIgnore(['code' => '27', 'name' => 'Maharashtra']);
+
     return Company::create(['name' => $name, 'state_code' => '27']);
 }
 
 function inSalesCompany(Closure $callback): mixed
 {
-    (new \Database\Seeders\StateSeeder)->run();
+    (new StateSeeder)->run();
     $company = companyFixture();
+
     return app(TenantContext::class)->run($company->id, fn () => $callback($company));
 }
 
@@ -52,13 +72,14 @@ function inSalesCompany(Closure $callback): mixed
 // the seeded chart of accounts available inside the tenant scope.
 function webSession(string $role = 'accountant', array $permissions = ACCOUNTANT_PERMISSIONS): array
 {
-    (new \Database\Seeders\StateSeeder)->run();
+    (new StateSeeder)->run();
     $user = webUser();
     $company = companyFixture();
     addMembership($user, $company);
     assignCompanyRole($user, $company, $role, $permissions);
-    app(TenantContext::class)->run($company->id, fn (): mixed => (new \Database\Seeders\ChartOfAccountsSeeder)->run());
+    app(TenantContext::class)->run($company->id, fn (): mixed => (new ChartOfAccountsSeeder)->run());
     selectSessionCompany($user, $company, salesYear($company));
+
     return [$user, $company];
 }
 
@@ -67,22 +88,22 @@ function inTenantContext(Company $company, Closure $callback): mixed
     return app(TenantContext::class)->run($company->id, $callback);
 }
 
-function selectSessionCompany(User $user, Company $company, \App\Domain\Masters\Models\FinancialYear $year): void
+function selectSessionCompany(User $user, Company $company, FinancialYear $year): void
 {
     app(CompanySession::class)->select($user, $company->id, $year->id);
 }
 
-function salesYear(Company $company): \App\Domain\Masters\Models\FinancialYear
+function salesYear(Company $company): FinancialYear
 {
     return app(TenantContext::class)->run($company->id,
-        fn (): \App\Domain\Masters\Models\FinancialYear => \App\Domain\Masters\Models\FinancialYear::firstOrCreate(
+        fn (): FinancialYear => FinancialYear::firstOrCreate(
             ['name' => '2026-27'], ['starts_on' => '2026-04-01', 'ends_on' => '2027-03-31'],
         ));
 }
 
-function verifiedRate(?string $code = 'GST18', string $rate = '18'): \App\Domain\Gst\Models\TaxRate
+function verifiedRate(?string $code = 'GST18', string $rate = '18'): TaxRate
 {
-    return \App\Domain\Gst\Models\TaxRate::firstOrCreate(['code' => $code], [
+    return TaxRate::firstOrCreate(['code' => $code], [
         'rate' => $rate, 'effective_from' => '2026-04-01', 'is_verified' => true,
         'legal_reference' => 'Test fixture only',
     ]);
@@ -90,11 +111,12 @@ function verifiedRate(?string $code = 'GST18', string $rate = '18'): \App\Domain
 
 function masters(): array
 {
-    $ledger = \App\Domain\Accounting\Models\Ledger::firstOrCreate(['code' => 'CUSTOMER'], [
-        'name' => 'Customer', 'ledger_group_id' => \App\Domain\Accounting\Models\LedgerGroup::where('code', 'RECEIVABLES')->sole()->id]);
-    $party = \App\Domain\Masters\Models\Party::firstOrCreate(['ledger_id' => $ledger->id], ['name' => 'Customer', 'state_code' => '27']);
-    $item = \App\Domain\Inventory\Models\Item::firstOrCreate(['sku' => 'WIDGET'], ['name' => 'Widget', 'hsn_sac' => '8471']);
-    $sales = \App\Domain\Accounting\Models\Ledger::where('code', 'SALES')->sole();
+    $ledger = Ledger::firstOrCreate(['code' => 'CUSTOMER'], [
+        'name' => 'Customer', 'ledger_group_id' => LedgerGroup::where('code', 'RECEIVABLES')->sole()->id]);
+    $party = Party::firstOrCreate(['ledger_id' => $ledger->id], ['name' => 'Customer', 'state_code' => '27']);
+    $item = Item::firstOrCreate(['sku' => 'WIDGET'], ['name' => 'Widget', 'hsn_sac' => '8471']);
+    $sales = Ledger::where('code', 'SALES')->sole();
+
     return [$party, $item, $sales];
 }
 
@@ -116,25 +138,26 @@ function linePayload(int $itemId, int $ledgerId, ?int $rateId, array $overrides 
     ];
 }
 
-function cashLedger(): \App\Domain\Accounting\Models\Ledger
+function cashLedger(): Ledger
 {
-    return \App\Domain\Accounting\Models\Ledger::where('code', 'CASH')->sole();
+    return Ledger::where('code', 'CASH')->sole();
 }
 
 // Posts an invoice whose total equals the given amount exactly (exempt line, no tax).
-function postInvoiceFor(\App\Domain\Masters\Models\Party $party, string $amount = '1000.00', ?string $date = null): \App\Domain\Sales\Models\Invoice
+function postInvoiceFor(Party $party, string $amount = '1000.00', ?string $date = null): Invoice
 {
-    $item = \App\Domain\Inventory\Models\Item::firstOrCreate(['sku' => 'WIDGET'], ['name' => 'Widget', 'hsn_sac' => '8471']);
-    $sales = \App\Domain\Accounting\Models\Ledger::where('code', 'SALES')->sole();
-    $draft = app(\App\Domain\Sales\Actions\SaveInvoiceDraft::class)->handle(null, draftPayload($party->id, [
+    $item = Item::firstOrCreate(['sku' => 'WIDGET'], ['name' => 'Widget', 'hsn_sac' => '8471']);
+    $sales = Ledger::where('code', 'SALES')->sole();
+    $draft = app(SaveInvoiceDraft::class)->handle(null, draftPayload($party->id, [
         'date' => $date ?? '2026-11-06',
     ]), [linePayload($item->id, $sales->id, null, ['unit_price' => $amount, 'tax_category' => 'exempt'])]);
-    return app(\App\Domain\Sales\Actions\PostInvoice::class)->handle($draft->id)->fresh(['items', 'party', 'voucher']);
+
+    return app(PostInvoice::class)->handle($draft->id)->fresh(['items', 'party', 'voucher']);
 }
 
-function receiptDraft(\App\Domain\Masters\Models\Party $party, string $amount, array $overrides = []): \App\Domain\Sales\Models\Receipt
+function receiptDraft(Party $party, string $amount, array $overrides = []): Receipt
 {
-    return app(\App\Domain\Sales\Actions\SaveReceiptDraft::class)->handle(null, array_merge([
+    return app(SaveReceiptDraft::class)->handle(null, array_merge([
         'party_id' => $party->id, 'ledger_id' => cashLedger()->id, 'date' => '2026-11-06',
         'payment_reference' => 'UTR-1', 'narration' => 'On account', 'amount' => $amount,
     ], $overrides));
@@ -151,7 +174,7 @@ function assert403(Closure $fn): void
     try {
         $fn();
         throw new RuntimeException('Expected a 403 abort, but the call succeeded.');
-    } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+    } catch (HttpException $e) {
         if ($e->getStatusCode() !== 403) {
             throw new RuntimeException('Expected HTTP 403, got '.$e->getStatusCode().': '.$e->getMessage());
         }

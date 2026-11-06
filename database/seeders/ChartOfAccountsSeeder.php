@@ -1,5 +1,7 @@
 <?php
+
 namespace Database\Seeders;
+
 use App\Domain\Accounting\Models\Ledger;
 use App\Domain\Accounting\Models\LedgerGroup;
 use Illuminate\Database\Seeder;

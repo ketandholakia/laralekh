@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Actions;
 
 use App\Domain\Accounting\Services\PostingService;
@@ -14,6 +16,7 @@ final class PostInvoice
     public function handle(int $invoiceId): Invoice
     {
         app(PostingService::class)->postSalesInvoice($invoiceId);
+
         return Invoice::whereKey($invoiceId)->with('items')->sole();
     }
 }

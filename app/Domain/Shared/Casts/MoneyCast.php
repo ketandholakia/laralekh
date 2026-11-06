@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Shared\Casts;
 
 use App\Domain\Shared\ValueObjects\Money;
@@ -12,9 +14,9 @@ final class MoneyCast implements CastsAttributes
     {
         return $value === null ? null : Money::of($value);
     }
+
     public function set(Model $model, string $key, mixed $value, array $attributes): string
     {
         return (string) ($value instanceof Money ? $value : Money::of($value));
     }
 }
-

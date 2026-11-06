@@ -1,10 +1,13 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Accounting\Services;
+
 use App\Domain\Accounting\Models\NumberSequence;
 use App\Domain\Masters\Models\FinancialYear;
-use Illuminate\Support\Facades\DB;
 use DomainException;
+use Illuminate\Support\Facades\DB;
 
 final class VoucherNumberAllocator
 {
@@ -13,7 +16,7 @@ final class VoucherNumberAllocator
         if (DB::transactionLevel() < 1) {
             throw new DomainException('Number allocation requires a transaction.');
         }
-        if (!preg_match('/^[A-Z0-9][A-Z0-9\\/-]{0,9}$/D', $series)) {
+        if (! preg_match('/^[A-Z0-9][A-Z0-9\\/-]{0,9}$/D', $series)) {
             throw new DomainException('Invalid invoice series.');
         }
         // The year row also serializes creation of a previously unused series.
@@ -31,7 +34,7 @@ final class VoucherNumberAllocator
             throw new DomainException('Invoice number exceeds 16 characters.');
         }
         $sequence->update(['last_number' => $number]);
+
         return $number;
     }
 }
-

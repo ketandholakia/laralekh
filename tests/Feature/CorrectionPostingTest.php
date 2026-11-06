@@ -1,14 +1,17 @@
 <?php
-use App\Domain\Accounting\Models\{Voucher, VoucherReversal, NumberSequence};
-use App\Domain\Accounting\Services\ReversalService;
-use App\Domain\Sales\Models\{SalesCorrection, SalesCorrectionLine};
-use App\Domain\Sales\Services\{CorrectionService, CorrectionCalculator};
-use App\Domain\Gst\Models\TaxRate;
-use App\Domain\Shared\Models\Activity;
-use Illuminate\Support\Facades\{DB, Event};
-use Illuminate\Database\QueryException;
 
-beforeEach(fn () => $this->travelTo(\Carbon\Carbon::parse('2026-11-05 12:00:00')));
+use App\Domain\Accounting\Models\NumberSequence;
+use App\Domain\Accounting\Models\Voucher;
+use App\Domain\Accounting\Services\ReversalService;
+use App\Domain\Gst\Models\TaxRate;
+use App\Domain\Sales\Services\CorrectionService;
+use App\Domain\Shared\Models\Activity;
+use Carbon\Carbon;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+
+beforeEach(fn () => $this->travelTo(Carbon::parse('2026-11-05 12:00:00')));
 
 it('posts partial credit and debit notes with exact original tax treatment', function ($kind, $expectedDebit, $expectedCredit) {
     inSalesCompany(function () use ($kind, $expectedDebit, $expectedCredit) {
@@ -25,7 +28,8 @@ it('posts partial credit and debit notes with exact original tax treatment', fun
 
 it('does not recalculate corrections using changed rate masters', function () {
     inSalesCompany(function () {
-        $i = correctionSource(); TaxRate::query()->update(['rate' => '40', 'is_verified' => false]);
+        $i = correctionSource();
+        TaxRate::query()->update(['rate' => '40', 'is_verified' => false]);
         $n = saveCorrection($i, '100.00', ['kind' => 'debit', 'reason_code' => 'undercharge']);
         expect((string) app(CorrectionService::class)->post($n->id)->total)->toBe('118.00');
     });
@@ -54,7 +58,9 @@ it('allocates paise exactly across multiple partial credits', function () {
 
 it('rechecks capacity when a previously valid draft is posted', function () {
     inSalesCompany(function () {
-        $i = correctionSource(); $a = saveCorrection($i, '700.00'); $b = saveCorrection($i, '700.00');
+        $i = correctionSource();
+        $a = saveCorrection($i, '700.00');
+        $b = saveCorrection($i, '700.00');
         app(CorrectionService::class)->post($a->id);
         expect(fn () => app(CorrectionService::class)->post($b->id))->toThrow(DomainException::class, 'remaining');
         expect($b->fresh()->status)->toBe('draft')->and(NumberSequence::where('series', 'CN')->sole()->last_number)->toBe(1);
@@ -63,7 +69,9 @@ it('rechecks capacity when a previously valid draft is posted', function () {
 
 it('rejects duplicate creation requests and duplicate posts', function () {
     inSalesCompany(function () {
-        $i = correctionSource(); $input = correctionInput(); $a = saveCorrection($i, '100.00', $input);
+        $i = correctionSource();
+        $input = correctionInput();
+        $a = saveCorrection($i, '100.00', $input);
         expect(fn () => saveCorrection($i, '100.00', $input))->toThrow(DomainException::class, 'already saved');
         app(CorrectionService::class)->post($a->id);
         expect(fn () => app(CorrectionService::class)->post($a->id))->toThrow(DomainException::class, 'already posted');
@@ -72,9 +80,14 @@ it('rejects duplicate creation requests and duplicate posts', function () {
 
 it('rolls back a correction and its number if auditing fails', function () {
     inSalesCompany(function () {
-        $i = correctionSource(); $a = saveCorrection($i);
+        $i = correctionSource();
+        $a = saveCorrection($i);
         $fail = true;
-        Event::listen('eloquent.creating: '.Activity::class, function () use (&$fail) { if ($fail) { throw new RuntimeException('audit failure'); } });
+        Event::listen('eloquent.creating: '.Activity::class, function () use (&$fail) {
+            if ($fail) {
+                throw new RuntimeException('audit failure');
+            }
+        });
         expect(fn () => app(CorrectionService::class)->post($a->id))->toThrow(RuntimeException::class, 'audit failure');
         expect($a->fresh()->status)->toBe('draft')->and(Voucher::where('type', 'credit_note')->count())->toBe(0)
             ->and(NumberSequence::where('series', 'CN')->count())->toBe(0);
@@ -101,14 +114,16 @@ it('swaps every original voucher entry exactly on reversal', function () {
 
 it('rejects a reversal after a correction has posted', function () {
     inSalesCompany(function () {
-        $i = correctionSource(); app(CorrectionService::class)->post(saveCorrection($i)->id);
+        $i = correctionSource();
+        app(CorrectionService::class)->post(saveCorrection($i)->id);
         expect(fn () => app(ReversalService::class)->reverse($i->voucher_id, $i->financial_year_id, '2026-11-05', 'Reverse original'))->toThrow(DomainException::class, 'posted correction');
     });
 });
 
 it('blocks direct edits and deletes of posted notes and note lines', function ($table, $operation) {
     inSalesCompany(function () use ($table, $operation) {
-        $i = correctionSource(); $n = app(CorrectionService::class)->post(saveCorrection($i)->id);
+        $i = correctionSource();
+        $n = app(CorrectionService::class)->post(saveCorrection($i)->id);
         $id = $table === 'sales_corrections' ? $n->id : $n->lines->first()->id;
         expect(function () use ($table, $operation, $id) {
             $q = DB::table($table)->where('id', $id);

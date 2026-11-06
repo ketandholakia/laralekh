@@ -1,19 +1,20 @@
 <?php
-use App\Domain\Accounting\Models\{Ledger, LedgerGroup, NumberSequence, Voucher};
-use App\Domain\Gst\Models\TaxRate;
-use App\Domain\Inventory\Models\Item;
-use App\Domain\Masters\Models\{Company, FinancialYear, Party};
-use App\Domain\Sales\Actions\{PostInvoice, SaveInvoiceDraft};
-use App\Domain\Sales\Models\{Invoice, InvoiceItem};
-use App\Domain\Shared\Models\{Activity, Role};
-use App\Domain\Shared\Tenancy\{CompanySession, TenantContext};
-use App\Livewire\Sales\{InvoiceEditor, InvoiceList, InvoiceView};
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
+
+use App\Domain\Accounting\Models\NumberSequence;
+use App\Domain\Accounting\Models\Voucher;
+use App\Domain\Masters\Models\Company;
+use App\Domain\Masters\Models\FinancialYear;
+use App\Domain\Sales\Actions\PostInvoice;
+use App\Domain\Sales\Actions\SaveInvoiceDraft;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\InvoiceItem;
+use App\Domain\Shared\Models\Activity;
+use App\Livewire\Sales\InvoiceEditor;
+use App\Livewire\Sales\InvoiceList;
+use App\Livewire\Sales\InvoiceView;
+use Database\Seeders\ChartOfAccountsSeeder;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
-use Spatie\Permission\Models\Permission;
-use Database\Seeders\{ChartOfAccountsSeeder, StateSeeder};
 
 it('lists invoices only for the session company', function () {
     [$user, $company] = webSession();
@@ -131,6 +132,7 @@ it('treats posted invoices as read-only in the editor and view', function () {
         [$party, $item, $sales] = masters();
         $rate = verifiedRate();
         $draft = app(SaveInvoiceDraft::class)->handle(null, draftPayload($party->id), [linePayload($item->id, $sales->id, $rate->id)]);
+
         return app(PostInvoice::class)->handle($draft->id)->fresh(['items', 'party', 'voucher']);
     });
     inTenantContext($company, function () use ($invoice): void {
@@ -155,6 +157,7 @@ it('refuses posting for users without the invoices.post permission', function ()
     $draft = inTenantContext($company, function (): Invoice {
         [$party, $item, $sales] = masters();
         $rate = verifiedRate();
+
         return app(SaveInvoiceDraft::class)->handle(null, draftPayload($party->id), [linePayload($item->id, $sales->id, $rate->id)]);
     });
     inTenantContext($company, function () use ($user, $draft): void {

@@ -1,12 +1,25 @@
 <?php
-use App\Domain\Accounting\Models\{Ledger, LedgerGroup, NumberSequence, Voucher, VoucherLine};
+
+use App\Domain\Accounting\Models\Ledger;
+use App\Domain\Accounting\Models\LedgerGroup;
+use App\Domain\Accounting\Models\NumberSequence;
+use App\Domain\Accounting\Models\Voucher;
+use App\Domain\Accounting\Models\VoucherLine;
 use App\Domain\Accounting\Services\ReversalService;
-use App\Domain\Gst\Models\TaxRate;
+use App\Domain\Inventory\Models\Item;
+use App\Domain\Masters\Models\FinancialYear;
 use App\Domain\Masters\Models\Party;
-use App\Domain\Sales\Actions\{AllocateReceipt, PostInvoice, PostReceipt, SaveInvoiceDraft, SaveReceiptDraft, UndoReceiptAllocations};
+use App\Domain\Sales\Actions\AllocateReceipt;
+use App\Domain\Sales\Actions\PostInvoice;
+use App\Domain\Sales\Actions\PostReceipt;
 use App\Domain\Sales\Actions\ReverseReceipt as ReverseReceiptAction;
-use App\Domain\Sales\Models\{Invoice, Receipt, ReceiptAllocation, ReceiptAllocationReversal, ReceiptReversal};
-use App\Domain\Sales\Services\{ReceiptService, SettlementService};
+use App\Domain\Sales\Actions\SaveInvoiceDraft;
+use App\Domain\Sales\Actions\UndoReceiptAllocations;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\Receipt;
+use App\Domain\Sales\Models\ReceiptAllocation;
+use App\Domain\Sales\Models\ReceiptAllocationReversal;
+use App\Domain\Sales\Services\SettlementService;
 use App\Domain\Shared\Models\Activity;
 use App\Domain\Shared\Tenancy\CompanySession;
 use DomainException;
@@ -74,10 +87,10 @@ it('allocates previously posted receipts in a later authorized action across yea
         [$party] = masters();
         $receipt = app(PostReceipt::class)->handle(receiptDraft($party, '1000.00', ['date' => '2026-11-06'])->id);
         // An invoice in the NEXT financial year of the same company.
-        $nextYear = \App\Domain\Masters\Models\FinancialYear::create([
+        $nextYear = FinancialYear::create([
             'name' => '2027-28', 'starts_on' => '2027-04-01', 'ends_on' => '2028-03-31']);
         app(CompanySession::class)->select($user, $company->id, $nextYear->id);
-        $item = \App\Domain\Inventory\Models\Item::firstOrCreate(['sku' => 'WIDGET'], ['name' => 'Widget', 'hsn_sac' => '8471']);
+        $item = Item::firstOrCreate(['sku' => 'WIDGET'], ['name' => 'Widget', 'hsn_sac' => '8471']);
         $sales = Ledger::where('code', 'SALES')->sole();
         $draft = app(SaveInvoiceDraft::class)->handle(null, draftPayload($party->id, ['date' => '2027-04-10']),
             [linePayload($item->id, $sales->id, null, ['unit_price' => '1000.00', 'tax_category' => 'exempt'])]);
@@ -138,7 +151,7 @@ it('reverses a receipt exactly and atomically undoes its active allocations', fu
     $this->actingAs($user);
     $reversal = null;
     $yearId = salesYear($company)->id;
-    inTenantContext($company, function () use (&$reversal, $company, $yearId): void {
+    inTenantContext($company, function () use (&$reversal, $yearId): void {
         [$party] = masters();
         $invoice = postInvoiceFor($party, '1000.00');
         $receipt = app(PostReceipt::class)->handle(receiptDraft($party, '600.00')->id, [$invoice->id => '600.00']);

@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Domain\Shared\Tenancy\TenantContext;
+use App\Http\Middleware\EnsureCompanyContext;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->scoped(\App\Domain\Shared\Tenancy\TenantContext::class);
+        $this->app->scoped(TenantContext::class);
     }
 
     /**
@@ -19,6 +22,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        \Livewire\Livewire::addPersistentMiddleware([\App\Http\Middleware\EnsureCompanyContext::class]);
+        Livewire::addPersistentMiddleware([EnsureCompanyContext::class]);
     }
 }

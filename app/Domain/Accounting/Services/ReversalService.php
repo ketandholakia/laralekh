@@ -1,12 +1,18 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Accounting\Services;
 
-use App\Domain\Accounting\Models\{Voucher, VoucherReversal};
-use App\Domain\Sales\Models\{Invoice, SalesCorrection};
+use App\Domain\Accounting\Models\Voucher;
+use App\Domain\Accounting\Models\VoucherReversal;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\SalesCorrection;
 use App\Domain\Sales\Services\CorrectionRules;
-use Illuminate\Support\Facades\DB;
+use App\Domain\Sales\Services\SettlementService;
+use App\Domain\Shared\ValueObjects\Money;
 use DomainException;
+use Illuminate\Support\Facades\DB;
 
 final class ReversalService
 {
@@ -26,10 +32,12 @@ final class ReversalService
             }
             // A reversed invoice must not leave active receipt allocations
             // behind; undo the allocations first, then reverse the invoice.
-            if ($invoice && app(\App\Domain\Sales\Services\SettlementService::class)->allocatedToInvoice($invoice->id)->greaterThan(\App\Domain\Shared\ValueObjects\Money::of('0'))) {
+            if ($invoice && app(SettlementService::class)->allocatedToInvoice($invoice->id)->greaterThan(Money::of('0'))) {
                 throw new DomainException('This invoice has active receipt allocations; undo them before reversing the invoice.');
             }
-            if (mb_strlen(trim($reason)) < 5 || mb_strlen($reason) > 2000) { throw new DomainException('Provide a reversal reason of 5 to 2000 characters.'); }
+            if (mb_strlen(trim($reason)) < 5 || mb_strlen($reason) > 2000) {
+                throw new DomainException('Provide a reversal reason of 5 to 2000 characters.');
+            }
             app(CorrectionRules::class)->openYear($yearId, $date, $original->date->format('Y-m-d'));
             $entries = $original->lines()->orderBy('position')->with('ledger')->get()->map(fn ($line) => [
                 'ledger_id' => $line->ledger_id, 'debit' => $line->credit, 'credit' => $line->debit,
@@ -54,8 +62,8 @@ final class ReversalService
             activity('accounting')->performedOn($reversal)->event('posted')
                 ->withProperties(['original_voucher_id' => $original->id])
                 ->tap(fn ($a) => $a->financial_year_id = $yearId)->log('Internal accounting reversal posted; not a GST credit note');
+
             return $reversal->fresh('voucher');
         }, 3);
     }
 }
-

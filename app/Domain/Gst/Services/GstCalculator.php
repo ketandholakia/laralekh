@@ -1,7 +1,11 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Gst\Services;
-use App\Domain\Gst\ValueObjects\{GstBreakdown, ResolvedSupply};
+
+use App\Domain\Gst\ValueObjects\GstBreakdown;
+use App\Domain\Gst\ValueObjects\ResolvedSupply;
 use App\Domain\Shared\ValueObjects\Money;
 use InvalidArgumentException;
 
@@ -22,15 +26,15 @@ final class GstCalculator
         string $cessRate = '0',
     ): GstBreakdown {
         $discount ??= Money::of('0');
-        if (!preg_match('/^\d{1,12}(?:\.\d{1,3})?$/D', $quantity) || bccomp($quantity, '0', 3) <= 0) {
+        if (! preg_match('/^\d{1,12}(?:\.\d{1,3})?$/D', $quantity) || bccomp($quantity, '0', 3) <= 0) {
             throw new InvalidArgumentException('Quantity must be positive with at most three decimals.');
         }
-        if (!preg_match('/^\d{1,3}(?:\.\d{1,3})?$/D', $rate) || bccomp($rate, '100', 3) > 0) {
+        if (! preg_match('/^\d{1,3}(?:\.\d{1,3})?$/D', $rate) || bccomp($rate, '100', 3) > 0) {
             throw new InvalidArgumentException('Invalid GST percentage.');
         }
-        if (!in_array($category, ['taxable', 'nil_rated', 'exempt', 'non_gst'], true) ||
-            !in_array($regime, ['regular', 'composition', 'unregistered'], true) ||
-            !in_array($zeroRatedMode, ['none', 'lut', 'with_payment'], true)) {
+        if (! in_array($category, ['taxable', 'nil_rated', 'exempt', 'non_gst'], true) ||
+            ! in_array($regime, ['regular', 'composition', 'unregistered'], true) ||
+            ! in_array($zeroRatedMode, ['none', 'lut', 'with_payment'], true)) {
             throw new InvalidArgumentException('Invalid tax classification.');
         }
         if ($unitPrice->isNegative() || $discount->isNegative()) {
@@ -51,8 +55,8 @@ final class GstCalculator
             throw new InvalidArgumentException('Domestic supplies cannot use zero-rated treatment.');
         }
         if ($supply->type !== 'domestic') {
-            if (!$zeroRatedEligible || $zeroRatedMode === 'none' || $regime !== 'regular' ||
-                ($supply->type === 'sez' && !$sezAuthorized)) {
+            if (! $zeroRatedEligible || $zeroRatedMode === 'none' || $regime !== 'regular' ||
+                ($supply->type === 'sez' && ! $sezAuthorized)) {
                 throw new InvalidArgumentException('Export/SEZ treatment requires verified eligibility and an explicit route.');
             }
             if ($reverseCharge) {
@@ -63,7 +67,7 @@ final class GstCalculator
             throw new InvalidArgumentException('Outward reverse-charge classification needs separate review for this regime.');
         }
         $zero = Money::of('0');
-        if (!preg_match('/^\d{1,3}(?:\.\d{1,3})?$/D', $cessRate) || bccomp($cessRate, '100', 3) > 0) {
+        if (! preg_match('/^\d{1,3}(?:\.\d{1,3})?$/D', $cessRate) || bccomp($cessRate, '100', 3) > 0) {
             throw new InvalidArgumentException('Invalid cess percentage.');
         }
         $cgst = $sgst = $utgst = $igst = $cess = $recipientTax = $recipientCess = $zero;
@@ -72,7 +76,11 @@ final class GstCalculator
                 $igst = Money::rounded(bcdiv(bcmul((string) $base, $rate, 5), '100', 7));
             } else {
                 $cgst = Money::rounded(bcdiv(bcmul((string) $base, $rate, 5), '200', 7));
-                if ($supply->usesUtgst) { $utgst = $cgst; } else { $sgst = $cgst; }
+                if ($supply->usesUtgst) {
+                    $utgst = $cgst;
+                } else {
+                    $sgst = $cgst;
+                }
             }
             $cess = Money::rounded(bcdiv(bcmul((string) $base, $cessRate, 5), '100', 7));
         }
@@ -82,12 +90,14 @@ final class GstCalculator
             $recipientCess = $cess;
             $cgst = $sgst = $utgst = $igst = $cess = $tax = $zero;
         }
+
         return new GstBreakdown($base, $cgst, $sgst, $utgst, $igst, $cess, $base->add($tax), $recipientTax, $recipientCess, $category);
     }
 
     public function roundStatutoryPayable(Money $amount): Money
     {
         $adjustment = $amount->isNegative() ? '-0.50' : '0.50';
+
         return Money::of(bcadd((string) $amount, $adjustment, 0));
     }
 }

@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Shared\Tenancy;
 
 use App\Domain\Masters\Models\FinancialYear;
@@ -16,6 +18,7 @@ use Illuminate\Validation\ValidationException;
 final class CompanySession
 {
     private const COMPANY_KEY = 'company_id';
+
     private const YEAR_KEY = 'financial_year_id';
 
     public function __construct(private readonly Store $session) {}
@@ -23,18 +26,20 @@ final class CompanySession
     public function companyId(): ?int
     {
         $id = $this->session->get(self::COMPANY_KEY);
+
         return is_int($id) && $id > 0 ? $id : null;
     }
 
     public function financialYearId(): ?int
     {
         $id = $this->session->get(self::YEAR_KEY);
+
         return is_int($id) && $id > 0 ? $id : null;
     }
 
     public function select(User $user, int $companyId, ?int $financialYearId = null): void
     {
-        if (!$user->isMemberOf($companyId)) {
+        if (! $user->isMemberOf($companyId)) {
             throw ValidationException::withMessages(['company_id' => 'You are not a member of that company.']);
         }
         $switching = $this->companyId() !== $companyId;

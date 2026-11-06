@@ -1,19 +1,19 @@
 <?php
+
 use App\Domain\Accounting\Services\PostingService;
 use App\Domain\Gst\Returns\ReturnDatasetBuilder;
 use App\Domain\Masters\Models\Company;
-use App\Domain\Sales\Models\Invoice;
 use App\Domain\Shared\Tenancy\TenantContext;
 
 it('classifies posted outward invoices into return dataset tables using period rules', function () {
     inSalesCompany(function (Company $company) {
-        $registered = returnSalesFixture(['date'=>'2026-11-06','place_of_supply'=>'27']);
-        $registered->party->update(['registration_type'=>'regular','gstin'=>'27AAPFU0939F1ZV']);
+        $registered = returnSalesFixture(['date' => '2026-11-06', 'place_of_supply' => '27']);
+        $registered->party->update(['registration_type' => 'regular', 'gstin' => '27AAPFU0939F1ZV']);
         app(PostingService::class)->postSalesInvoice($registered->id);
-        $registered->party->update(['registration_type'=>'unregistered','gstin'=>null]);
-        $largeInterstate=returnSalesFixture(['date'=>'2026-11-06','place_of_supply'=>'24'],['unit_price'=>'100000.01']);
+        $registered->party->update(['registration_type' => 'unregistered', 'gstin' => null]);
+        $largeInterstate = returnSalesFixture(['date' => '2026-11-06', 'place_of_supply' => '24'], ['unit_price' => '100000.01']);
         app(PostingService::class)->postSalesInvoice($largeInterstate->id);
-        $out=app(ReturnDatasetBuilder::class)->build($company,'2026-11',50000000);
+        $out = app(ReturnDatasetBuilder::class)->build($company, '2026-11', 50000000);
         expect($out['b2b'])->toHaveCount(1)->and($out['b2cl'])->toHaveCount(1)
             ->and($out['b2cs'])->toBeEmpty()->and($out['validation']['valid'])->toBeTrue()
             ->and($out['meta']['b2cl_threshold_rupees'])->toBe(100000);
@@ -22,35 +22,36 @@ it('classifies posted outward invoices into return dataset tables using period r
 
 it('fails closed if turnover is missing for HSN validation and refuses composition returns', function () {
     inSalesCompany(function (Company $company) {
-        $invoice=returnSalesFixture(['date'=>'2026-11-06']); app(PostingService::class)->postSalesInvoice($invoice->id);
-        $out=app(ReturnDatasetBuilder::class)->build($company,'2026-11');
+        $invoice = returnSalesFixture(['date' => '2026-11-06']);
+        app(PostingService::class)->postSalesInvoice($invoice->id);
+        $out = app(ReturnDatasetBuilder::class)->build($company, '2026-11');
         expect($out['validation']['valid'])->toBeFalse()
             ->and(collect($out['validation']['errors'])->pluck('code'))->toContain('missing_or_invalid_hsn');
-        $company->update(['gst_regime'=>'composition']);
-        expect(fn()=>app(ReturnDatasetBuilder::class)->build($company,'2026-11'))->toThrow(DomainException::class,'Composition');
+        $company->update(['gst_regime' => 'composition']);
+        expect(fn () => app(ReturnDatasetBuilder::class)->build($company, '2026-11'))->toThrow(DomainException::class, 'Composition');
     });
 });
 
 it('keeps return dataset access tenant scoped', function () {
     inSalesCompany(function (Company $company) {
-        expect(fn()=>app(TenantContext::class)->run(companyFixture('Other tenant')->id,
-            fn()=>app(ReturnDatasetBuilder::class)->build($company,'2026-11',50000000)))
-            ->toThrow(DomainException::class,'active tenant');
+        expect(fn () => app(TenantContext::class)->run(companyFixture('Other tenant')->id,
+            fn () => app(ReturnDatasetBuilder::class)->build($company, '2026-11', 50000000)))
+            ->toThrow(DomainException::class, 'active tenant');
     });
 });
 
 it('never includes another tenant company invoices in the return dataset', function () {
-    inSalesCompany(function(Company $companyA){
-        $invoiceA=returnSalesFixture(['date'=>'2026-11-06']);
+    inSalesCompany(function (Company $companyA) {
+        $invoiceA = returnSalesFixture(['date' => '2026-11-06']);
         app(PostingService::class)->postSalesInvoice($invoiceA->id);
-        $companyB=companyFixture('Second return tenant');
-        app(TenantContext::class)->run($companyB->id,function()use($companyB){
-            $invoiceB=returnSalesFixture(['date'=>'2026-11-06']);
+        $companyB = companyFixture('Second return tenant');
+        app(TenantContext::class)->run($companyB->id, function () use ($companyB) {
+            $invoiceB = returnSalesFixture(['date' => '2026-11-06']);
             app(PostingService::class)->postSalesInvoice($invoiceB->id);
-            $datasetB=app(ReturnDatasetBuilder::class)->build($companyB,'2026-11',50000000);
+            $datasetB = app(ReturnDatasetBuilder::class)->build($companyB, '2026-11', 50000000);
             expect($datasetB['b2cs'])->toHaveCount(1)->and($datasetB['b2cs'][0]['taxable_value'])->toBe('1000.00');
         });
-        $datasetA=app(ReturnDatasetBuilder::class)->build($companyA,'2026-11',50000000);
+        $datasetA = app(ReturnDatasetBuilder::class)->build($companyA, '2026-11', 50000000);
         expect($datasetA['b2cs'])->toHaveCount(1)->and($datasetA['b2cs'][0]['taxable_value'])->toBe('1000.00');
     });
 });

@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Actions;
 
 use App\Domain\Sales\Models\Receipt;
@@ -29,6 +31,7 @@ final class AllocateReceipt
                     ->withProperties(['count' => count($canonical)])
                     ->tap(fn ($a) => $a->financial_year_id = $receipt->financial_year_id)
                     ->log('Receipt allocated to customer documents');
+
                 return count($canonical);
             }, 3);
         } catch (Throwable $e) {

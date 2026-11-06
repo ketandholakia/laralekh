@@ -1,10 +1,13 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Livewire\Sales;
 
 use App\Domain\Sales\Models\Invoice;
 use Illuminate\Contracts\View\View;
-use Livewire\Attributes\{Layout, Title, Url};
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -16,10 +19,17 @@ final class InvoiceList extends Component
 {
     use WithPagination;
 
-    #[Url] public string $search = '';
-    #[Url] public string $status = '';
-    #[Url] public string $from = '';
-    #[Url] public string $to = '';
+    #[Url]
+    public string $search = '';
+
+    #[Url]
+    public string $status = '';
+
+    #[Url]
+    public string $from = '';
+
+    #[Url]
+    public string $to = '';
 
     public function render(): View
     {
@@ -37,6 +47,7 @@ final class InvoiceList extends Component
             ->orderByDesc('date')->orderBy('id')
             ->with('party:id,name')
             ->paginate(10);
+
         return view('livewire.sales.invoice-list', ['invoices' => $invoices]);
     }
 }

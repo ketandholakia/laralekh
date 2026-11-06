@@ -1,12 +1,16 @@
 <?php
-use App\Domain\Gst\Services\{GstCalculator, PlaceOfSupplyResolver};
+
+use App\Domain\Gst\Services\GstCalculator;
+use App\Domain\Gst\Services\PlaceOfSupplyResolver;
 use App\Domain\Shared\ValueObjects\Money;
 
-function gstLine(array $options = []) {
+function gstLine(array $options = [])
+{
     $args = array_merge([
         'unitPrice' => Money::of('1000'), 'quantity' => '1', 'rate' => '18',
         'supply' => (new PlaceOfSupplyResolver)->resolve('27', '27'),
     ], $options);
+
     return (new GstCalculator)->calculate(...$args);
 }
 

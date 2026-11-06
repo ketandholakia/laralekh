@@ -1,4 +1,5 @@
 <?php
+
 use App\Domain\Shared\Support\AmountInWords;
 use App\Domain\Shared\ValueObjects\Money;
 

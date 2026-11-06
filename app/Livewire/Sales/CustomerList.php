@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Livewire\Sales;
 
 use App\Domain\Masters\Models\Party;
@@ -26,8 +28,9 @@ final class CustomerList extends Component
         $rows = [];
         foreach ($parties as $party) {
             $balance = $settlement->ledgerBalance($party->ledger_id);
-            $rows[] = ['party' => $party, 'balance' => (string) $balance, 'owed' => !$balance->isNegative()];
+            $rows[] = ['party' => $party, 'balance' => (string) $balance, 'owed' => ! $balance->isNegative()];
         }
+
         return view('livewire.sales.customer-list', ['customers' => $rows]);
     }
 }

@@ -1,5 +1,7 @@
 <?php
+
 namespace Database\Seeders;
+
 use App\Domain\Masters\Models\State;
 use Illuminate\Database\Seeder;
 
@@ -18,10 +20,9 @@ class StateSeeder extends Seeder
         foreach ($names as $index => $name) {
             $code = str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT);
             State::updateOrCreate(['code' => $code], [
-                'name' => $name, 'is_active' => !in_array($code, ['25', '28'], true),
+                'name' => $name, 'is_active' => ! in_array($code, ['25', '28'], true),
                 'uses_utgst' => in_array($code, ['04', '26', '31', '35', '38'], true),
             ]);
         }
     }
 }
-

@@ -1,14 +1,17 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\{DB, Schema};
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 // Customer settlements: receipts are posted accounting documents (Dr cash/bank,
 // Cr receivable); allocations are immutable insert-only links between a posted
 // receipt and customer invoices, and never create accounting entries. Undo and
 // reversal are themselves immutable linked records, so settlement history can
 // only grow. Invoice outstanding balances are derived, never stored on invoices.
-return new class extends Migration {
+return new class extends Migration
+{
     private function tenant(Blueprint $t, ?string $fkName = null): void
     {
         $t->id();
@@ -20,18 +23,25 @@ return new class extends Migration {
         $t->unique(['company_id', 'financial_year_id', 'id'], $t->getTable().'_tenant_year');
         $t->timestamps();
     }
+
     private function money(Blueprint $t, string $name): void
     {
-        if (DB::getDriverName() === 'sqlite') { $t->string($name, 17)->default('0.00'); }
-        else { $t->decimal($name, 15, 2)->default('0.00'); }
+        if (DB::getDriverName() === 'sqlite') {
+            $t->string($name, 17)->default('0.00');
+        } else {
+            $t->decimal($name, 15, 2)->default('0.00');
+        }
     }
+
     private function guard(string $name, string $table, string $event, string $condition): void
     {
         if (DB::getDriverName() === 'sqlite') {
             DB::unprepared("CREATE TRIGGER $name BEFORE $event ON $table WHEN $condition BEGIN SELECT RAISE(ABORT, 'Immutable settlement record'); END");
         } elseif (DB::getDriverName() === 'mysql') {
             DB::unprepared("CREATE TRIGGER $name BEFORE $event ON $table FOR EACH ROW BEGIN IF $condition THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Immutable settlement record'; END IF; END");
-        } else { throw new RuntimeException('Settlements require MySQL or SQLite.'); }
+        } else {
+            throw new RuntimeException('Settlements require MySQL or SQLite.');
+        }
     }
 
     public function up(): void

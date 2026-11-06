@@ -1,5 +1,7 @@
 <?php
-use App\Domain\Shared\Tenancy\{CompanySession, TenantContext};
+
+use App\Domain\Shared\Tenancy\CompanySession;
+use App\Domain\Shared\Tenancy\TenantContext;
 use App\Models\User;
 
 it('scopes permissions to the company that granted the role', function () {

@@ -1,17 +1,24 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Accounting\Services;
 
-use App\Domain\Accounting\Models\{Ledger, LedgerGroup, Voucher};
+use App\Domain\Accounting\Models\Ledger;
+use App\Domain\Accounting\Models\LedgerGroup;
+use App\Domain\Accounting\Models\Voucher;
 use App\Domain\Gst\Models\TaxRate;
-use App\Domain\Gst\Services\{GstCalculator, PlaceOfSupplyResolver};
+use App\Domain\Gst\Services\GstCalculator;
+use App\Domain\Gst\Services\PlaceOfSupplyResolver;
 use App\Domain\Inventory\Models\Item;
-use App\Domain\Masters\Models\{Company, FinancialYear, Party};
+use App\Domain\Masters\Models\Company;
+use App\Domain\Masters\Models\FinancialYear;
+use App\Domain\Masters\Models\Party;
 use App\Domain\Sales\Models\Invoice;
 use App\Domain\Shared\Tenancy\TenantContext;
 use App\Domain\Shared\ValueObjects\Money;
-use Illuminate\Support\Facades\DB;
 use DomainException;
+use Illuminate\Support\Facades\DB;
 
 final class PostingService
 {
@@ -52,7 +59,7 @@ final class PostingService
                 $rate = '0';
                 if ($line->tax_category === 'taxable') {
                     $taxRate = TaxRate::whereKey($line->tax_rate_id)->lockForUpdate()->first();
-                    if (!$taxRate || !$taxRate->is_verified || $invoice->date->lt($taxRate->effective_from) ||
+                    if (! $taxRate || ! $taxRate->is_verified || $invoice->date->lt($taxRate->effective_from) ||
                         ($taxRate->effective_to && $invoice->date->gt($taxRate->effective_to))) {
                         throw new DomainException('A verified GST rate effective on the tax date is required.');
                     }
@@ -78,7 +85,7 @@ final class PostingService
                 throw new DomainException('Zero-value invoices need a separate non-accounting document workflow.');
             }
             foreach (['cgst', 'sgst', 'utgst', 'igst', 'cess'] as $tax) {
-                if (!$totals[$tax]->isZero()) {
+                if (! $totals[$tax]->isZero()) {
                     $ledger = Ledger::where('code', $tax === 'cess' ? 'OUTPUT_CESS' : 'OUTPUT_'.strtoupper($tax))->sole();
                     $this->ledger($ledger->id, 'liability');
                     $credits[$ledger->id] = ($credits[$ledger->id] ?? Money::of('0'))->add($totals[$tax]);
@@ -86,7 +93,7 @@ final class PostingService
             }
             $entries = [['ledger_id' => $partyLedger->id, 'debit' => $totals['total'], 'credit' => Money::of('0')]];
             foreach ($credits as $ledgerId => $amount) {
-                if (!$amount->isZero()) {
+                if (! $amount->isZero()) {
                     $entries[] = ['ledger_id' => $ledgerId, 'debit' => Money::of('0'), 'credit' => $amount];
                 }
             }
@@ -114,8 +121,11 @@ final class PostingService
             $voucher->update(['status' => 'posted', 'posted_at' => now()]);
             activity('accounting')->performedOn($voucher)->event('posted')
                 ->withProperties(['invoice_id' => $invoice->id, 'total' => (string) $totals['total']])
-                ->tap(function ($activity) use ($year): void { $activity->financial_year_id = $year->id; })
+                ->tap(function ($activity) use ($year): void {
+                    $activity->financial_year_id = $year->id;
+                })
                 ->log('Sales invoice posted');
+
             return $voucher->load('lines');
         }, 3);
     }
@@ -135,7 +145,7 @@ final class PostingService
             $debits = $debits->add($debit);
             $credits = $credits->add($credit);
         }
-        if (!$debits->equals($credits)) {
+        if (! $debits->equals($credits)) {
             throw new DomainException('Voucher debits do not equal credits.');
         }
     }
@@ -147,6 +157,7 @@ final class PostingService
         if ($group->nature !== $nature) {
             throw new DomainException('Ledger has an inappropriate accounting nature.');
         }
+
         return $ledger;
     }
 }

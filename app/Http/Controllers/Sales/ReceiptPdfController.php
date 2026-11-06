@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Http\Controllers\Sales;
 
 use App\Domain\Sales\Actions\CorrectionAccess;
@@ -13,6 +15,7 @@ final class ReceiptPdfController
     {
         app(CorrectionAccess::class)->authorize('receipts.view');
         $document = Receipt::findOrFail($receipt);
+
         return app(ReceiptDocuments::class)->receipt($document)->download(
             $document->status === 'posted' ? 'receipt-'.$document->series.'-'.$document->number.'.pdf' : 'draft-receipt.pdf');
     }

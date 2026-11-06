@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Domain\Masters\Models\FinancialYear;
@@ -19,10 +21,12 @@ final class EnsureCompanyContext
         $user = $request->user();
         $session = app(CompanySession::class);
         $companyId = $session->companyId();
-        if ($companyId === null || !$user->isMemberOf($companyId)) {
+        if ($companyId === null || ! $user->isMemberOf($companyId)) {
             $session->forget();
+
             return redirect()->route('company.select');
         }
+
         // TenantContext::run also points Spatie's permission team at this
         // company for the duration of the request, and restores both after it.
         return app(TenantContext::class)->run($companyId, function () use ($request, $next, $session): mixed {
@@ -30,6 +34,7 @@ final class EnsureCompanyContext
             if ($yearId !== null) {
                 FinancialYear::whereKey($yearId)->sole();
             }
+
             return $next($request);
         });
     }

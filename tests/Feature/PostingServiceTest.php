@@ -1,15 +1,23 @@
 <?php
-use App\Domain\Accounting\Models\{Ledger, LedgerGroup, NumberSequence, Voucher, VoucherLine};
-use App\Domain\Accounting\Services\{PostingService, VoucherNumberAllocator};
+
+use App\Domain\Accounting\Models\Ledger;
+use App\Domain\Accounting\Models\LedgerGroup;
+use App\Domain\Accounting\Models\NumberSequence;
+use App\Domain\Accounting\Models\Voucher;
+use App\Domain\Accounting\Models\VoucherLine;
+use App\Domain\Accounting\Services\PostingService;
 use App\Domain\Gst\Models\TaxRate;
 use App\Domain\Inventory\Models\Item;
-use App\Domain\Masters\Models\{Company, FinancialYear, Party};
-use App\Domain\Sales\Models\{Invoice, InvoiceItem};
+use App\Domain\Masters\Models\FinancialYear;
+use App\Domain\Masters\Models\Party;
+use App\Domain\Sales\Models\Invoice;
 use App\Domain\Shared\Models\Activity;
 use App\Domain\Shared\Tenancy\TenantContext;
-use Illuminate\Support\Facades\{DB, Event};
+use Database\Seeders\ChartOfAccountsSeeder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
-use Database\Seeders\{ChartOfAccountsSeeder, StateSeeder};
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 
 function salesFixture(array $invoiceOverrides = [], array $lineOverrides = []): Invoice
 {
@@ -30,6 +38,7 @@ function salesFixture(array $invoiceOverrides = [], array $lineOverrides = []): 
         'tax_rate_id' => $rate->id, 'position' => 1, 'description' => 'Widget', 'hsn_sac' => '8471',
         'quantity' => '1', 'unit_price' => '1000.00', 'discount' => '0.00',
     ], $lineOverrides));
+
     return $invoice;
 }
 
@@ -60,13 +69,13 @@ it('posts outward RCM without output tax credits', function () {
 
 it('persists itemised recipient cess separately under reverse charge', function () {
     inSalesCompany(function () {
-        $rate=TaxRate::create(['code'=>'RCM_CESS','rate'=>'18','cess_rate'=>'12.5','effective_from'=>'2026-04-01','is_verified'=>true]);
-        $invoice=salesFixture(['reverse_charge'=>true],['tax_rate_id'=>$rate->id]);
+        $rate = TaxRate::create(['code' => 'RCM_CESS', 'rate' => '18', 'cess_rate' => '12.5', 'effective_from' => '2026-04-01', 'is_verified' => true]);
+        $invoice = salesFixture(['reverse_charge' => true], ['tax_rate_id' => $rate->id]);
         app(PostingService::class)->postSalesInvoice($invoice->id);
-        $line=$invoice->items()->sole()->fresh();
-        expect((string)$line->recipient_cess)->toBe('125.00')
-            ->and((string)$line->recipient_tax)->toBe('305.00')
-            ->and((string)$invoice->fresh()->recipient_cess)->toBe('125.00');
+        $line = $invoice->items()->sole()->fresh();
+        expect((string) $line->recipient_cess)->toBe('125.00')
+            ->and((string) $line->recipient_tax)->toBe('305.00')
+            ->and((string) $invoice->fresh()->recipient_cess)->toBe('125.00');
     });
 });
 
@@ -122,7 +131,8 @@ it('rejects invalid voucher line signs and sides', function ($debit, $credit) {
 
 it('prevents posting the same invoice twice', function () {
     inSalesCompany(function () {
-        $i = salesFixture(); app(PostingService::class)->postSalesInvoice($i->id);
+        $i = salesFixture();
+        app(PostingService::class)->postSalesInvoice($i->id);
         expect(fn () => app(PostingService::class)->postSalesInvoice($i->id))->toThrow(DomainException::class);
         expect(Voucher::count())->toBe(1)->and(NumberSequence::sole()->last_number)->toBe(1);
     });
@@ -133,7 +143,9 @@ it('rolls back every write and number when auditing fails after allocation', fun
         $i = salesFixture();
         $fail = true;
         Event::listen('eloquent.creating: '.Activity::class, function () use (&$fail) {
-            if ($fail) { throw new RuntimeException('Simulated audit failure'); }
+            if ($fail) {
+                throw new RuntimeException('Simulated audit failure');
+            }
         });
         expect(fn () => app(PostingService::class)->postSalesInvoice($i->id))->toThrow(RuntimeException::class, 'Simulated');
         expect(Voucher::count())->toBe(0)->and(VoucherLine::count())->toBe(0)->and(NumberSequence::count())->toBe(0)
@@ -145,7 +157,9 @@ it('rolls back every write and number when auditing fails after allocation', fun
 
 it('allocates independent sequences per series and financial year', function () {
     inSalesCompany(function () {
-        $a = salesFixture(); $b = salesFixture(); $c = salesFixture(['series' => 'EXPORT']);
+        $a = salesFixture();
+        $b = salesFixture();
+        $c = salesFixture(['series' => 'EXPORT']);
         $nextYear = FinancialYear::create(['name' => '2027-28', 'starts_on' => '2027-04-01', 'ends_on' => '2028-03-31']);
         $d = salesFixture(['financial_year_id' => $nextYear->id, 'date' => '2027-04-01'], ['financial_year_id' => $nextYear->id]);
         $service = app(PostingService::class);
@@ -157,8 +171,11 @@ it('allocates independent sequences per series and financial year', function () 
 it('rejects closed or out-of-year invoices', function ($mode) {
     inSalesCompany(function () use ($mode) {
         $i = salesFixture();
-        if ($mode === 'closed') { FinancialYear::query()->update(['is_closed' => true]); }
-        else { $i->update(['date' => '2027-04-01']); }
+        if ($mode === 'closed') {
+            FinancialYear::query()->update(['is_closed' => true]);
+        } else {
+            $i->update(['date' => '2027-04-01']);
+        }
         expect(fn () => app(PostingService::class)->postSalesInvoice($i->id))->toThrow(DomainException::class, 'financial year');
         expect(Voucher::count())->toBe(0);
     });
@@ -198,15 +215,19 @@ it('rejects superseded 12 and 28 percent slabs from 22 September 2025 onward', f
 
 it('blocks raw SQL changes to posted documents and their lines', function ($table, $operation) {
     inSalesCompany(function () use ($table, $operation) {
-        $i = salesFixture(); $v = app(PostingService::class)->postSalesInvoice($i->id);
+        $i = salesFixture();
+        $v = app(PostingService::class)->postSalesInvoice($i->id);
         $id = match ($table) {
             'invoices' => $i->id, 'invoice_items' => $i->items()->sole()->id,
             'vouchers' => $v->id, default => $v->lines->first()->id,
         };
         expect(function () use ($table, $operation, $id) {
             $q = DB::table($table)->where('id', $id);
-            if ($operation === 'delete') { $q->delete(); }
-            else { $q->update(['updated_at' => now()->addSecond()]); }
+            if ($operation === 'delete') {
+                $q->delete();
+            } else {
+                $q->update(['updated_at' => now()->addSecond()]);
+            }
         })->toThrow(QueryException::class);
     });
 })->with([
@@ -254,7 +275,7 @@ it('rejects a cross-company invoice ID', function () {
         $invoice = salesFixture();
         $other = companyFixture();
         app(TenantContext::class)->run($other->id, function () use ($invoice) {
-            expect(fn () => app(PostingService::class)->postSalesInvoice($invoice->id))->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+            expect(fn () => app(PostingService::class)->postSalesInvoice($invoice->id))->toThrow(ModelNotFoundException::class);
         });
         expect($invoice->fresh()->status)->toBe('draft');
     });
@@ -262,7 +283,8 @@ it('rejects a cross-company invoice ID', function () {
 
 it('rejects empty invoices', function () {
     inSalesCompany(function () {
-        $i = salesFixture(); $i->items()->delete();
+        $i = salesFixture();
+        $i->items()->delete();
         expect(fn () => app(PostingService::class)->postSalesInvoice($i->id))->toThrow(DomainException::class, 'without items');
     });
 });

@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Shared\Support;
 
 use App\Domain\Shared\ValueObjects\Money;
@@ -13,6 +15,7 @@ final class AmountInWords
 {
     private const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
         'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
     private const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
     public static function inr(Money $amount): string
@@ -32,6 +35,7 @@ final class AmountInWords
         if ($paise !== '00') {
             $words .= ' and Paise '.self::indianWords($paise);
         }
+
         return $words.' Only';
     }
 
@@ -66,6 +70,7 @@ final class AmountInWords
         if ($tail > 0) {
             $parts[] = self::belowThousand($tail);
         }
+
         return implode(' ', $parts) ?: 'Zero';
     }
 
@@ -74,6 +79,7 @@ final class AmountInWords
         if ($n < 20) {
             return self::ONES[$n];
         }
+
         return trim(self::TENS[intdiv($n, 10)].($n % 10 !== 0 ? ' '.self::ONES[$n % 10] : ''));
     }
 
@@ -85,6 +91,7 @@ final class AmountInWords
         if ($remainder > 0) {
             $words .= ($words !== '' ? ' ' : '').self::belowHundred($remainder);
         }
+
         return $words;
     }
 }

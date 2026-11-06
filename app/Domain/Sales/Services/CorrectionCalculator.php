@@ -1,15 +1,21 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Services;
 
-use App\Domain\Gst\Services\{GstCalculator, PlaceOfSupplyResolver};
-use App\Domain\Sales\Models\{Invoice, SalesCorrection, SalesCorrectionLine};
+use App\Domain\Gst\Services\GstCalculator;
+use App\Domain\Gst\Services\PlaceOfSupplyResolver;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\SalesCorrection;
+use App\Domain\Sales\Models\SalesCorrectionLine;
 use App\Domain\Shared\ValueObjects\Money;
 use DomainException;
 
 final class CorrectionCalculator
 {
     public const TAXES = ['cgst', 'sgst', 'utgst', 'igst', 'cess', 'recipient_tax'];
+
     public const TOTALS = ['taxable_amount', 'cgst', 'sgst', 'utgst', 'igst', 'cess', 'recipient_tax', 'total'];
 
     public function remaining(Invoice $invoice): array
@@ -35,27 +41,35 @@ final class CorrectionCalculator
                 'quantity' => bcsub($item->quantity, $quantity, 3),
                 'used_amount' => (string) $amount, 'description' => $item->description];
         }
+
         return $result;
     }
 
     public function calculate(Invoice $invoice, string $kind, string $treatment, array $input): array
     {
-        if (!$input || count($input) > 500) { throw new DomainException('Select between one and 500 correction lines.'); }
+        if (! $input || count($input) > 500) {
+            throw new DomainException('Select between one and 500 correction lines.');
+        }
         $items = $invoice->items()->orderBy('position')->get()->keyBy('id');
         $remaining = $this->remaining($invoice);
-        $rows = []; $seen = [];
+        $rows = [];
+        $seen = [];
         $totals = array_fill_keys(self::TOTALS, Money::of('0'));
         foreach ($input as $position => $line) {
             $id = filter_var($line['invoice_item_id'] ?? null, FILTER_VALIDATE_INT);
             $item = $items->get($id);
-            if (!$item || isset($seen[$id])) { throw new DomainException('Each selected line must belong to the original invoice and appear once.'); }
+            if (! $item || isset($seen[$id])) {
+                throw new DomainException('Each selected line must belong to the original invoice and appear once.');
+            }
             $seen[$id] = true;
             $amount = Money::of($line['amount'] ?? null);
             $quantity = $line['quantity'] ?? '0';
-            if (!is_string($quantity) || !preg_match('/^\d{1,12}(?:\.\d{1,3})?$/D', $quantity)) {
+            if (! is_string($quantity) || ! preg_match('/^\d{1,12}(?:\.\d{1,3})?$/D', $quantity)) {
                 throw new DomainException('Affected quantity must be a non-negative decimal with up to three places.');
             }
-            if ($amount->isNegative() || $amount->isZero()) { throw new DomainException('Correction amount must be positive.'); }
+            if ($amount->isNegative() || $amount->isZero()) {
+                throw new DomainException('Correction amount must be positive.');
+            }
             if ($kind === 'credit' && (bccomp((string) $amount, $remaining[$id]['amount'], 2) > 0 ||
                 bccomp($quantity, $remaining[$id]['quantity'], 3) > 0)) {
                 throw new DomainException('Credit exceeds the remaining original amount or quantity.');
@@ -86,12 +100,17 @@ final class CorrectionCalculator
             foreach (self::TAXES as $tax) {
                 $row['basis_'.$tax] = $basis[$tax];
                 $row[$tax] = $treatment === 'gst' ? $basis[$tax] : Money::of('0');
-                if ($tax !== 'recipient_tax') { $total = $total->add($row[$tax]); }
+                if ($tax !== 'recipient_tax') {
+                    $total = $total->add($row[$tax]);
+                }
             }
             $row['total'] = $total;
-            foreach (self::TOTALS as $field) { $totals[$field] = $totals[$field]->add($row[$field]); }
+            foreach (self::TOTALS as $field) {
+                $totals[$field] = $totals[$field]->add($row[$field]);
+            }
             $rows[] = $row;
         }
+
         return ['lines' => $rows, 'totals' => $totals, 'remaining' => $remaining];
     }
 }

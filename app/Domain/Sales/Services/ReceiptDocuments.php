@@ -1,8 +1,9 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Services;
 
-use App\Domain\Masters\Models\Party;
 use App\Domain\Sales\Models\Receipt;
 use App\Domain\Shared\Support\AmountInWords;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -22,6 +23,7 @@ final class ReceiptDocuments
         $original = collect($receipt->allocations_snapshot ?? [])->map(fn ($row) => (object) $row);
         $partyName = $receipt->party_snapshot['name'] ?? ($receipt->party?->name ?? '—');
         $partyAddress = $receipt->party_snapshot['address'] ?? ($receipt->party?->address ?? '');
+
         return $this->render('pdf.receipt', [
             'receipt' => $receipt, 'original' => $original, 'posted' => $posted,
             'partyName' => $partyName, 'partyAddress' => $partyAddress,
@@ -43,6 +45,7 @@ final class ReceiptDocuments
         $dom->render();
         $font = $dom->getFontMetrics()->getFont('helvetica', 'normal');
         $dom->getCanvas()->page_text(34, 20, $label.'  |  Page {PAGE_NUM} of {PAGE_COUNT}', $font, 8);
+
         return $pdf;
     }
 }

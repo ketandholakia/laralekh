@@ -1,10 +1,10 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Livewire\Sales;
 
-use App\Domain\Masters\Models\Party;
 use App\Domain\Sales\Models\Receipt;
-use App\Domain\Shared\Tenancy\CompanySession;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -17,10 +17,17 @@ final class ReceiptList extends Component
 {
     use WithPagination;
 
-    #[Url] public string $search = '';
-    #[Url] public string $status = '';
-    #[Url] public string $from = '';
-    #[Url] public string $to = '';
+    #[Url]
+    public string $search = '';
+
+    #[Url]
+    public string $status = '';
+
+    #[Url]
+    public string $from = '';
+
+    #[Url]
+    public string $to = '';
 
     public function render(): View
     {
@@ -39,6 +46,7 @@ final class ReceiptList extends Component
             ->orderByDesc('date')->orderBy('id')
             ->with('party:id,name')
             ->paginate(10);
+
         return view('livewire.sales.receipt-list', ['receipts' => $receipts]);
     }
 }

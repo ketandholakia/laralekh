@@ -1,13 +1,21 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Services;
 
-use App\Domain\Accounting\Models\{Ledger, LedgerGroup, Voucher, VoucherReversal};
-use App\Domain\Accounting\Services\{PostingService, VoucherNumberAllocator};
-use App\Domain\Sales\Models\{Invoice, SalesCorrection};
+use App\Domain\Accounting\Models\Ledger;
+use App\Domain\Accounting\Models\LedgerGroup;
+use App\Domain\Accounting\Models\Voucher;
+use App\Domain\Accounting\Models\VoucherReversal;
+use App\Domain\Accounting\Services\PostingService;
+use App\Domain\Accounting\Services\VoucherNumberAllocator;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\SalesCorrection;
 use App\Domain\Shared\ValueObjects\Money;
-use Illuminate\Support\Facades\{DB, Validator};
 use DomainException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 final class CorrectionService
 {
@@ -15,11 +23,12 @@ final class CorrectionService
 
     public function preview(int $invoiceId, string $kind, string $treatment, array $lines): array
     {
-        if (!in_array($kind, ['credit', 'debit'], true) || !in_array($treatment, ['gst', 'commercial'], true)) {
+        if (! in_array($kind, ['credit', 'debit'], true) || ! in_array($treatment, ['gst', 'commercial'], true)) {
             throw new DomainException('Choose a valid correction kind and treatment.');
         }
         $invoice = Invoice::whereKey($invoiceId)->firstOrFail();
         $this->assertOriginal($invoice);
+
         return $this->calculator->calculate($invoice, $kind, $treatment, $lines);
     }
 
@@ -32,13 +41,16 @@ final class CorrectionService
             if ($note->exists && ($note->status !== 'draft' || $note->invoice_id !== $invoiceId || $note->financial_year_id !== $yearId)) {
                 throw new DomainException('Only a draft in its original selected company/year can be edited.');
             }
-            if (!$note->exists && SalesCorrection::where('request_key', $input['request_key'] ?? '')->lockForUpdate()->first()) {
+            if (! $note->exists && SalesCorrection::where('request_key', $input['request_key'] ?? '')->lockForUpdate()->first()) {
                 throw new DomainException('This request was already saved. Open the existing correction.');
             }
             [$data, $calculation] = $this->prepare($invoice, $yearId, $input, $lines);
-            if ($note->exists) { unset($data['request_key']); }
+            if ($note->exists) {
+                unset($data['request_key']);
+            }
             $note->fill($data)->save();
             $this->replaceLines($note, $calculation['lines']);
+
             return $note->fresh('lines');
         }, 3);
     }
@@ -77,13 +89,16 @@ final class CorrectionService
             activity('accounting')->performedOn($note)->event('posted')
                 ->withProperties(['original_invoice_id' => $invoice->id, 'treatment' => $note->treatment])
                 ->tap(fn ($a) => $a->financial_year_id = $note->financial_year_id)->log('Sales correction posted');
+
             return $note->fresh(['lines', 'voucher']);
         }, 3);
     }
 
     private function assertOriginal(Invoice $invoice): void
     {
-        if ($invoice->status !== 'posted' || !$invoice->voucher_id) { throw new DomainException('Corrections require a posted original invoice.'); }
+        if ($invoice->status !== 'posted' || ! $invoice->voucher_id) {
+            throw new DomainException('Corrections require a posted original invoice.');
+        }
         if (VoucherReversal::where('original_voucher_id', $invoice->voucher_id)->lockForUpdate()->first() ||
             Voucher::where('reverses_voucher_id', $invoice->voucher_id)->lockForUpdate()->first()) {
             throw new DomainException('The original voucher is reversed; further notes are not allowed.');
@@ -116,6 +131,7 @@ final class CorrectionService
                 'date' => $invoice->date->format('Y-m-d'), 'place_of_supply' => $invoice->place_of_supply,
                 'supply_type' => $invoice->supply_type, 'reverse_charge' => $invoice->reverse_charge, 'zero_rated_mode' => $invoice->zero_rated_mode],
         ];
+
         return [$data + $calculation['totals'], $calculation];
     }
 
@@ -131,32 +147,42 @@ final class CorrectionService
     private function entries(Invoice $invoice, SalesCorrection $note, array $calculation): array
     {
         $original = $invoice->voucher->lines()->with('ledger')->get();
-        $partyLines = $original->filter(fn ($l) => !$l->debit->isZero());
-        if ($partyLines->count() !== 1) { throw new DomainException('Original sales voucher does not have one party debit.'); }
+        $partyLines = $original->filter(fn ($l) => ! $l->debit->isZero());
+        if ($partyLines->count() !== 1) {
+            throw new DomainException('Original sales voucher does not have one party debit.');
+        }
         $partyId = $partyLines->first()->ledger_id;
         $this->assertLedger($partyId, 'asset');
         $amounts = [];
         foreach ($calculation['lines'] as $line) {
             $id = $line['sales_ledger_id'];
             $this->assertLedger($id, 'income');
-            if (!$original->contains(fn ($l) => $l->ledger_id === $id && !$l->credit->isZero())) {
+            if (! $original->contains(fn ($l) => $l->ledger_id === $id && ! $l->credit->isZero())) {
                 throw new DomainException('Sales ledger is absent from the original voucher.');
             }
             $amounts[$id] = ($amounts[$id] ?? Money::of('0'))->add($line['taxable_amount']);
         }
         foreach (['cgst', 'sgst', 'utgst', 'igst', 'cess'] as $tax) {
             $amount = $calculation['totals'][$tax];
-            if ($amount->isZero()) { continue; }
+            if ($amount->isZero()) {
+                continue;
+            }
             $line = $original->first(fn ($l) => $l->ledger->code === ($tax === 'cess' ? 'OUTPUT_CESS' : 'OUTPUT_'.strtoupper($tax)));
-            if (!$line) { throw new DomainException('Original output tax ledger cannot be resolved; review its classification.'); }
+            if (! $line) {
+                throw new DomainException('Original output tax ledger cannot be resolved; review its classification.');
+            }
             $this->assertLedger($line->ledger_id, 'liability');
             $amounts[$line->ledger_id] = ($amounts[$line->ledger_id] ?? Money::of('0'))->add($amount);
         }
-        $credit = $note->kind === 'credit'; $zero = Money::of('0');
+        $credit = $note->kind === 'credit';
+        $zero = Money::of('0');
         $entries = [['ledger_id' => $partyId, 'debit' => $credit ? $zero : $note->total, 'credit' => $credit ? $note->total : $zero]];
         foreach ($amounts as $id => $amount) {
-            if (!$amount->isZero()) { $entries[] = ['ledger_id' => $id, 'debit' => $credit ? $amount : $zero, 'credit' => $credit ? $zero : $amount]; }
+            if (! $amount->isZero()) {
+                $entries[] = ['ledger_id' => $id, 'debit' => $credit ? $amount : $zero, 'credit' => $credit ? $zero : $amount];
+            }
         }
+
         return $entries;
     }
 

@@ -1,15 +1,25 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Services;
 
-use App\Domain\Accounting\Models\{Ledger, LedgerGroup, Voucher};
-use App\Domain\Accounting\Services\{PostingService, VoucherNumberAllocator};
-use App\Domain\Masters\Models\{FinancialYear, Party};
-use App\Domain\Sales\Models\{Invoice, Receipt, ReceiptAllocation, ReceiptAllocationReversal, ReceiptReversal};
-use App\Domain\Shared\Tenancy\TenantContext;
+use App\Domain\Accounting\Models\Ledger;
+use App\Domain\Accounting\Models\LedgerGroup;
+use App\Domain\Accounting\Models\Voucher;
+use App\Domain\Accounting\Services\PostingService;
+use App\Domain\Accounting\Services\VoucherNumberAllocator;
+use App\Domain\Masters\Models\FinancialYear;
+use App\Domain\Masters\Models\Party;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\Receipt;
+use App\Domain\Sales\Models\ReceiptAllocation;
+use App\Domain\Sales\Models\ReceiptAllocationReversal;
+use App\Domain\Sales\Models\ReceiptReversal;
 use App\Domain\Shared\ValueObjects\Money;
-use Illuminate\Support\Facades\DB;
 use DomainException;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 // Customer receipt posting, allocation and reversal. Accounting truth:
 // posting Dr cash/bank / Cr receivable; allocations are insert-only links that
@@ -28,7 +38,7 @@ final class ReceiptService
      * Validates a list of intended allocations against the receipt and the
      * invoice balances. Returns canonical rows: invoice_id => Money.
      *
-     * @param array<int|string, string> $allocations invoice_id => decimal amount
+     * @param  array<int|string, string>  $allocations  invoice_id => decimal amount
      * @return list<array{invoice: Invoice, amount: Money}>
      */
     public function validateAllocations(Receipt $receipt, array $allocations, bool $requirePosted = true): array
@@ -75,6 +85,7 @@ final class ReceiptService
         if ($total->greaterThan($funds)) {
             throw new DomainException('Allocations exceed the unallocated receipt funds ('.(string) $funds.').');
         }
+
         return $canonical;
     }
 
@@ -97,7 +108,7 @@ final class ReceiptService
      * Posts a draft receipt: Dr payment ledger, Cr customer receivable, with a
      * company/year/series receipt number allocated inside the same transaction.
      *
-     * @param array<int|string, string> $allocations optional initial allocations
+     * @param  array<int|string, string>  $allocations  optional initial allocations
      */
     public function post(Receipt $receipt, array $allocations = [], ?int $userId = null): Receipt
     {
@@ -154,13 +165,16 @@ final class ReceiptService
             ])->save();
             $this->applyAllocations($receipt, $canonical, $userId);
             $allocated = Money::of('0');
-            foreach ($canonical as $row) { $allocated = $allocated->add($row['amount']); }
+            foreach ($canonical as $row) {
+                $allocated = $allocated->add($row['amount']);
+            }
             $voucher->update(['status' => 'posted', 'posted_at' => now()]);
             activity('accounting')->performedOn($voucher)->event('posted')
                 ->withProperties(['receipt_id' => $receipt->id, 'amount' => (string) $receipt->amount,
                     'allocated' => (string) $allocated])
                 ->tap(fn ($a) => $a->financial_year_id = $year->id)
                 ->log('Customer receipt posted');
+
             return $receipt->fresh(['allocations', 'voucher']);
         }, 3);
     }
@@ -170,7 +184,7 @@ final class ReceiptService
      * insert-only reversal records. No accounting entries change, because
      * allocation never created any.
      *
-     * @param list<int> $allocationIds
+     * @param  list<int>  $allocationIds
      */
     public function undoAllocations(Receipt $receipt, array $allocationIds, ?int $userId): int
     {
@@ -201,6 +215,7 @@ final class ReceiptService
                 ->withProperties(['count' => $undone])
                 ->tap(fn ($a) => $a->financial_year_id = $receipt->financial_year_id)
                 ->log('Receipt allocations undone');
+
             return $undone;
         }, 3);
     }
@@ -224,10 +239,10 @@ final class ReceiptService
                 throw new DomainException('Provide a reversal reason of 5 to 2000 characters.');
             }
             $year = FinancialYear::whereKey($yearId)->lockForUpdate()->firstOrFail();
-            $day = \Illuminate\Support\Carbon::hasFormat($date, 'Y-m-d')
-                ? \Illuminate\Support\Carbon::createFromFormat('Y-m-d', $date)->startOfDay() : false;
+            $day = Carbon::hasFormat($date, 'Y-m-d')
+                ? Carbon::createFromFormat('Y-m-d', $date)->startOfDay() : false;
             if ($year->is_closed || $day === false
-                || $day->lt($year->starts_on) || $day->gt($year->ends_on) || $day->gt(\Illuminate\Support\Carbon::today())) {
+                || $day->lt($year->starts_on) || $day->gt($year->ends_on) || $day->gt(Carbon::today())) {
                 throw new DomainException('Reversal date must be today or earlier, inside the selected open financial year.');
             }
             $originalVoucher = Voucher::whereKey($receipt->voucher_id)->lockForUpdate()->firstOrFail();
@@ -279,6 +294,7 @@ final class ReceiptService
                     'undone_allocations' => $active->count()])
                 ->tap(fn ($a) => $a->financial_year_id = $year->id)
                 ->log('Customer receipt reversed');
+
             return $reversal;
         }, 3);
     }
@@ -291,6 +307,7 @@ final class ReceiptService
         if ($group->nature !== 'asset' || $group->code !== 'CASH_BANK') {
             throw new DomainException('Receipts must use a cash or bank ledger.');
         }
+
         return $ledger;
     }
 
@@ -301,6 +318,7 @@ final class ReceiptService
         if ($group->nature !== 'asset') {
             throw new DomainException('The customer ledger must be a receivable (asset) ledger.');
         }
+
         return $ledger;
     }
 }

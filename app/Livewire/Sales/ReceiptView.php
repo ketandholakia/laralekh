@@ -1,9 +1,14 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Livewire\Sales;
 
-use App\Domain\Sales\Actions\{AllocateReceipt, ReverseReceipt, UndoReceiptAllocations};
-use App\Domain\Sales\Models\{Receipt, ReceiptAllocation};
+use App\Domain\Sales\Actions\AllocateReceipt;
+use App\Domain\Sales\Actions\ReverseReceipt;
+use App\Domain\Sales\Actions\UndoReceiptAllocations;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\Receipt;
 use App\Domain\Sales\Services\SettlementService;
 use App\Domain\Shared\Tenancy\CompanySession;
 use Illuminate\Contracts\View\View;
@@ -33,7 +38,7 @@ final class ReceiptView extends Component
         abort_if($companyId === null, 403, 'Select a company first.');
         abort_unless($user->isMemberOf($companyId), 403);
         abort_unless($user->can('receipts.view'), 403);
-        $this->receipt = \App\Domain\Sales\Models\Receipt::findOrFail((int) $receiptId)
+        $this->receipt = Receipt::findOrFail((int) $receiptId)
             ->load(['allocations.invoice', 'ledger', 'voucher', 'reversals.voucher']);
     }
 
@@ -46,7 +51,7 @@ final class ReceiptView extends Component
     {
         $settlement = app(SettlementService::class);
         $rows = [];
-        foreach (\App\Domain\Sales\Models\Invoice::query()
+        foreach (Invoice::query()
             ->where('party_id', $this->receipt->party_id)->where('status', 'posted')
             ->orderBy('date')->orderBy('id')->get() as $invoice) {
             if ($invoice->voucher_id === null || $settlement->invoiceReversed($invoice)) {
@@ -60,6 +65,7 @@ final class ReceiptView extends Component
                 'date' => $invoice->date->format('d-m-Y'), 'outstanding' => (string) $outstanding,
                 'value' => (string) ($this->newAllocations[$invoice->id] ?? '')];
         }
+
         return $rows;
     }
 
@@ -72,6 +78,7 @@ final class ReceiptView extends Component
             foreach ($e->errors() as $messages) {
                 $this->addError('allocations', $messages[0]);
             }
+
             return;
         }
         $this->newAllocations = [];
@@ -88,6 +95,7 @@ final class ReceiptView extends Component
             foreach ($e->errors() as $messages) {
                 $this->addError('allocations', $messages[0]);
             }
+
             return;
         }
         session()->flash('status', 'Selected allocations undone; invoice balances restored.');
@@ -101,6 +109,7 @@ final class ReceiptView extends Component
             $yearId = app(CompanySession::class)->financialYearId();
             if ($yearId === null) {
                 $this->addError('reverseReason', 'Select a financial year first.');
+
                 return;
             }
             app(ReverseReceipt::class)->handle($this->receipt->id, $yearId, now()->toDateString(), $this->reverseReason);
@@ -108,6 +117,7 @@ final class ReceiptView extends Component
             foreach ($e->errors() as $messages) {
                 $this->addError('reverseReason', $messages[0]);
             }
+
             return;
         }
         session()->flash('status', 'Receipt reversed; amounts restored to the customer balance.');

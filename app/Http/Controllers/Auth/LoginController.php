@@ -1,7 +1,10 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Http\Controllers\Auth;
 
+use App\Domain\Shared\Tenancy\CompanySession;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,21 +26,23 @@ final class LoginController extends Controller
                 'email' => 'Too many login attempts. Try again in '.RateLimiter::availableIn($throttleKey).' seconds.',
             ]);
         }
-        if (!Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             RateLimiter::hit($throttleKey, 60);
             throw ValidationException::withMessages(['email' => 'These credentials do not match our records.']);
         }
         RateLimiter::clear($throttleKey);
         $request->session()->regenerate();
+
         return redirect()->intended(route('company.select'));
     }
 
     public function destroy(Request $request): RedirectResponse
     {
-        app(\App\Domain\Shared\Tenancy\CompanySession::class)->forget();
+        app(CompanySession::class)->forget();
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('login');
     }
 }

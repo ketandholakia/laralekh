@@ -1,8 +1,10 @@
 <?php
-use App\Http\Middleware\EnsureCompanyContext;
+
 use App\Domain\Accounting\Models\LedgerGroup;
 use App\Domain\Masters\Models\FinancialYear;
-use App\Domain\Shared\Tenancy\{CompanySession, TenantContext};
+use App\Domain\Shared\Tenancy\CompanySession;
+use App\Domain\Shared\Tenancy\TenantContext;
+use App\Http\Middleware\EnsureCompanyContext;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -18,6 +20,7 @@ function contextRequest(User $user): Request
     $request = Request::create('/', 'GET');
     $request->setLaravelSession(app('session.store'));
     $request->setUserResolver(fn () => $user);
+
     return $request;
 }
 

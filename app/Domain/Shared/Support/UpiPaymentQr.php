@@ -1,15 +1,16 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Shared\Support;
 
 use App\Domain\Shared\ValueObjects\Money;
 use chillerlan\QRCode\Common\EccLevel;
 use chillerlan\QRCode\Common\Version;
 use chillerlan\QRCode\Data\Byte;
-use chillerlan\QRCode\Data\QRMatrix;
 use chillerlan\QRCode\Output\QRCodeOutputException;
-use chillerlan\QRCode\QROptions;
 use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 use InvalidArgumentException;
 
 // Supplier-side UPI payment QR for invoices. This is a payment convenience QR
@@ -24,12 +25,13 @@ final class UpiPaymentQr
 
     public static function uri(string $vpa, string $payeeName, Money $amount, string $note): string
     {
-        if (!self::isValidVpa($vpa)) {
+        if (! self::isValidVpa($vpa)) {
             throw new InvalidArgumentException('Configure a valid UPI ID to print a payment QR.');
         }
         if ($payeeName === '' || $amount->isNegative() || $amount->isZero()) {
             throw new InvalidArgumentException('A payee name and a positive amount are required for the payment QR.');
         }
+
         return 'upi://pay?'.http_build_query([
             'pa' => $vpa,
             'pn' => mb_substr($payeeName, 0, 40),
@@ -58,6 +60,7 @@ final class UpiPaymentQr
             }
             $rows .= '<tr>'.$cells.'</tr>';
         }
+
         return '<table style="border-collapse:collapse;border-spacing:0;">'.$rows.'</table>';
     }
 
@@ -78,6 +81,7 @@ final class UpiPaymentQr
         foreach ($matrix->getMatrix() as $row) {
             $out[] = array_map(fn (int $type): bool => $matrix->isDark($type), $row);
         }
+
         return $out;
     }
 }

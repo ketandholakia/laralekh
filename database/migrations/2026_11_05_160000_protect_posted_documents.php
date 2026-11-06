@@ -1,10 +1,12 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\{DB, Schema};
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
-
+return new class extends Migration
+{
     private function guard(string $name, string $table, string $event, string $condition): void
     {
         if (DB::getDriverName() === 'sqlite') {
@@ -20,8 +22,11 @@ return new class extends Migration {
     {
         foreach (['invoices', 'invoice_items'] as $table) {
             Schema::table($table, function (Blueprint $t) {
-                if (DB::getDriverName() === 'sqlite') { $t->string('recipient_tax', 17)->default('0.00'); }
-                else { $t->decimal('recipient_tax', 15, 2)->default('0.00'); }
+                if (DB::getDriverName() === 'sqlite') {
+                    $t->string('recipient_tax', 17)->default('0.00');
+                } else {
+                    $t->decimal('recipient_tax', 15, 2)->default('0.00');
+                }
             });
         }
         foreach (['vouchers', 'invoices'] as $table) {
@@ -32,8 +37,12 @@ return new class extends Migration {
         foreach (['voucher_lines' => ['vouchers', 'voucher_id'], 'invoice_items' => ['invoices', 'invoice_id']] as $table => [$parent, $key]) {
             foreach (['INSERT', 'UPDATE', 'DELETE'] as $event) {
                 $conditions = [];
-                if ($event !== 'INSERT') { $conditions[] = "EXISTS (SELECT 1 FROM $parent WHERE id = OLD.$key AND status = 'posted')"; }
-                if ($event !== 'DELETE') { $conditions[] = "EXISTS (SELECT 1 FROM $parent WHERE id = NEW.$key AND status = 'posted')"; }
+                if ($event !== 'INSERT') {
+                    $conditions[] = "EXISTS (SELECT 1 FROM $parent WHERE id = OLD.$key AND status = 'posted')";
+                }
+                if ($event !== 'DELETE') {
+                    $conditions[] = "EXISTS (SELECT 1 FROM $parent WHERE id = NEW.$key AND status = 'posted')";
+                }
                 $this->guard($table.'_posted_'.strtolower($event), $table, $event, implode(' OR ', $conditions));
             }
         }
@@ -55,12 +64,15 @@ return new class extends Migration {
     public function down(): void
     {
         foreach (['vouchers', 'invoices', 'voucher_lines', 'invoice_items'] as $table) {
-            foreach (['insert', 'update', 'delete'] as $event) { DB::unprepared("DROP TRIGGER IF EXISTS {$table}_posted_$event"); }
+            foreach (['insert', 'update', 'delete'] as $event) {
+                DB::unprepared("DROP TRIGGER IF EXISTS {$table}_posted_$event");
+            }
         }
         foreach (['vouchers_balance', 'voucher_lines_amounts_insert', 'voucher_lines_amounts_update', 'activity_log_immutable_update', 'activity_log_immutable_delete'] as $name) {
             DB::unprepared("DROP TRIGGER IF EXISTS $name");
         }
-        foreach (['invoices', 'invoice_items'] as $table) { Schema::table($table, fn (Blueprint $t) => $t->dropColumn('recipient_tax')); }
+        foreach (['invoices', 'invoice_items'] as $table) {
+            Schema::table($table, fn (Blueprint $t) => $t->dropColumn('recipient_tax'));
+        }
     }
 };
-

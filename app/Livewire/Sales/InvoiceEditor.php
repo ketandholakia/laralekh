@@ -1,15 +1,21 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Livewire\Sales;
 
 use App\Domain\Accounting\Models\Ledger;
 use App\Domain\Gst\Models\TaxRate;
 use App\Domain\Inventory\Models\Item;
-use App\Domain\Masters\Models\{Company, Party, State};
-use App\Domain\Sales\Actions\{PostInvoice, SaveInvoiceDraft};
+use App\Domain\Masters\Models\Company;
+use App\Domain\Masters\Models\Party;
+use App\Domain\Masters\Models\State;
+use App\Domain\Sales\Actions\PostInvoice;
+use App\Domain\Sales\Actions\SaveInvoiceDraft;
 use App\Domain\Sales\Models\Invoice;
 use App\Domain\Sales\Services\InvoicePreview;
-use App\Domain\Shared\Tenancy\{CompanySession, TenantContext};
+use App\Domain\Shared\Tenancy\CompanySession;
+use App\Domain\Shared\Tenancy\TenantContext;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
@@ -28,17 +34,27 @@ final class InvoiceEditor extends Component
     public ?int $invoiceId = null;
 
     public string $partyQuery = '';
+
     public ?int $partyId = null;
+
     public string $partyName = '';
 
     public string $date = '';
+
     public string $dueDate = '';
+
     public string $series = 'SI';
+
     public string $supplyType = 'domestic';
+
     public string $placeOfSupply = '';
+
     public string $zeroRatedMode = 'none';
+
     public bool $zeroRatedEligible = false;
+
     public bool $sezAuthorized = false;
+
     public bool $reverseCharge = false;
 
     /** @var list<array<string, mixed>> */
@@ -56,6 +72,7 @@ final class InvoiceEditor extends Component
             $invoice = Invoice::with('items')->findOrFail($invoiceId);
             if ($invoice->status !== 'draft') {
                 $this->redirectRoute('invoices.show', $invoice->id);
+
                 return;
             }
             $this->invoiceId = $invoice->id;
@@ -100,6 +117,7 @@ final class InvoiceEditor extends Component
             return [];
         }
         $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($this->partyQuery)).'%';
+
         return Party::query()->where(fn ($q) => $q
             ->where('name', 'like', $term)->orWhere('gstin', 'like', $term))
             ->orderBy('name')->limit(8)->get(['id', 'name', 'gstin', 'state_code'])
@@ -130,6 +148,7 @@ final class InvoiceEditor extends Component
             return [];
         }
         $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($this->itemQuery)).'%';
+
         return Item::query()->where(fn ($q) => $q
             ->where('name', 'like', $term)->orWhere('sku', 'like', $term)->orWhere('hsn_sac', 'like', $term))
             ->orderBy('name')->limit(8)
@@ -210,6 +229,7 @@ final class InvoiceEditor extends Component
         if ($date === null) {
             return [];
         }
+
         return TaxRate::query()->where('is_verified', true)
             ->where('effective_from', '<=', $date)
             ->where(fn ($q) => $q->whereNull('effective_to')->orWhere('effective_to', '>=', $date))
@@ -233,6 +253,7 @@ final class InvoiceEditor extends Component
                 'rate' => $this->rateStringFor((int) ($line['tax_rate_id'] ?? 0), (string) ($line['tax_category'] ?? 'taxable')),
                 'tax_category' => (string) ($line['tax_category'] ?? 'taxable'),
             ], $this->lines);
+
             return $this->previewTotals($company, $lines) + ['error' => null];
         } catch (InvalidArgumentException $e) {
             return ['lines' => [], 'totals' => null, 'error' => $e->getMessage()];
@@ -258,6 +279,7 @@ final class InvoiceEditor extends Component
                 return $option['rate'];
             }
         }
+
         // A saved draft may reference a rate outside the current date window;
         // resolve it directly so the preview stays truthful.
         return (string) (TaxRate::whereKey($taxRateId)->value('rate') ?? '0');
@@ -274,6 +296,7 @@ final class InvoiceEditor extends Component
             foreach ($e->errors() as $messages) {
                 $this->addError('lines', $messages[0]);
             }
+
             return;
         }
         session()->flash('status', 'Draft saved.');
@@ -290,11 +313,13 @@ final class InvoiceEditor extends Component
             foreach ($e->errors() as $messages) {
                 $this->addError('lines', $messages[0]);
             }
+
             return;
         } catch (DomainException $e) {
             // Includes duplicate submissions: the posting transaction re-checks
             // the locked invoice status server-side before any number is used.
             $this->addError('lines', $e->getMessage());
+
             return;
         }
         session()->flash('status', 'Invoice '.$invoice->series.'/'.$invoice->number.' posted.');

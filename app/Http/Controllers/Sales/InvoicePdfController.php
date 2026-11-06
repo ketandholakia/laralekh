@@ -1,14 +1,18 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Http\Controllers\Sales;
 
+use App\Domain\Masters\Models\Company;
 use App\Domain\Masters\Models\State;
 use App\Domain\Sales\Models\Invoice;
-use App\Domain\Shared\Support\{AmountInWords, UpiPaymentQr};
-use App\Domain\Shared\Tenancy\{CompanySession, TenantContext};
+use App\Domain\Shared\Support\AmountInWords;
+use App\Domain\Shared\Support\UpiPaymentQr;
+use App\Domain\Shared\Tenancy\CompanySession;
+use App\Domain\Shared\Tenancy\TenantContext;
 use App\Domain\Shared\ValueObjects\Money;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 
@@ -47,7 +51,7 @@ final class InvoicePdfController
         $paymentQr = null;
         if ($isPosted) {
             $upiId = (string) app(TenantContext::class)->run(app(CompanySession::class)->companyId(),
-                fn (): ?string => \App\Domain\Masters\Models\Company::whereKey($companyId)->value('upi_id'));
+                fn (): ?string => Company::whereKey($companyId)->value('upi_id'));
             if ($upiId !== '' && UpiPaymentQr::isValidVpa($upiId)) {
                 try {
                     $paymentQr = UpiPaymentQr::html(UpiPaymentQr::uri(
@@ -69,7 +73,7 @@ final class InvoicePdfController
             'placeOfSupply' => $this->stateLabel($invoice->place_of_supply),
             'words' => AmountInWords::inr($invoice->total),
             'paymentQr' => $paymentQr,
-            'interState' => !$invoice->igst->isZero(),
+            'interState' => ! $invoice->igst->isZero(),
         ])->setPaper('a4', 'portrait');
 
         $filename = ($isPosted
@@ -98,13 +102,15 @@ final class InvoicePdfController
             return '99 · Overseas (other territory)';
         }
         $name = State::where('code', $code)->value('name');
+
         return $name !== null ? $code.' · '.$name : $code;
     }
 
     /** @return array<string, mixed> */
     private function liveSupplier(): array
     {
-        $company = \App\Domain\Masters\Models\Company::whereKey(app(TenantContext::class)->id())->firstOrFail();
+        $company = Company::whereKey(app(TenantContext::class)->id())->firstOrFail();
+
         return $company->only(['name', 'gstin', 'state_code', 'address', 'gst_regime']);
     }
 }

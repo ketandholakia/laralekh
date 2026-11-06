@@ -1,13 +1,19 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Actions;
 
-use App\Domain\Accounting\Models\{Ledger, LedgerGroup};
-use App\Domain\Masters\Models\{FinancialYear, Party};
+use App\Domain\Accounting\Models\Ledger;
+use App\Domain\Accounting\Models\LedgerGroup;
+use App\Domain\Masters\Models\FinancialYear;
+use App\Domain\Masters\Models\Party;
 use App\Domain\Sales\Models\Receipt;
 use App\Domain\Shared\Tenancy\CompanySession;
 use App\Domain\Shared\ValueObjects\Money;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -41,7 +47,7 @@ final class SaveReceiptDraft
             if ($group->nature !== 'asset' || $group->code !== 'CASH_BANK') {
                 throw new \DomainException('Receipts must use a cash or bank ledger.');
             }
-            if (\Illuminate\Support\Carbon::createFromFormat('Y-m-d', $data['date']) === false) {
+            if (Carbon::createFromFormat('Y-m-d', $data['date']) === false) {
                 throw new \DomainException('Provide a valid receipt date.');
             }
             if ($year->is_closed) {
@@ -60,16 +66,17 @@ final class SaveReceiptDraft
         return DB::transaction(function () use ($receiptId, $data, $year, $input): Receipt {
             $receipt = $receiptId === null
                 ? new Receipt(['financial_year_id' => $year->id,
-                    'request_key' => (string) ($input['request_key'] ?? \Illuminate\Support\Str::uuid())])
+                    'request_key' => (string) ($input['request_key'] ?? Str::uuid())])
                 : Receipt::whereKey($receiptId)->lockForUpdate()->firstOrFail();
             if ($receipt->exists && ($receipt->status !== 'draft' || $receipt->number !== null)) {
                 throw new \DomainException('Only unposted draft receipts can be edited.');
             }
-            if (!$receipt->exists
+            if (! $receipt->exists
                 && Receipt::query()->where('request_key', $receipt->request_key)->lockForUpdate()->first()) {
                 throw new \DomainException('This request was already saved. Open the existing receipt.');
             }
             $receipt->fill($data + ['financial_year_id' => $year->id, 'series' => 'SR'])->save();
+
             return $receipt;
         });
     }

@@ -1,15 +1,22 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Actions;
 
-use App\Domain\Accounting\Models\{Ledger, LedgerGroup};
+use App\Domain\Accounting\Models\Ledger;
+use App\Domain\Accounting\Models\LedgerGroup;
 use App\Domain\Gst\Models\TaxRate;
 use App\Domain\Inventory\Models\Item;
-use App\Domain\Masters\Models\{Company, FinancialYear, Party};
-use App\Domain\Sales\Models\{Invoice, InvoiceItem};
+use App\Domain\Masters\Models\Company;
+use App\Domain\Masters\Models\FinancialYear;
+use App\Domain\Masters\Models\Party;
+use App\Domain\Sales\Models\Invoice;
 use App\Domain\Sales\Services\InvoicePreview;
-use App\Domain\Shared\Tenancy\{CompanySession, TenantContext};
+use App\Domain\Shared\Tenancy\CompanySession;
+use App\Domain\Shared\Tenancy\TenantContext;
 use App\Domain\Shared\ValueObjects\Money;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -23,8 +30,8 @@ final class SaveInvoiceDraft
     public function __construct(private InvoicePreview $preview) {}
 
     /**
-     * @param array<string, mixed> $input Validated UI input; unknown keys are ignored.
-     * @param list<array<string, mixed>> $lines
+     * @param  array<string, mixed>  $input  Validated UI input; unknown keys are ignored.
+     * @param  list<array<string, mixed>>  $lines
      */
     public function handle(?int $invoiceId, array $input, array $lines): Invoice
     {
@@ -49,10 +56,10 @@ final class SaveInvoiceDraft
         try {
             $this->assertDraftEditable($invoiceId);
             $year = FinancialYear::whereKey($yearId)->sole();
-            $date = \Illuminate\Support\Carbon::createFromFormat('Y-m-d', $data['date'])
+            $date = Carbon::createFromFormat('Y-m-d', $data['date'])
                 ?: throw new \InvalidArgumentException('Provide a valid invoice date.');
             if ($data['due_date'] !== null && $data['due_date'] !== '') {
-                if (\Illuminate\Support\Carbon::createFromFormat('Y-m-d', (string) $data['due_date']) === false) {
+                if (Carbon::createFromFormat('Y-m-d', (string) $data['due_date']) === false) {
                     throw new \InvalidArgumentException('Provide a valid due date.');
                 }
             } else {
@@ -76,7 +83,7 @@ final class SaveInvoiceDraft
             throw ValidationException::withMessages(['lines' => $e->getMessage()]);
         }
 
-        return DB::transaction(function () use ($invoiceId, $data, $year, $lines, $party): Invoice {
+        return DB::transaction(function () use ($invoiceId, $data, $year, $lines): Invoice {
             $invoice = $invoiceId === null
                 ? new Invoice(['financial_year_id' => $year->id, 'series' => $data['series']])
                 : Invoice::whereKey($invoiceId)->sole();
@@ -89,6 +96,7 @@ final class SaveInvoiceDraft
                     'financial_year_id' => $year->id, 'position' => $position + 1,
                 ]);
             }
+
             return $invoice->refresh();
         });
     }
@@ -111,10 +119,10 @@ final class SaveInvoiceDraft
      * Validates line inputs against the tenant and the invoice date, and
      * returns canonical line payloads for persistence.
      *
-     * @param list<array<string, mixed>> $lines
+     * @param  list<array<string, mixed>>  $lines
      * @return list<array<string, mixed>>
      */
-    private function validatedLines(Company $company, \Illuminate\Support\Carbon $date, array $lines): array
+    private function validatedLines(Company $company, Carbon $date, array $lines): array
     {
         if ($lines === []) {
             throw new \InvalidArgumentException('Add at least one line item.');
@@ -136,7 +144,7 @@ final class SaveInvoiceDraft
                     throw new \InvalidArgumentException('Taxable lines need a GST rate selection.');
                 }
                 $rate = TaxRate::whereKey((int) $rateId)->firstOrFail();
-                if (!$rate->is_verified || $date->lt($rate->effective_from) ||
+                if (! $rate->is_verified || $date->lt($rate->effective_from) ||
                     ($rate->effective_to !== null && $date->gt($rate->effective_to))) {
                     throw new \InvalidArgumentException(
                         'A verified GST rate effective on the invoice date is required for '.$item->name.'.');
@@ -147,7 +155,7 @@ final class SaveInvoiceDraft
             $quantity = (string) ($line['quantity'] ?? '');
             $unitPrice = (string) ($line['unit_price'] ?? '');
             $discount = (string) ($line['discount'] ?? '0.00');
-            if (!preg_match('/^\d{1,12}(?:\.\d{1,3})?$/D', $quantity) || bccomp($quantity, '0', 3) <= 0) {
+            if (! preg_match('/^\d{1,12}(?:\.\d{1,3})?$/D', $quantity) || bccomp($quantity, '0', 3) <= 0) {
                 throw new \InvalidArgumentException('Quantity must be positive with at most three decimals.');
             }
             Money::of($unitPrice);
@@ -165,6 +173,7 @@ final class SaveInvoiceDraft
                 'tax_category' => $category,
             ];
         }
+
         return $canonical;
     }
 }

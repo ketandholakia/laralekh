@@ -1,13 +1,18 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Livewire\Sales;
 
 use App\Domain\Accounting\Models\Ledger;
 use App\Domain\Masters\Models\Party;
-use App\Domain\Sales\Actions\{PostReceipt, SaveReceiptDraft};
+use App\Domain\Sales\Actions\PostReceipt;
+use App\Domain\Sales\Actions\SaveReceiptDraft;
+use App\Domain\Sales\Models\Invoice;
 use App\Domain\Sales\Models\Receipt;
 use App\Domain\Sales\Services\SettlementService;
 use App\Domain\Shared\Tenancy\CompanySession;
+use App\Domain\Shared\ValueObjects\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -22,13 +27,19 @@ final class ReceiptEditor extends Component
     public ?int $receiptId = null;
 
     public string $partyQuery = '';
+
     public ?int $partyId = null;
+
     public string $partyName = '';
 
     public int $ledgerId = 0;
+
     public string $date = '';
+
     public string $paymentReference = '';
+
     public string $narration = '';
+
     public string $amount = '';
 
     /** @var array<int|string, string> invoice_id => amount */
@@ -41,6 +52,7 @@ final class ReceiptEditor extends Component
             $draft = Receipt::findOrFail((int) $receipt);
             if ($draft->status !== 'draft') {
                 $this->redirectRoute('receipts.show', $draft->id);
+
                 return;
             }
             $this->receiptId = $draft->id;
@@ -72,6 +84,7 @@ final class ReceiptEditor extends Component
             return [];
         }
         $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($this->partyQuery)).'%';
+
         return Party::query()->where(fn ($q) => $q
             ->where('name', 'like', $term)->orWhere('gstin', 'like', $term))
             ->orderBy('name')->limit(8)->get(['id', 'name', 'gstin'])
@@ -106,7 +119,7 @@ final class ReceiptEditor extends Component
             return [];
         }
         $settlement = app(SettlementService::class);
-        $invoices = \App\Domain\Sales\Models\Invoice::query()
+        $invoices = Invoice::query()
             ->where('party_id', $this->partyId)->where('status', 'posted')
             ->orderBy('date')->orderBy('id')->get();
         $rows = [];
@@ -125,16 +138,21 @@ final class ReceiptEditor extends Component
                 'value' => (string) ($this->allocations[$invoice->id] ?? ''),
             ];
         }
+
         return $rows;
     }
 
     public function getAllocatedPreviewProperty(): string
     {
-        $sum = \App\Domain\Shared\ValueObjects\Money::of('0');
+        $sum = Money::of('0');
         foreach ($this->allocations as $amount) {
-            try { $sum = $sum->add(\App\Domain\Shared\ValueObjects\Money::of((string) $amount)); }
-            catch (\InvalidArgumentException) { continue; }
+            try {
+                $sum = $sum->add(Money::of((string) $amount));
+            } catch (\InvalidArgumentException) {
+                continue;
+            }
         }
+
         return (string) $sum;
     }
 
@@ -148,6 +166,7 @@ final class ReceiptEditor extends Component
             $ledger = Ledger::findOrFail($this->ledgerId);
             $party = Party::findOrFail($this->partyId);
             $customer = $party->ledger_id !== null ? Ledger::findOrFail($party->ledger_id) : null;
+
             return ['entries' => [
                 ['debit' => $this->amount !== '' ? $this->amount : '0.00', 'credit' => '0.00', 'ledger' => $ledger->code.' · '.$ledger->name],
                 ['debit' => '0.00', 'credit' => $this->amount !== '' ? $this->amount : '0.00',
@@ -167,6 +186,7 @@ final class ReceiptEditor extends Component
             foreach ($e->errors() as $messages) {
                 $this->addError('amount', $messages[0]);
             }
+
             return;
         }
         session()->flash('status', 'Receipt draft saved.');
@@ -183,9 +203,11 @@ final class ReceiptEditor extends Component
             foreach ($e->errors() as $messages) {
                 $this->addError('amount', $messages[0]);
             }
+
             return;
         } catch (\DomainException $e) {
             $this->addError('amount', $e->getMessage());
+
             return;
         }
         session()->flash('status', 'Receipt '.$posted->label().' posted.');

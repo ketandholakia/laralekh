@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Shared\Models;
 
 use App\Domain\Shared\Tenancy\TenantContext;
@@ -39,4 +41,3 @@ abstract class TenantModel extends Model
         });
     }
 }
-

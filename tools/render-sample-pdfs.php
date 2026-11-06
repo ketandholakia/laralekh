@@ -1,27 +1,34 @@
 <?php
+
 // Renders sample invoices covering the Step 2 PDF surface into an output
 // directory using an isolated SQLite database (never production data).
 //
 // Usage: php tools/render-sample-pdfs.php <output-directory>
 
-use App\Domain\Accounting\Models\{Ledger, LedgerGroup};
-use App\Domain\Masters\Models\{Company, FinancialYear, Party};
+use App\Domain\Accounting\Models\Ledger;
+use App\Domain\Accounting\Models\LedgerGroup;
 use App\Domain\Gst\Models\TaxRate;
 use App\Domain\Inventory\Models\Item;
+use App\Domain\Masters\Models\Company;
+use App\Domain\Masters\Models\FinancialYear;
+use App\Domain\Masters\Models\Party;
+use App\Domain\Sales\Actions\PostInvoice;
+use App\Domain\Sales\Actions\SaveInvoiceDraft;
 use App\Domain\Sales\Models\Invoice;
-use App\Domain\Sales\Actions\{PostInvoice, SaveInvoiceDraft};
 use App\Domain\Shared\Support\AmountInWords;
 use App\Domain\Shared\Tenancy\TenantContext;
 use App\Domain\Shared\ValueObjects\Money;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\{DB, File};
+use Database\Seeders\ChartOfAccountsSeeder;
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\DB;
 
 require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$app->make(Kernel::class)->bootstrap();
 
 $out = $argv[1] ?? null;
-if ($out === null || !is_dir($out)) {
+if ($out === null || ! is_dir($out)) {
     fwrite(STDERR, "Usage: php tools/render-sample-pdfs.php <existing-output-directory>\n");
     exit(1);
 }
@@ -34,7 +41,7 @@ config([
 ]);
 DB::purge();
 $migrator = $app->make('migrator');
-if (!$migrator->repositoryExists()) {
+if (! $migrator->repositoryExists()) {
     $migrator->getRepository()->createRepository();
 }
 $migrator->run(database_path('migrations'));
@@ -52,7 +59,7 @@ function render(string $name, Invoice $invoice, string $out, Company $company): 
     ];
     $allNonTaxable = $invoice->items->count() > 0 && $invoice->items->every(fn ($i) => $i->tax_category !== 'taxable');
     $billOfSupply = ($supplier['gst_regime'] ?? 'regular') === 'composition' || $allNonTaxable;
-    $interState = !$val($invoice->igst)->isZero();
+    $interState = ! $val($invoice->igst)->isZero();
     $pdf = Pdf::loadView('pdf.invoice', [
         'invoice' => $invoice, 'supplier' => $supplier, 'party' => $party,
         'isPosted' => $isPosted, 'billOfSupply' => $billOfSupply,
@@ -78,8 +85,8 @@ $ctx = app(TenantContext::class);
 $company = Company::create(['name' => 'Laravix Sample Traders', 'gstin' => '27AAAPL1234C1ZV',
     'state_code' => '27', 'address' => "14, Andheri East\nMumbai 400069\nMaharashtra", 'gst_regime' => 'regular']);
 
-$ctx->run($company->id, function () use ($ctx, $company, $out): void {
-    (new \Database\Seeders\ChartOfAccountsSeeder)->run();
+$ctx->run($company->id, function () use ($company, $out): void {
+    (new ChartOfAccountsSeeder)->run();
     $year = FinancialYear::create(['name' => '2026-27', 'starts_on' => '2026-04-01', 'ends_on' => '2027-03-31']);
     session(['company_id' => $company->id, 'financial_year_id' => $year->id]);
 

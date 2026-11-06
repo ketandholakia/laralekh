@@ -1,9 +1,12 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\{DB, Schema};
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     private function tenant(Blueprint $t): void
     {
         $t->id();
@@ -13,19 +16,27 @@ return new class extends Migration {
         $t->unique(['company_id', 'financial_year_id', 'id'], $t->getTable().'_tenant_year');
         $t->timestamps();
     }
+
     private function money(Blueprint $t, string $name): void
     {
-        if (DB::getDriverName() === 'sqlite') { $t->string($name, 17)->default('0.00'); }
-        else { $t->decimal($name, 15, 2)->default('0.00'); }
+        if (DB::getDriverName() === 'sqlite') {
+            $t->string($name, 17)->default('0.00');
+        } else {
+            $t->decimal($name, 15, 2)->default('0.00');
+        }
     }
+
     private function guard(string $name, string $table, string $event, string $condition): void
     {
         if (DB::getDriverName() === 'sqlite') {
             DB::unprepared("CREATE TRIGGER $name BEFORE $event ON $table WHEN $condition BEGIN SELECT RAISE(ABORT, 'Immutable correction document'); END");
         } elseif (DB::getDriverName() === 'mysql') {
             DB::unprepared("CREATE TRIGGER $name BEFORE $event ON $table FOR EACH ROW BEGIN IF $condition THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Immutable correction document'; END IF; END");
-        } else { throw new RuntimeException('Corrections require MySQL or SQLite.'); }
+        } else {
+            throw new RuntimeException('Corrections require MySQL or SQLite.');
+        }
     }
+
     public function up(): void
     {
         Schema::table('financial_years', fn (Blueprint $t) => $t->date('annual_return_filed_on')->nullable());
@@ -60,7 +71,9 @@ return new class extends Migration {
             $t->json('supplier_snapshot');
             $t->json('party_snapshot');
             $t->json('original_snapshot');
-            foreach (['taxable_amount', 'cgst', 'sgst', 'utgst', 'igst', 'recipient_tax', 'total'] as $field) { $this->money($t, $field); }
+            foreach (['taxable_amount', 'cgst', 'sgst', 'utgst', 'igst', 'recipient_tax', 'total'] as $field) {
+                $this->money($t, $field);
+            }
         });
         Schema::create('sales_correction_lines', function (Blueprint $t) {
             $this->tenant($t);
@@ -81,7 +94,9 @@ return new class extends Migration {
             $t->unsignedBigInteger('sales_ledger_id');
             $t->foreign(['company_id', 'sales_ledger_id'], 'correction_lines_ledger_fk')->references(['company_id', 'id'])->on('ledgers');
             foreach (['taxable_amount', 'cgst', 'sgst', 'utgst', 'igst', 'recipient_tax', 'total',
-                'basis_cgst', 'basis_sgst', 'basis_utgst', 'basis_igst', 'basis_recipient_tax'] as $field) { $this->money($t, $field); }
+                'basis_cgst', 'basis_sgst', 'basis_utgst', 'basis_igst', 'basis_recipient_tax'] as $field) {
+                $this->money($t, $field);
+            }
         });
         Schema::create('voucher_reversals', function (Blueprint $t) {
             $this->tenant($t);
@@ -112,10 +127,13 @@ return new class extends Migration {
             $this->guard('correction_lines_immutable_'.$suffix, 'sales_correction_lines', $event, implode(' OR ', $conditions));
         }
     }
+
     public function down(): void
     {
         foreach (['sales_corrections_immutable', 'voucher_reversals_immutable', 'correction_lines_immutable'] as $prefix) {
-            foreach (['i', 'u', 'd'] as $suffix) { DB::unprepared("DROP TRIGGER IF EXISTS {$prefix}_$suffix"); }
+            foreach (['i', 'u', 'd'] as $suffix) {
+                DB::unprepared("DROP TRIGGER IF EXISTS {$prefix}_$suffix");
+            }
         }
         Schema::dropIfExists('voucher_reversals');
         Schema::dropIfExists('sales_correction_lines');
@@ -123,10 +141,10 @@ return new class extends Migration {
         // InnoDB may replace an implicit FK index with the newer covering
         // unique index. Restore supporting indexes before removing uniqueness.
         if (DB::getDriverName() === 'mysql') {
-            if (!Schema::hasIndex('vouchers', 'vouchers_reversal_fk_support')) {
+            if (! Schema::hasIndex('vouchers', 'vouchers_reversal_fk_support')) {
                 Schema::table('vouchers', fn (Blueprint $t) => $t->index(['company_id', 'reverses_voucher_id'], 'vouchers_reversal_fk_support'));
             }
-            if (!Schema::hasIndex('invoice_items', 'invoice_items_source_fk_support')) {
+            if (! Schema::hasIndex('invoice_items', 'invoice_items_source_fk_support')) {
                 Schema::table('invoice_items', fn (Blueprint $t) => $t->index(['company_id', 'financial_year_id', 'invoice_id'], 'invoice_items_source_fk_support'));
             }
         }
@@ -135,4 +153,3 @@ return new class extends Migration {
         Schema::table('financial_years', fn (Blueprint $t) => $t->dropColumn('annual_return_filed_on'));
     }
 };
-

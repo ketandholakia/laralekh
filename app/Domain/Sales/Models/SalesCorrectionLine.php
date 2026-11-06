@@ -1,8 +1,11 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Models;
-use App\Domain\Shared\Models\TenantModel;
+
 use App\Domain\Shared\Casts\MoneyCast;
+use App\Domain\Shared\Models\TenantModel;
 
 class SalesCorrectionLine extends TenantModel
 {
@@ -13,6 +16,14 @@ class SalesCorrectionLine extends TenantModel
         'basis_cgst' => MoneyCast::class, 'basis_sgst' => MoneyCast::class, 'basis_utgst' => MoneyCast::class,
         'basis_igst' => MoneyCast::class, 'basis_cess' => MoneyCast::class, 'basis_recipient_tax' => MoneyCast::class,
     ];
-    public function correction() { return $this->belongsTo(SalesCorrection::class, 'sales_correction_id'); }
-    public function originalItem() { return $this->belongsTo(InvoiceItem::class, 'invoice_item_id'); }
+
+    public function correction()
+    {
+        return $this->belongsTo(SalesCorrection::class, 'sales_correction_id');
+    }
+
+    public function originalItem()
+    {
+        return $this->belongsTo(InvoiceItem::class, 'invoice_item_id');
+    }
 }

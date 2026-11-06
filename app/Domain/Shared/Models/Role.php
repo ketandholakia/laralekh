@@ -1,10 +1,11 @@
 <?php
+
 namespace App\Domain\Shared\Models;
 
 use App\Domain\Shared\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
-use Spatie\Permission\Models\Role as SpatieRole;
 use LogicException;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 class Role extends SpatieRole
 {

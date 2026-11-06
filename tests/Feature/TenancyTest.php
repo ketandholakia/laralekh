@@ -1,18 +1,20 @@
 <?php
-use App\Domain\Masters\Models\Company;
-use App\Domain\Masters\Models\FinancialYear;
+
 use App\Domain\Accounting\Models\Ledger;
 use App\Domain\Accounting\Models\LedgerGroup;
+use App\Domain\Masters\Models\FinancialYear;
+use App\Domain\Shared\Models\Role;
 use App\Domain\Shared\Tenancy\TenantContext;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\DB;
 
 it('fails closed without a tenant context', function () {
     Ledger::query()->get();
 })->throws(LogicException::class, 'company context');
 
 it('isolates reads and restores nested contexts', function () {
-    $a = companyFixture('A'); $b = companyFixture('B'); $ctx = app(TenantContext::class);
+    $a = companyFixture('A');
+    $b = companyFixture('B');
+    $ctx = app(TenantContext::class);
     $ctx->run($a->id, function () use ($ctx, $a, $b) {
         LedgerGroup::create(['code' => 'ASSET', 'name' => 'Assets A', 'nature' => 'asset']);
         $ctx->run($b->id, function () {
@@ -26,19 +28,25 @@ it('isolates reads and restores nested contexts', function () {
 
 it('restores context after an exception', function () {
     $ctx = app(TenantContext::class);
-    try { $ctx->run(1, fn () => throw new RuntimeException('stop')); } catch (RuntimeException) {}
+    try {
+        $ctx->run(1, fn () => throw new RuntimeException('stop'));
+    } catch (RuntimeException) {
+    }
     expect(fn () => $ctx->id())->toThrow(LogicException::class);
 });
 
 it('rejects cross-company model creation', function () {
-    $a = companyFixture(); $b = companyFixture();
+    $a = companyFixture();
+    $b = companyFixture();
     app(TenantContext::class)->run($a->id, fn () => LedgerGroup::create([
         'company_id' => $b->id, 'code' => 'A', 'name' => 'Assets', 'nature' => 'asset',
     ]));
 })->throws(LogicException::class, 'Cross-company');
 
 it('rejects cross-company foreign keys in the database', function () {
-    $a = companyFixture(); $b = companyFixture(); $ctx = app(TenantContext::class);
+    $a = companyFixture();
+    $b = companyFixture();
+    $ctx = app(TenantContext::class);
     $group = $ctx->run($b->id, fn () => LedgerGroup::create(['code' => 'A', 'name' => 'Assets', 'nature' => 'asset']));
     $ctx->run($a->id, fn () => Ledger::create(['ledger_group_id' => $group->id, 'code' => 'CASH', 'name' => 'Cash']));
 })->throws(QueryException::class);
@@ -53,17 +61,19 @@ it('requires unique financial-year names within a company', function () {
 })->throws(QueryException::class);
 
 it('rejects bulk changes to company ownership', function () {
-    $a = companyFixture(); $b = companyFixture();
+    $a = companyFixture();
+    $b = companyFixture();
     app(TenantContext::class)->run($a->id, fn () => LedgerGroup::query()->update(['company_id' => $b->id]));
 })->throws(LogicException::class, 'ownership is immutable');
 
 it('scopes Spatie roles to the active company', function () {
-    $a = companyFixture(); $b = companyFixture(); $ctx = app(TenantContext::class);
-    $ctx->run($a->id, fn () => \App\Domain\Shared\Models\Role::create(['name' => 'accountant', 'guard_name' => 'web']));
+    $a = companyFixture();
+    $b = companyFixture();
+    $ctx = app(TenantContext::class);
+    $ctx->run($a->id, fn () => Role::create(['name' => 'accountant', 'guard_name' => 'web']));
     $ctx->run($b->id, function () {
-        expect(\App\Domain\Shared\Models\Role::count())->toBe(0);
-        \App\Domain\Shared\Models\Role::create(['name' => 'accountant', 'guard_name' => 'web']);
+        expect(Role::count())->toBe(0);
+        Role::create(['name' => 'accountant', 'guard_name' => 'web']);
     });
-    expect($ctx->run($a->id, fn () => \App\Domain\Shared\Models\Role::count()))->toBe(1);
+    expect($ctx->run($a->id, fn () => Role::count()))->toBe(1);
 });
-

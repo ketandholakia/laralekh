@@ -1,8 +1,11 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Services;
 
-use App\Domain\Gst\Services\{GstCalculator, PlaceOfSupplyResolver};
+use App\Domain\Gst\Services\GstCalculator;
+use App\Domain\Gst\Services\PlaceOfSupplyResolver;
 use App\Domain\Gst\ValueObjects\GstBreakdown;
 use App\Domain\Masters\Models\Company;
 use App\Domain\Shared\ValueObjects\Money;
@@ -20,7 +23,7 @@ final class InvoicePreview
     ) {}
 
     /**
-     * @param iterable<array{unit_price:string, quantity:string, discount:string, rate:string, tax_category:string}> $lines
+     * @param  iterable<array{unit_price:string, quantity:string, discount:string, rate:string, tax_category:string}>  $lines
      * @return array{lines: array<int, array{taxable:string, cgst:string, sgst:string, utgst:string, igst:string, total:string}>,
      *     totals: array{taxable:string, cgst:string, sgst:string, utgst:string, igst:string, total:string, recipient_tax:string}}
      */
@@ -50,8 +53,8 @@ final class InvoicePreview
                 regime: $company->gst_regime,
                 zeroRatedMode: $zeroRatedMode,
                 zeroRatedEligible: $zeroRatedEligible,
-                    sezAuthorized: $sezAuthorized,
-                    cessRate: $line['cess_rate'] ?? '0',
+                sezAuthorized: $sezAuthorized,
+                cessRate: $line['cess_rate'] ?? '0',
             );
             $lineBreakup[] = $this->stringify($breakdown);
             foreach ($sums as $field => $running) {
@@ -67,6 +70,7 @@ final class InvoicePreview
                 });
             }
         }
+
         return ['lines' => $lineBreakup, 'totals' => array_map(fn (Money $m): string => (string) $m, $sums)];
     }
 

@@ -1,14 +1,19 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Services;
 
 use App\Domain\Accounting\Models\VoucherReversal;
 use App\Domain\Masters\Models\Party;
-use App\Domain\Sales\Models\{Invoice, Receipt, ReceiptReversal, SalesCorrection};
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\Receipt;
+use App\Domain\Sales\Models\ReceiptReversal;
+use App\Domain\Sales\Models\SalesCorrection;
 use App\Domain\Shared\Tenancy\TenantContext;
 use App\Domain\Shared\ValueObjects\Money;
-use Illuminate\Support\Carbon;
 use DomainException;
+use Illuminate\Support\Carbon;
 
 // As-of customer statement. Opening and closing balances come from the
 // customer's receivable ledger (authoritative); the dated rows list documents
@@ -40,7 +45,9 @@ final class CustomerStatement
         $opening = $this->settlement->ledgerBalance($party->ledger_id, $from);
 
         $rows = [];
-        foreach ($this->invoices($partyId, $from, $asOf) as $row) { $rows[] = $row; }
+        foreach ($this->invoices($partyId, $from, $asOf) as $row) {
+            $rows[] = $row;
+        }
         usort($rows, function (array $a, array $b): int {
             return [$a['date'], self::KIND_ORDER[$a['kind']], $a['id']]
                 <=> [$b['date'], self::KIND_ORDER[$b['kind']], $b['id']];
@@ -51,6 +58,7 @@ final class CustomerStatement
             $rows[$index]['balance'] = (string) $running;
         }
         $ledgerAsOf = $this->settlement->ledgerBalance($party->ledger_id, null, $asOf);
+
         return [
             'party' => $party, 'from' => $from, 'as_of' => $asOf,
             'opening' => $opening, 'rows' => $rows, 'closing' => $running,
@@ -64,13 +72,13 @@ final class CustomerStatement
         $rows = [];
         foreach (Invoice::query()->where('party_id', $partyId)->where('status', 'posted')
             ->where('date', '>=', $from)
-            ->where('date', '<', \Illuminate\Support\Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $invoice) {
+            ->where('date', '<', Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $invoice) {
             $rows[] = $this->row('invoice', $invoice->id, $invoice->date->format('Y-m-d'),
                 'Invoice '.$invoice->series.'/'.$invoice->number, (string) $invoice->total, '0.00');
         }
         foreach (SalesCorrection::query()->where('status', 'posted')
             ->where('date', '>=', $from)
-            ->where('date', '<', \Illuminate\Support\Carbon::parse($asOf)->addDay()->toDateString())->whereIn('invoice_id', $this->invoiceIds($partyId))
+            ->where('date', '<', Carbon::parse($asOf)->addDay()->toDateString())->whereIn('invoice_id', $this->invoiceIds($partyId))
             ->orderBy('id')->get() as $note) {
             $rows[] = $this->row($note->kind === 'credit' ? 'credit_note' : 'debit_note', $note->id,
                 $note->date->format('Y-m-d'), ucfirst($note->label()).' '.$note->series.'/'.$note->number
@@ -80,20 +88,20 @@ final class CustomerStatement
         }
         foreach (Receipt::query()->where('party_id', $partyId)->where('status', 'posted')
             ->where('date', '>=', $from)
-            ->where('date', '<', \Illuminate\Support\Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $receipt) {
+            ->where('date', '<', Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $receipt) {
             $rows[] = $this->row('receipt', $receipt->id, $receipt->date->format('Y-m-d'),
                 'Receipt '.$receipt->label(), '0.00', (string) $receipt->amount);
         }
         foreach (ReceiptReversal::query()->where('status', 'posted')
             ->where('date', '>=', $from)
-            ->where('date', '<', \Illuminate\Support\Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $reversal) {
+            ->where('date', '<', Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $reversal) {
             $rows[] = $this->row('receipt_reversal', $reversal->id, $reversal->date->format('Y-m-d'),
                 'Receipt reversal (of '.$reversal->original_snapshot['number'].')',
                 (string) $reversal->original_snapshot['amount'], '0.00');
         }
         foreach (VoucherReversal::query()->where('status', 'posted')
             ->where('date', '>=', $from)
-            ->where('date', '<', \Illuminate\Support\Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $reversal) {
+            ->where('date', '<', Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $reversal) {
             $invoice = Invoice::query()->where('voucher_id', $reversal->original_voucher_id)->first();
             if ($invoice === null || $invoice->party_id !== $partyId) {
                 continue; // not a customer invoice reversal
@@ -104,6 +112,7 @@ final class CustomerStatement
                 'Invoice reversal (of '.$reversal->original_snapshot['number'].')',
                 '0.00', (string) ($reversal->entries_snapshot[0]['credit'] ?? '0.00'));
         }
+
         return $rows;
     }
 

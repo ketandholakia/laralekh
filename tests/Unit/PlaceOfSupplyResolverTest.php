@@ -1,4 +1,5 @@
 <?php
+
 use App\Domain\Gst\Services\PlaceOfSupplyResolver;
 
 it('uses goods movement destination', function () {

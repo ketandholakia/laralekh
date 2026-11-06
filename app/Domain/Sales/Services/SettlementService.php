@@ -1,13 +1,20 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Services;
 
-use App\Domain\Accounting\Models\{Voucher, VoucherReversal};
-use App\Domain\Sales\Models\{Invoice, Receipt, ReceiptAllocation, ReceiptAllocationReversal, ReceiptReversal, SalesCorrection};
+use App\Domain\Accounting\Models\Voucher;
+use App\Domain\Accounting\Models\VoucherReversal;
+use App\Domain\Masters\Models\Party;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\Receipt;
+use App\Domain\Sales\Models\ReceiptAllocation;
+use App\Domain\Sales\Models\SalesCorrection;
 use App\Domain\Shared\Tenancy\TenantContext;
 use App\Domain\Shared\ValueObjects\Money;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use DomainException;
 
 // Derived settlement balances. Posted documents are never updated; every figure
 // here is computed from immutable accounting history. Callers that make
@@ -24,7 +31,10 @@ final class SettlementService
                 ->whereColumn('receipt_allocation_reversals.allocation_id', 'receipt_allocations.id'))
             ->lockForUpdate()->get(['amount']);
         $sum = Money::of('0');
-        foreach ($rows as $row) { $sum = $sum->add($row->amount); }
+        foreach ($rows as $row) {
+            $sum = $sum->add($row->amount);
+        }
+
         return $sum;
     }
 
@@ -36,7 +46,10 @@ final class SettlementService
                 ->whereColumn('receipt_allocation_reversals.allocation_id', 'receipt_allocations.id'))
             ->lockForUpdate()->get(['amount']);
         $sum = Money::of('0');
-        foreach ($rows as $row) { $sum = $sum->add($row->amount); }
+        foreach ($rows as $row) {
+            $sum = $sum->add($row->amount);
+        }
+
         return $sum;
     }
 
@@ -47,9 +60,13 @@ final class SettlementService
             ->where('status', 'posted')->lockForUpdate()->get(['kind', 'total']);
         $credits = $debits = Money::of('0');
         foreach ($rows as $row) {
-            if ($row->kind === 'credit') { $credits = $credits->add($row->total); }
-            else { $debits = $debits->add($row->total); }
+            if ($row->kind === 'credit') {
+                $credits = $credits->add($row->total);
+            } else {
+                $debits = $debits->add($row->total);
+            }
         }
+
         return ['credits' => $credits, 'debits' => $debits];
     }
 
@@ -62,6 +79,7 @@ final class SettlementService
     public function documentOutstanding(Invoice $invoice): Money
     {
         $adjustments = $this->noteAdjustments($invoice->id);
+
         return $invoice->total->subtract($adjustments['credits'])
             ->subtract($this->allocatedToInvoice($invoice->id))->add($adjustments['debits']);
     }
@@ -90,7 +108,7 @@ final class SettlementService
         if ($untilInclusive !== null) {
             // Date columns store midnight timestamps on SQLite; compare below
             // the next day so the inclusive day is fully covered on both engines.
-            $query->where('vouchers.date', '<', \Illuminate\Support\Carbon::parse($untilInclusive)->addDay()->toDateString());
+            $query->where('vouchers.date', '<', Carbon::parse($untilInclusive)->addDay()->toDateString());
         }
         // Privileged aggregate over posted accounting rows; money columns are
         // decimal on MySQL and text on SQLite, so sum in application code.
@@ -99,6 +117,7 @@ final class SettlementService
         foreach ($rows as $row) {
             $balance = $balance->add(Money::of($row->debit))->subtract(Money::of($row->credit));
         }
+
         return $balance;
     }
 
@@ -116,7 +135,7 @@ final class SettlementService
         $documents = [];
         $invoicesBalance = Money::of('0');
         $excessCredits = Money::of('0');
-        $party = \App\Domain\Masters\Models\Party::query()->whereKey($partyId)->firstOrFail();
+        $party = Party::query()->whereKey($partyId)->firstOrFail();
 
         $invoices = Invoice::query()->where('party_id', $partyId)
             ->where('status', 'posted')->with('voucher')->orderBy('date')->orderBy('id')->get();
@@ -128,7 +147,7 @@ final class SettlementService
                 'date' => $invoice->date->format('Y-m-d'), 'total' => (string) $invoice->total,
                 'outstanding' => (string) $outstanding, 'reversed' => $reversed,
             ];
-            if (!$reversed) {
+            if (! $reversed) {
                 if ($outstanding->isNegative()) {
                     $excessCredits = $excessCredits->add(Money::of(bcmul((string) $outstanding, '-1', 2)));
                 } else {
@@ -141,7 +160,7 @@ final class SettlementService
             ->where('status', 'posted')->orderBy('date')->orderBy('id')->get();
         foreach ($receipts as $receipt) {
             $funds = $this->availableReceiptFunds($receipt);
-            if (!$funds->isZero()) {
+            if (! $funds->isZero()) {
                 $advances = $advances->add($funds);
                 $documents[] = [
                     'kind' => 'receipt_advance', 'id' => $receipt->id,
@@ -152,6 +171,7 @@ final class SettlementService
             }
         }
         usort($documents, fn ($a, $b) => [$a['date'], $a['id']] <=> [$b['date'], $b['id']]);
+
         return [
             'documents' => $documents, 'advances' => $advances, 'excess_credits' => $excessCredits,
             'invoices_balance' => $invoicesBalance, 'ledger_balance' => $this->ledgerBalance($party->ledger_id),

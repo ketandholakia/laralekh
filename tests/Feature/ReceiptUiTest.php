@@ -1,12 +1,22 @@
 <?php
-use App\Domain\Accounting\Models\{Ledger, LedgerGroup};
+
+use App\Domain\Accounting\Models\Ledger;
+use App\Domain\Accounting\Models\LedgerGroup;
+use App\Domain\Masters\Models\FinancialYear;
 use App\Domain\Masters\Models\Party;
-use App\Domain\Sales\Actions\{AllocateReceipt, PostInvoice, PostReceipt, SaveReceiptDraft, UndoReceiptAllocations};
-use App\Domain\Sales\Actions\ReverseReceipt as ReverseReceiptAction;
-use App\Domain\Sales\Models\{Invoice, Receipt, ReceiptAllocation};
+use App\Domain\Sales\Actions\PostReceipt;
+use App\Domain\Sales\Actions\SaveReceiptDraft;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\Receipt;
+use App\Domain\Sales\Models\ReceiptAllocation;
+use App\Domain\Sales\Models\SalesCorrection;
 use App\Domain\Sales\Services\SettlementService;
-use App\Livewire\Sales\{CustomerList, CustomerOutstanding, CustomerStatement, ReceiptEditor, ReceiptList, ReceiptView};
-use Illuminate\Validation\ValidationException;
+use App\Livewire\Sales\CustomerOutstanding;
+use App\Livewire\Sales\CustomerStatement;
+use App\Livewire\Sales\ReceiptEditor;
+use App\Livewire\Sales\ReceiptList;
+use App\Livewire\Sales\ReceiptView;
+use Database\Seeders\ChartOfAccountsSeeder;
 use Livewire\Livewire;
 
 it('lists receipts with filters and hides other companies', function () {
@@ -21,8 +31,8 @@ it('lists receipts with filters and hides other companies', function () {
         ]);
     });
     inTenantContext($other, function (): void {
-        (new \Database\Seeders\ChartOfAccountsSeeder)->run();
-        $fy = \App\Domain\Masters\Models\FinancialYear::create(['name' => '2026-27', 'starts_on' => '2026-04-01', 'ends_on' => '2027-03-31']);
+        (new ChartOfAccountsSeeder)->run();
+        $fy = FinancialYear::create(['name' => '2026-27', 'starts_on' => '2026-04-01', 'ends_on' => '2027-03-31']);
         $ledger = Ledger::create(['code' => 'CASH2', 'name' => 'Cash', 'ledger_group_id' => LedgerGroup::where('code', 'CASH_BANK')->sole()->id]);
         $party = Party::create(['name' => 'Secret customer', 'state_code' => '27', 'ledger_id' => $ledger->id]);
         Receipt::create(['financial_year_id' => $fy->id, 'party_id' => $party->id, 'ledger_id' => $ledger->id,
@@ -106,6 +116,7 @@ it('blocks allocation and undo for users without the respective permissions', fu
     $receipt = inTenantContext($company, function (): Receipt {
         [$party] = masters();
         $invoice = postInvoiceFor($party, '500.00');
+
         return app(PostReceipt::class)->handle(receiptDraft($party, '200.00')->id, [$invoice->id => '200.00']);
     });
     $invoiceId = null;
@@ -122,7 +133,7 @@ it('blocks allocation and undo for users without the respective permissions', fu
 it('reverses a receipt through the screen with confirmation data', function () {
     [$user, $company] = receiptSession();
     $this->actingAs($user);
-    inTenantContext($company, function () use ($company): void {
+    inTenantContext($company, function (): void {
         [$party] = masters();
         $invoice = postInvoiceFor($party, '500.00');
         $receipt = app(PostReceipt::class)->handle(receiptDraft($party, '200.00')->id, [$invoice->id => '200.00']);
@@ -146,7 +157,7 @@ it('shows customer outstanding with advances and excess credits separately', fun
             ->assertOk()->assertSee('150.00')->assertSee('Unapplied advances')->assertSee('1000.00');
         // Over-settle: receipt + later full credit makes the document balance negative.
         $receipt = app(PostReceipt::class)->handle(receiptDraft($party, '900.00')->id, [$invoice->id => '900.00']);
-        $note = \App\Domain\Sales\Models\SalesCorrection::create([
+        $note = SalesCorrection::create([
             'financial_year_id' => salesYear($company)->id, 'original_financial_year_id' => salesYear($company)->id,
             'invoice_id' => $invoice->id, 'kind' => 'credit', 'treatment' => 'commercial', 'status' => 'draft',
             'series' => 'CN', 'number' => 1, 'request_key' => 'credit-key-1', 'date' => '2026-11-05',

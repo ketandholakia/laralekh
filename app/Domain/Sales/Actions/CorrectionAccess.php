@@ -1,7 +1,11 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Sales\Actions;
-use App\Domain\Shared\Tenancy\{CompanySession, TenantContext};
+
+use App\Domain\Shared\Tenancy\CompanySession;
+use App\Domain\Shared\Tenancy\TenantContext;
 use Illuminate\Validation\ValidationException;
 
 final class CorrectionAccess
@@ -14,10 +18,10 @@ final class CorrectionAccess
         $user->forgetCachedPermissionRelations();
         abort_unless($user->can('corrections.view') && $user->can($permission), 403);
     }
+
     public function year(): int
     {
         return app(CompanySession::class)->financialYearId()
             ?? throw ValidationException::withMessages(['correction' => 'Select a financial year first.']);
     }
 }
-

@@ -1,6 +1,9 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domain\Gst\ValueObjects;
+
 final readonly class ResolvedSupply
 {
     public function __construct(
@@ -11,4 +14,3 @@ final readonly class ResolvedSupply
         public bool $usesUtgst,
     ) {}
 }
-

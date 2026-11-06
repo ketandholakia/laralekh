@@ -1,9 +1,20 @@
 <?php
+
 use App\Domain\Accounting\Models\Voucher;
-use App\Domain\Sales\Actions\{PostInvoice, PostReceipt};
-use App\Domain\Sales\Models\{Invoice, Receipt};
+use App\Domain\Accounting\Models\VoucherReversal;
+use App\Domain\Sales\Actions\PostReceipt;
+use App\Domain\Sales\Actions\SaveInvoiceDraft;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\Receipt;
+use App\Domain\Sales\Models\ReceiptAllocation;
+use App\Domain\Sales\Models\ReceiptAllocationReversal;
+use App\Domain\Sales\Models\ReceiptReversal;
+use App\Domain\Sales\Models\SalesCorrection;
 use App\Livewire\Accounting\ReversalEditor;
-use App\Livewire\Sales\{CorrectionEditor, InvoiceEditor, ReceiptEditor, ReceiptView};
+use App\Livewire\Sales\CorrectionEditor;
+use App\Livewire\Sales\InvoiceEditor;
+use App\Livewire\Sales\ReceiptEditor;
+use App\Livewire\Sales\ReceiptView;
 use Livewire\Livewire;
 
 // Every Livewire method that changes state must abort with 403 for a user who
@@ -20,7 +31,8 @@ it('aborts all invoice editor state changes for invoices.view-only users', funct
     $draft = inTenantContext($company, function (): Invoice {
         [$party, $item, $sales] = masters();
         $rate = verifiedRate();
-        return app(\App\Domain\Sales\Actions\SaveInvoiceDraft::class)->handle(
+
+        return app(SaveInvoiceDraft::class)->handle(
             null, draftPayload($party->id), [linePayload($item->id, $sales->id, $rate->id)]);
     });
     $component = inTenantContext($company, fn () => Livewire::test(InvoiceEditor::class, ['invoice' => $draft->id]));
@@ -68,6 +80,7 @@ it('aborts receipt view settlement actions for receipts.view-only users', functi
         [$party] = masters();
         $invoice = postInvoiceFor($party, '500.00');
         $receipt = app(PostReceipt::class)->handle(receiptDraft($party, '200.00')->id, [$invoice->id => '200.00']);
+
         return [$receipt, Receipt::find($receipt->id)->allocations()->count()];
     });
     $this->actingAs($viewer);
@@ -77,9 +90,9 @@ it('aborts receipt view settlement actions for receipts.view-only users', functi
         assert403(fn () => $component->instance()->undoAllocations());
         assert403(fn () => $component->instance()->reverse());
         // Settlement history untouched.
-        expect(\App\Domain\Sales\Models\ReceiptAllocation::count())->toBe($allocationCount)
-            ->and(\App\Domain\Sales\Models\ReceiptAllocationReversal::count())->toBe(0)
-            ->and(\App\Domain\Sales\Models\ReceiptReversal::count())->toBe(0);
+        expect(ReceiptAllocation::count())->toBe($allocationCount)
+            ->and(ReceiptAllocationReversal::count())->toBe(0)
+            ->and(ReceiptReversal::count())->toBe(0);
     });
 });
 
@@ -94,6 +107,7 @@ it('aborts correction editor save and post for corrections.view-only users', fun
         [$party] = masters();
         $invoice = postInvoiceFor($party, '500.00');
         $component = Livewire::test(CorrectionEditor::class, ['invoice' => $invoice->id]);
+
         return [$invoice, $component];
     });
 
@@ -101,7 +115,7 @@ it('aborts correction editor save and post for corrections.view-only users', fun
     inTenantContext($company, function () use ($component, $draft): void {
         assert403(fn () => $component->instance()->save());
         assert403(fn () => $component->instance()->post());
-        expect(\App\Domain\Sales\Models\SalesCorrection::count())->toBe(0)
+        expect(SalesCorrection::count())->toBe(0)
             ->and($draft->fresh()->status)->toBe('posted');
     });
 });
@@ -117,6 +131,7 @@ it('aborts the reversal editor post for users without reversals.post', function 
         [$party] = masters();
         $invoice = postInvoiceFor($party, '500.00');
         $component = Livewire::test(ReversalEditor::class, ['voucher' => $invoice->voucher_id]);
+
         return [$invoice->voucher_id, $component];
     });
 
@@ -124,7 +139,7 @@ it('aborts the reversal editor post for users without reversals.post', function 
     inTenantContext($company, function () use ($component, $voucherId): void {
         assert403(fn () => $component->instance()->post());
         expect(Voucher::where('type', 'reversal')->count())->toBe(0)
-            ->and(\App\Domain\Accounting\Models\VoucherReversal::count())->toBe(0)
+            ->and(VoucherReversal::count())->toBe(0)
             ->and(Voucher::whereKey($voucherId)->sole()->status)->toBe('posted');
     });
 });

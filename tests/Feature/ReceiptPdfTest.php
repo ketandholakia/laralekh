@@ -1,7 +1,12 @@
 <?php
-use App\Domain\Sales\Actions\{AllocateReceipt, PostReceipt};
-use App\Domain\Sales\Models\{Invoice, Receipt};
-use Illuminate\Support\Facades\DB;
+
+use App\Domain\Sales\Actions\AllocateReceipt;
+use App\Domain\Sales\Actions\PostReceipt;
+use App\Domain\Sales\Models\Invoice;
+use App\Domain\Sales\Models\Receipt;
+use App\Domain\Sales\Services\CustomerStatement;
+use App\Domain\Sales\Services\ReceiptDocuments;
+use App\Domain\Shared\Tenancy\TenantContext;
 
 it('renders a posted receipt PDF with number, customer, reference, words and original allocations', function () {
     [$user, $company] = receiptSession();
@@ -14,7 +19,7 @@ it('renders a posted receipt PDF with number, customer, reference, words and ori
             receiptDraft($party, '700.00', ['payment_reference' => 'UTR-9001'])->id,
             [$one->id => '500.00', $two->id => '200.00'],
         );
-        $bytes = app(\App\Domain\Sales\Services\ReceiptDocuments::class)->receipt($receipt->fresh())->output();
+        $bytes = app(ReceiptDocuments::class)->receipt($receipt->fresh())->output();
         expect(pdfHas($bytes, 'MONEY RECEIPT'))->toBeTrue()
             ->and(pdfHas($bytes, 'SR/1'))->toBeTrue()
             ->and(pdfHas($bytes, 'UTR-9001'))->toBeTrue()
@@ -36,7 +41,7 @@ it('marks draft receipt previews clearly and allocates nothing', function () {
     inTenantContext($company, function (): void {
         [$party] = masters();
         $draft = receiptDraft($party, '250.00');
-        $bytes = app(\App\Domain\Sales\Services\ReceiptDocuments::class)->receipt($draft->fresh())->output();
+        $bytes = app(ReceiptDocuments::class)->receipt($draft->fresh())->output();
         expect(pdfHas($bytes, 'DRAFT PREVIEW'))->toBeTrue()
             ->and(pdfHas($bytes, 'NO RECEIPT NUMBER ALLOCATED'))->toBeTrue()
             ->and($draft->fresh()->number)->toBeNull();
@@ -50,9 +55,9 @@ it('distinguishes later allocation history from the original document', function
         [$party] = masters();
         $invoice = postInvoiceFor($party, '1000.00', '2026-11-01');
         $receipt = app(PostReceipt::class)->handle(receiptDraft($party, '300.00')->id);
-        $before = app(\App\Domain\Sales\Services\ReceiptDocuments::class)->receipt($receipt->fresh())->output();
+        $before = app(ReceiptDocuments::class)->receipt($receipt->fresh())->output();
         app(AllocateReceipt::class)->handle($receipt->id, [$invoice->id => '300.00']);
-        $after = app(\App\Domain\Sales\Services\ReceiptDocuments::class)->receipt($receipt->fresh())->output();
+        $after = app(ReceiptDocuments::class)->receipt($receipt->fresh())->output();
         // The original document never shows the later allocation...
         expect(pdfHas($before, $invoice->series.'/'.$invoice->number))->toBeFalse()
             ->and(pdfHas($after, $invoice->series.'/'.$invoice->number))->toBeFalse()
@@ -74,13 +79,13 @@ it('renders a reconciled multi-page statement with opening and closing balances'
             postInvoiceFor($party, '100.00', $today);
         }
         app(PostReceipt::class)->handle(receiptDraft($party, '2500.00', ['date' => $today])->id);
-        $statement = app(\App\Domain\Sales\Services\CustomerStatement::class)
+        $statement = app(CustomerStatement::class)
             ->build($party->id, '2026-04-01', $today);
         expect((string) $statement['closing'])->toBe((string) $statement['ledger_as_of'])
             // 40 invoices x 100 debit - 2500 credit = 1500 receivable
             ->and((string) $statement['closing'])->toBe('1500.00')
             ->and(count($statement['rows']))->toBe(41);
-        $bytes = app(\App\Domain\Sales\Services\ReceiptDocuments::class)->statement($statement)->output();
+        $bytes = app(ReceiptDocuments::class)->statement($statement)->output();
     });
     expect(pdfHas($bytes, 'STATEMENT OF ACCOUNT'))->toBeTrue()
         ->and(pdfHas($bytes, 'Opening balance'))->toBeTrue()
@@ -102,7 +107,7 @@ it('withholds the receipts.view verdict from non-granted members', function () {
     // The PDF route's access check keys off this verdict; without the
     // permission the member cannot reach receipt or statement documents.
     // Permission checks run under the entered company team (company-scoped roles).
-    $verdicts = app(\App\Domain\Shared\Tenancy\TenantContext::class)
+    $verdicts = app(TenantContext::class)
         ->run($company->id, fn (): array => [
             auth()->user()->can('receipts.view'), auth()->user()->can('receipts.create'),
         ]);

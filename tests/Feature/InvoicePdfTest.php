@@ -1,22 +1,22 @@
 <?php
-use App\Domain\Accounting\Models\Ledger;
+
 use App\Domain\Masters\Models\Company;
-use App\Domain\Sales\Actions\{PostInvoice, SaveInvoiceDraft};
+use App\Domain\Sales\Actions\PostInvoice;
+use App\Domain\Sales\Actions\SaveInvoiceDraft;
 use App\Domain\Sales\Models\Invoice;
-use App\Domain\Shared\Support\AmountInWords;
 use App\Domain\Shared\Tenancy\TenantContext;
-use Illuminate\Support\Facades\DB;
 
 function pdfCompany(array $overrides = []): array
 {
     [$user, $company] = webSession();
     app(TenantContext::class)->run($company->id, fn () => $company->update($overrides));
+
     return [$user, $company];
 }
 
 function postStandardInvoice(Company $company, int $lineCount = 1, array $invoiceOverrides = []): Invoice
 {
-    return inTenantContext($company, function () use ($company, $lineCount, $invoiceOverrides): Invoice {
+    return inTenantContext($company, function () use ($lineCount, $invoiceOverrides): Invoice {
         [$party, $item, $sales] = masters();
         $rate = verifiedRate();
         $lines = [];
@@ -27,6 +27,7 @@ function postStandardInvoice(Company $company, int $lineCount = 1, array $invoic
             ]);
         }
         $draft = app(SaveInvoiceDraft::class)->handle(null, $invoiceOverrides + draftPayload($party->id), $lines);
+
         return app(PostInvoice::class)->handle($draft->id)->fresh(['items', 'party', 'voucher']);
     });
 }
@@ -64,6 +65,7 @@ it('marks draft previews clearly and allocates nothing', function () {
     $draft = inTenantContext($company, function (): Invoice {
         [$party, $item, $sales] = masters();
         $rate = verifiedRate();
+
         return app(SaveInvoiceDraft::class)->handle(null, draftPayload($party->id), [linePayload($item->id, $sales->id, $rate->id)]);
     });
     $response = $this->get(route('invoices.pdf', $draft->id));
