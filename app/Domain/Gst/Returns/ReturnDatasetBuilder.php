@@ -26,6 +26,8 @@ final class ReturnDatasetBuilder
         $taxHeads = ['cgst','sgst','utgst','igst','cess'];
         $documents = Invoice::query()->with(['items.item', 'party', 'voucher'])->where('status', 'posted')
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])->orderBy('date')->orderBy('id')->get();
+        $cancelledInvoices=Invoice::query()->where('status','cancelled')->whereNotNull('number')
+            ->whereBetween('date',[$start->toDateString(),$end->toDateString()])->orderBy('date')->orderBy('id')->get();
         $corrections = SalesCorrection::query()->with(['lines.originalItem.item', 'invoice.party'])->where('status', 'posted')
             ->where(function($query)use($start,$end){$query->whereBetween('reporting_date',[$start->toDateString(),$end->toDateString()])
                 ->orWhere(fn($fallback)=>$fallback->whereNull('reporting_date')->whereBetween('date',[$start->toDateString(),$end->toDateString()]));})
@@ -135,8 +137,7 @@ final class ReturnDatasetBuilder
         foreach ($out['sez'] as $r) $this->validatePos($r, $errors);
         foreach ($out['b2cs'] as $r) if(!State::query()->where('code',$r['place_of_supply'])->where('is_active',true)->exists())$errors[]=$this->issue('invalid_place_of_supply','B2CS place of supply must be an active state/UT code.',0);
         $out['hsn'] = ['b2b'=>array_values($hsn['b2b']),'b2c'=>array_values($hsn['b2c'])];
-        $out['documents_issued'] = $this->documentsIssued($documents, $corrections);
-        if($out['documents_issued'])$warnings[]=['code'=>'document_cancellation_register_unavailable','message'=>'The source tables do not track cancelled documents; cancellation count is reported as zero and must be reviewed.','severity'=>'warning'];
+        $out['documents_issued'] = $this->documentsIssued($documents, $corrections, $cancelledInvoices);
         $out['validation'] = ['errors'=>$errors,'warnings'=>$warnings,'valid'=>count($errors)===0];
         $out['meta'] = ['company_id'=>$company->id,'period'=>$period,'turnover_rupees'=>$annualTurnoverRupees,
             'b2cl_threshold_rupees'=>$this->threshold($period),'built_at'=>now()->toIso8601String()];
@@ -182,7 +183,17 @@ final class ReturnDatasetBuilder
     { foreach(config('gst_returns.rules.b2cl_threshold.versions',[]) as $rule) if($period>=$rule['from']&&($rule['to']===null||$period<=$rule['to'])) {if(!$rule['verified'])throw new DomainException('B2CL threshold is unverified.');return $rule['value'];} throw new DomainException('B2CL threshold is not configured for period '.$period.'.'); }
     private function validatePos(array $record,array &$errors):void
     { if(!preg_match('/^\d{2}$/',(string)$record['place_of_supply']) || !State::query()->where('code',$record['place_of_supply'])->where('is_active',true)->exists())$errors[]=$this->issue('invalid_place_of_supply','Place of supply must be an active state/UT code.',$record['id']); }
-    private function documentsIssued($invoices,$notes):array
-    { $groups=[]; foreach($invoices as $d)$groups['Invoices for outward supply'][]=$d->number;foreach($notes as $d)$groups[$d->kind==='credit'?'Credit Note':'Debit Note'][]=$d->number; $out=[];foreach($groups as $nature=>$nums){sort($nums);$out[]=['nature_of_document'=>$nature,'from'=>(string)min($nums),'to'=>(string)max($nums),'total'=>count($nums),'cancelled'=>0];}return $out; }
+    private function documentsIssued($invoices,$notes,$cancelledInvoices):array
+    {
+        $groups=['Invoices for outward supply'=>['issued'=>[],'cancelled'=>[]]];
+        foreach($invoices as $document)$groups['Invoices for outward supply']['issued'][]=(int)$document->number;
+        foreach($cancelledInvoices as $document)$groups['Invoices for outward supply']['cancelled'][]=(int)$document->number;
+        foreach($notes as $document){$nature=$document->kind==='credit'?'Credit Note':'Debit Note';$groups[$nature]??=['issued'=>[],'cancelled'=>[]];$groups[$nature]['issued'][]=(int)$document->number;}
+        $rows=[];
+        foreach($groups as $nature=>$numbers){$issued=array_merge($numbers['issued'],$numbers['cancelled']);if($issued===[])continue;sort($issued,SORT_NUMERIC);
+            $rows[]=['nature_of_document'=>$nature,'from'=>(string)min($issued),'to'=>(string)max($issued),
+                'total'=>count($issued),'cancelled'=>count($numbers['cancelled'])];}
+        return $rows;
+    }
     private function issue(string $code,string $message,int $id):array{return ['code'=>$code,'message'=>$message,'document_id'=>$id,'severity'=>'error'];}
 }

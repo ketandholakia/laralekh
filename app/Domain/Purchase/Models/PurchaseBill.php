@@ -5,7 +5,7 @@ use App\Domain\Shared\Models\TenantModel;
 use App\Domain\Shared\Casts\MoneyCast;
 class PurchaseBill extends TenantModel
 {
-    protected $casts = ['date' => 'immutable_date', 'supplier_bill_date' => 'immutable_date', 'reverse_charge' => 'boolean',
+    protected $casts = ['date' => 'immutable_date', 'supplier_bill_date' => 'immutable_date', 'cancelled_at' => 'immutable_datetime', 'reverse_charge' => 'boolean',
         'supplier_snapshot' => 'array', 'taxable_amount' => MoneyCast::class, 'cgst' => MoneyCast::class,
         'sgst' => MoneyCast::class, 'utgst' => MoneyCast::class, 'igst' => MoneyCast::class,
         'cess' => MoneyCast::class, 'total' => MoneyCast::class];

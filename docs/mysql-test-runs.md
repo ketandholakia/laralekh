@@ -26,3 +26,5 @@ pwsh -File .\tools\test-pest-both-databases.ps1 laravix_test_pest_part0_20261106
 ```
 
 Both runs reported `205 deprecated, 127 passed (889 assertions)`. The initial MySQL run exposed a snapshot-hash portability issue caused by MySQL JSON key normalization. Hashing now uses recursive canonical JSON key ordering; the rerun passed on both databases. Existing PHP/Pest deprecation warnings remain, with no failed tests.
+
+After document-cancellation support, the suite was rerun on 2026-11-06 using `laravix_test_cancel_20261106`. Both backends reported `210 deprecated, 127 passed (924 assertions)`. One initial regression (document-issued groups with no cancelled key) was corrected before the passing run. The pre-existing `DomainException` import warning and PHPUnit/Pest deprecation notices remain.

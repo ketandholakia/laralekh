@@ -130,7 +130,7 @@ return new class extends Migration {
             $t->date('date');
             $t->string('series', 10);
             $t->unsignedBigInteger('number');
-            $t->enum('status', ['draft', 'posted'])->default('draft');
+            $t->string('status', 16)->default('draft');
             $t->timestamp('posted_at')->nullable();
             $this->reference($t, 'reverses_voucher_id', 'vouchers', true, false, 'vouchers_reverses_voucher_fk');
             $t->text('narration')->nullable();
@@ -155,7 +155,7 @@ return new class extends Migration {
             $t->date('due_date')->nullable();
             $t->string('series', 10)->default('SI');
             $t->unsignedBigInteger('number')->nullable();
-            $t->enum('status', ['draft', 'posted'])->default('draft');
+            $t->string('status', 16)->default('draft');
             $t->enum('supply_type', ['domestic', 'export', 'sez'])->default('domestic');
             $t->char('place_of_supply', 2);
             $t->enum('zero_rated_mode', ['none', 'lut', 'with_payment'])->default('none');

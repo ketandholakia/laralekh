@@ -29,7 +29,7 @@ return new class extends Migration {
             $t->foreign(['company_id', 'financial_year_id', 'voucher_id'])->references(['company_id', 'financial_year_id', 'id'])->on('vouchers')->restrictOnDelete();
             $t->string('supplier_bill_number', 80); $t->date('supplier_bill_date'); $t->date('date');
             $t->char('place_of_supply', 2); $t->enum('supply_type', ['domestic', 'sez'])->default('domestic');
-            $t->boolean('reverse_charge')->default(false); $t->enum('status', ['draft', 'posted'])->default('draft');
+            $t->boolean('reverse_charge')->default(false); $t->string('status', 16)->default('draft');
             $t->string('series', 10)->default('PB'); $t->unsignedBigInteger('number')->nullable();
             $t->json('supplier_snapshot')->nullable();
             foreach (['taxable_amount', 'cgst', 'sgst', 'utgst', 'igst', 'cess', 'total'] as $field) $this->money($t, $field);
