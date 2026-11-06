@@ -202,6 +202,8 @@ return new class extends Migration
             $t->nullableMorphs('subject');
             $t->nullableMorphs('causer');
             $t->json('properties')->nullable();
+            // activitylog v5 records per-attribute changes here.
+            $t->json('attribute_changes')->nullable();
             $t->string('event')->nullable();
             $t->uuid('batch_uuid')->nullable();
         });
