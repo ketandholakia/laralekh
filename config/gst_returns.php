@@ -13,7 +13,7 @@ return [
         ],
         'hsn_digits' => [
             'verified' => true,
-            'bands' => [['max_turnover_rupees' => 500000000, 'digits' => 4], ['max_turnover_rupees' => null, 'digits' => 6]],
+            'bands' => [['max_turnover_rupees' => 50000000, 'digits' => 4], ['max_turnover_rupees' => null, 'digits' => 6]],
             'source' => 'GST Portal, FAQs > Form GSTR-1 Table-12, accessed 2026-11-06; GSTR-1 Returns Offline Tool ReleaseNotes.txt releases 3.1.6 and 3.2.2.',
             'note' => 'From May 2025, HSN is selected from the GST Portal database; this application cannot establish database membership from the source ledgers.',
         ],
@@ -21,7 +21,7 @@ return [
         'gstin_checksum' => ['verified' => false, 'source' => null],
         'place_of_supply' => ['verified' => false, 'source' => null],
         'blocked_itc_rules' => ['verified' => false, 'source' => null],
-        'document_issued_categories' => ['verified' => false, 'source' => null],
+        'document_issued_categories' => ['verified' => false, 'verified_values' => ['Invoices for outward supply'], 'source' => 'GST Portal, Creation of Outward Supplies Return in GSTR-1, Table 13 manual; template row in official Offline Tool 3.2.4 docs.csv. Other category labels/series handling require official confirmation.'],
     ],
     'csv_templates' => [
         'source_url' => 'https://www.gst.gov.in/download/returns',
