@@ -44,6 +44,6 @@ final class CompanySelectionController extends Controller
             isset($data['financial_year_id']) ? (int) $data['financial_year_id'] : null,
         );
 
-        return redirect()->intended('/invoices');
+        return redirect()->intended('/');
     }
 }

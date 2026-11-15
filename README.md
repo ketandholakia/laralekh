@@ -11,6 +11,10 @@ Current stack targets PHP 8.4+, Laravel 13, MySQL 8, Livewire 3 (including Alpin
 Install PHP 8.3 with BCMath, PDO MySQL, mbstring, XML, curl, zip and fileinfo.
 Redis connections use the phpredis extension (no additional Composer client).
 
+Typeface: the UI uses [Inter](https://github.com/rsms/inter), self-hosted in
+`public/fonts/` and distributed under the
+[SIL Open Font License 1.1](https://scripts.sil.org/OFL) (`public/fonts/OFL.txt`).
+
 ```sh
 composer install
 cp .env.example .env
