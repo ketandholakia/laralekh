@@ -45,7 +45,7 @@ if (! $migrator->repositoryExists()) {
 $migrator->run(database_path('migrations'));
 
 DB::table('states')->insertOrIgnore(['code' => '27', 'name' => 'Maharashtra']);
-$company = Company::create(['name' => 'Laravix Sample Traders', 'gstin' => '27AAAPL1234C1ZV',
+$company = Company::create(['name' => 'LaraLekh Sample Traders', 'gstin' => '27AAAPL1234C1ZV',
     'state_code' => '27', 'address' => "14, Andheri East\nMumbai 400069", 'gst_regime' => 'regular']);
 
 app(TenantContext::class)->run($company->id, function () use ($company, $out): void {

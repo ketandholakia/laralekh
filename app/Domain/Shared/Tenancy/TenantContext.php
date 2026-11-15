@@ -17,6 +17,14 @@ final class TenantContext
         return $this->companyId ?? throw new LogicException('A company context is required.');
     }
 
+    // True while a request is inside run(); rendering shared layout partials
+    // consults this instead of the session company, because company-scoped
+    // models fail closed whenever a query runs without a tenant context.
+    public function hasContext(): bool
+    {
+        return $this->companyId !== null;
+    }
+
     // Call only after authorization; never derive this directly from untrusted request input.
     public function run(int $companyId, Closure $callback): mixed
     {

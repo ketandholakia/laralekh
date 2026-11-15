@@ -142,3 +142,61 @@ it('fails closed when the session year belongs to another company', function () 
     expect(fn () => app(EnsureCompanyContext::class)->handle(contextRequest($user), fn () => response('inside')))
         ->toThrow(ModelNotFoundException::class);
 });
+
+// Regression: the layout serves both Livewire full-page components ($slot) and
+// plain @extends views; rendering the guest login page used to fail with an
+// undefined-variable 500 and was never covered because tests only POSTed.
+it('renders the guest login page with LaraLekh branding', function () {
+    $response = $this->get(route('login'));
+
+    $response->assertOk();
+    $response->assertSee('<title>LaraLekh</title>', false);
+    $response->assertSee('>LaraLekh</a>', false);
+    $response->assertSee('name="email"', false);
+    $response->assertSee('name="password"', false);
+    $response->assertSee('Log in', false);
+});
+
+// Regression: before a company is selected no tenant context exists, so the
+// company-scoped Role model cannot be queried; the layout must render the
+// navigation without triggering the permission-backed GST returns link.
+it('renders company selection before a company is selected without tenant-scoped navigation', function () {
+    $user = webUser('selector@example.test');
+    $company = companyFixture('Selector Co');
+    addMembership($user, $company);
+
+    $response = $this->actingAs($user)->get(route('company.select'));
+
+    $response->assertOk();
+    $response->assertSee('<title>LaraLekh</title>', false);
+    $response->assertSee('name="company_id"', false);
+    $response->assertSee('Selector Co', false);
+    $response->assertDontSee('GST returns', false);
+});
+
+// Regression: once a company is selected, navigation pages inside the tenant
+// scope must show the GST returns link for authorized users, while the
+// selection screen itself stays tenant-safe (no context is established there).
+it('shows the GST returns navigation after company selection for authorized users', function () {
+    [$user, $company] = webSession('returns-clerk', ['invoices.view', 'returns.view']);
+    $this->actingAs($user);
+
+    $this->get(route('company.select'))
+        ->assertOk()
+        ->assertDontSee('GST returns', false);
+
+    $this->get(route('invoices.index'))
+        ->assertOk()
+        ->assertSee('GST returns', false);
+});
+
+// The link is permission-gated: the tenant-safe rendering must not widen what
+// an unauthorized user sees on pages inside the tenant scope.
+it('hides the GST returns navigation for users without the returns.view permission', function () {
+    [$user, $company] = webSession();
+    $this->actingAs($user);
+
+    $this->get(route('invoices.index'))
+        ->assertOk()
+        ->assertDontSee('GST returns', false);
+});

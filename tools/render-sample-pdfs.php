@@ -82,7 +82,7 @@ DB::table('states')->insertOrIgnore(['code' => '27', 'name' => 'Maharashtra']);
 DB::table('states')->insertOrIgnore(['code' => '24', 'name' => 'Gujarat']);
 
 $ctx = app(TenantContext::class);
-$company = Company::create(['name' => 'Laravix Sample Traders', 'gstin' => '27AAAPL1234C1ZV',
+$company = Company::create(['name' => 'LaraLekh Sample Traders', 'gstin' => '27AAAPL1234C1ZV',
     'state_code' => '27', 'address' => "14, Andheri East\nMumbai 400069\nMaharashtra", 'gst_regime' => 'regular']);
 
 $ctx->run($company->id, function () use ($company, $out): void {

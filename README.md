@@ -1,10 +1,10 @@
-# Laravix
+# LaraLekh
 
-Indian GST accounting backend with Livewire 3 sales invoices, correction
-notes, internal reversals and customer receipts. Step 4 targets
-PHP 8.3, Laravel 11, MySQL 8, Livewire 3 (including Alpine), Tailwind 3, Redis,
-Pest, Spatie permission and activitylog, DomPDF via its Laravel integration,
-chillerlan/php-qrcode for the invoice payment QR, and Sanctum.
+**Smart Accounts. Simplified Business.**
+
+LaraLekh is Indian GST accounting and business management software built with Laravel 13. It provides a Livewire 3-based backend and UI for sales invoices, correction notes, internal reversals, and customer receipts.
+
+Current stack targets PHP 8.4+, Laravel 13, MySQL 8, Livewire 3 (including Alpine), Tailwind 3, Redis, Pest, Spatie permission and activitylog, DomPDF via its Laravel integration, chillerlan/php-qrcode for the invoice payment QR, and Sanctum.
 
 ## Setup
 

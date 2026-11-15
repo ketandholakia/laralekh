@@ -1,1 +1,1 @@
-{"name":"laravix","private":true,"scripts":{"build":"tailwindcss -i resources/css/app.css -o public/css/app.css --minify"},"devDependencies":{"tailwindcss":"^3.4.17"}}
+{"name":"laralekh","private":true,"scripts":{"build":"tailwindcss -i resources/css/app.css -o public/css/app.css --minify"},"devDependencies":{"tailwindcss":"^3.4.17"}}
