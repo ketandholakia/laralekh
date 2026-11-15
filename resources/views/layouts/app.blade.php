@@ -28,70 +28,95 @@
     @livewireStyles
     @stack('styles')
 </head>
-<body x-data="{ nav: false, rail: {{ $rail ? 'true' : 'false' }} }" class="min-h-screen bg-slate-50 text-slate-900 antialiased">
+<body x-data="{
+    nav: false,
+    rail: {{ $rail ? 'true' : 'false' }},
+    tip: null,
+    toggleRail() {
+        this.rail = !this.rail;
+        this.tip = null;
+        document.cookie = 'laralekh_rail=' + (this.rail ? '1' : '0') + '; path=/; max-age=31536000; samesite=strict';
+    },
+    showTip(e) {
+        if (!this.rail) { this.tip = null; return; }
+        const el = e.target.closest('[data-tip]');
+        if (!el) { this.tip = null; return; }
+        const r = el.getBoundingClientRect();
+        this.tip = { label: el.getAttribute('data-tip'), top: Math.round(r.top + r.height / 2) };
+    },
+    hideTip() { this.tip = null; },
+}" class="min-h-screen bg-slate-50 text-slate-900 antialiased">
 <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-brand-700 focus:px-4 focus:py-2 focus:text-sm focus:text-white">Skip to content</a>
 
 {{-- Mobile drawer backdrop --}}
 <div class="fixed inset-0 z-40 bg-navy/50 backdrop-blur-sm lg:hidden" x-show="nav" x-cloak x-transition.opacity @click="nav = false" aria-hidden="true"></div>
 
-{{-- Sidebar --}}
-<aside class="fixed inset-y-0 left-0 z-50 flex flex-col bg-navy text-white transition-transform duration-200 lg:transition-all lg:duration-200"
+{{-- Sidebar. Labels and headings are removed from layout when collapsed
+     (lg:hidden) — never overflow-clipped; overflow-hidden only smooths the
+     width transition. The rail tooltip lives at body level (fixed) so the
+     sidebar's own overflow never cuts it. --}}
+<aside class="fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden bg-navy text-white transition-transform duration-200 lg:transition-all lg:duration-200"
        :class="(nav ? 'translate-x-0' : '-translate-x-full lg:translate-x-0') + ' ' + (rail ? 'lg:w-[68px]' : 'lg:w-60')"
        aria-label="Primary">
-    <div class="flex h-16 shrink-0 items-center justify-between gap-2 px-3">
-        <a href="{{ route('dashboard') }}" class="text-3xl lg:text-[1.7rem]" :class="rail ? 'lg:px-1.5' : ''"
-           aria-label="LaraLekh — Smart Accounts. Simplified Business.">
-            <span :class="rail ? 'lg:hidden' : ''"><x-brand-logo dark/></span>
-            <span class="hidden" :class="rail ? 'lg:block' : 'lg:hidden'"><x-brand-logo dark mark-only/></span>
+    <div class="flex h-16 shrink-0 items-center px-3" :class="rail ? 'lg:justify-center lg:px-0' : 'justify-between'">
+        <a href="{{ route('dashboard') }}" class="text-3xl lg:text-[1.7rem]" aria-label="LaraLekh — Smart Accounts. Simplified Business."
+           :class="rail ? 'lg:hidden' : ''">
+            <x-brand-logo dark/>
         </a>
-        <button type="button" class="hidden rounded-md p-1.5 text-slate-400 hover:bg-white/10 hover:text-white lg:block"
-                @click="rail = !rail; document.cookie = 'laralekh_rail=' + (rail ? '1' : '0') + '; path=/; max-age=31536000; samesite=strict'"
-                :aria-expanded="rail ? 'true' : 'false'" aria-label="Toggle sidebar width">
+        <button type="button" class="hidden rounded-md p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
+                :class="rail ? 'lg:hidden' : 'lg:block'"
+                @click="toggleRail()" :aria-expanded="(! rail) ? 'true' : 'false'" aria-label="Collapse sidebar">
             <x-icon name="menu" class="h-5 w-5"/>
+        </button>
+        <button type="button" class="hidden rounded-md p-2 text-slate-300 hover:bg-white/10 hover:text-white"
+                :class="rail ? 'lg:block' : 'lg:hidden'"
+                @click="toggleRail()" aria-label="Expand sidebar" title="Expand sidebar">
+            <span class="block text-[1.7rem] leading-none"><x-brand-logo dark mark-only/></span>
         </button>
         <button type="button" class="rounded-md p-1.5 text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" @click="nav = false" aria-label="Close navigation">
             <x-icon name="close" class="h-5 w-5"/>
         </button>
     </div>
 
-    <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-4" aria-label="Main">
+    <nav class="flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-3 py-4" aria-label="Main"
+         @mouseover="showTip($event)" @focusin="showTip($event)" @mouseout="hideTip($event)" @focusout="hideTip($event)">
         <div class="space-y-1">
-            <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Overview</p>
-            <x-nav-item :href="route('dashboard')" label="Dashboard" icon="dashboard" :rail="$rail" :active="request()->routeIs('dashboard')"/>
+            <p class="whitespace-nowrap px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Overview</p>
+            <x-nav-item :href="route('dashboard')" label="Dashboard" icon="dashboard" :active="request()->routeIs('dashboard')"/>
         </div>
 
         @can('invoices.view')
         <div class="space-y-1">
-            <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Sales</p>
-            <x-nav-item :href="route('invoices.index')" label="Invoices" icon="invoice" :rail="$rail" :active="request()->routeIs('invoices.*')"/>
+            <p class="whitespace-nowrap px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Sales</p>
+            <x-nav-item :href="route('invoices.index')" label="Invoices" icon="invoice" :active="request()->routeIs('invoices.*')"/>
         </div>
         @endcan
 
         @can('receipts.view')
         <div class="space-y-1">
-            <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Money in</p>
-            <x-nav-item :href="route('receipts.index')" label="Receipts" icon="receipt" :rail="$rail" :active="request()->routeIs('receipts.*')"/>
-            <x-nav-item :href="route('customers.index')" label="Customers" icon="users" :rail="$rail" :active="request()->routeIs('customers.*')"/>
+            <p class="whitespace-nowrap px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Money in</p>
+            <x-nav-item :href="route('receipts.index')" label="Receipts" icon="receipt" :active="request()->routeIs('receipts.*')"/>
+            <x-nav-item :href="route('customers.index')" label="Customers" icon="users" :active="request()->routeIs('customers.*')"/>
         </div>
         @endcan
 
         @can('purchases.view')
         <div class="space-y-1">
-            <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Purchases</p>
-            <x-nav-item :href="route('purchases.index')" label="Purchase bills" icon="cart" :rail="$rail" :active="request()->routeIs('purchases.*')"/>
+            <p class="whitespace-nowrap px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Purchases</p>
+            <x-nav-item :href="route('purchases.index')" label="Purchase bills" icon="cart" :active="request()->routeIs('purchases.*')"/>
         </div>
         @endcan
 
         @can('returns.view')
         <div class="space-y-1">
-            <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Compliance</p>
-            <x-nav-item :href="route('gst.returns.index')" label="GST returns" icon="returns" :rail="$rail" :active="request()->routeIs('gst.returns.*')"/>
+            <p class="whitespace-nowrap px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Compliance</p>
+            <x-nav-item :href="route('gst.returns.index')" label="GST returns" icon="returns" :active="request()->routeIs('gst.returns.*')"/>
         </div>
         @endcan
     </nav>
 
     <div class="shrink-0 border-t border-white/10 p-3">
-        <x-nav-item :href="route('company.select')" label="Switch company" icon="swap" :rail="$rail"/>
+        <x-nav-item :href="route('company.select')" label="Switch company" icon="swap"/>
     </div>
 </aside>
 
@@ -151,6 +176,14 @@
         LaraLekh · Smart Accounts. Simplified Business.
     </footer>
 </div>
+
+{{-- Rail tooltip: rendered at body level (fixed) so sidebar overflow never
+     clips it; positioned beside the collapsed rail, vertically centered on
+     the hovered or keyboard-focused item. Desktop rail only. --}}
+<div x-show="tip !== null" x-cloak role="tooltip"
+     class="pointer-events-none fixed left-[76px] z-[80] hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-navy px-2.5 py-1.5 text-xs font-medium text-white shadow-pop lg:block"
+     :style="tip ? 'top:' + tip.top + 'px' : ''"
+     x-text="tip ? tip.label : ''"></div>
 @livewireScripts
 @stack('scripts')
 </body>
