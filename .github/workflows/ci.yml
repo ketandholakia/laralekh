@@ -1,0 +1,122 @@
+# Continuous integration for LaraLekh.
+#
+# Every pull request targeting main and every push to main is validated with
+# the same isolated environment used locally: SQLite in-memory for the Pest
+# suite (phpunit.xml pins DB_CONNECTION=sqlite and DB_DATABASE=:memory:), so
+# CI never touches a development or production database. The tests/TestCase.php
+# laravix_test_ guard stays in force; no workflow step weakens it.
+#
+# No secrets are used in this workflow; no continue-on-error or fallback flags
+# are set, so failing tests fail the workflow.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege: the workflow only reads repository contents.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests (SQLite)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up PHP 8.4 with required extensions
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.4'
+          extensions: bcmath, ctype, curl, dom, fileinfo, gd, iconv, intl, mbstring, pdo, pdo_sqlite, sqlite3, tokenizer, xml
+          coverage: none
+
+      - name: Install PHP dependencies from lockfile
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      # The feature suite boots the HTTP kernel, whose cookie and session
+      # middleware require an application key. This creates a throwaway key on
+      # the ephemeral runner from the committed template; it holds no secrets.
+      - name: Prepare ephemeral application key
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+
+      - name: Boot configuration checks
+        run: |
+          php artisan config:clear --no-ansi
+          php artisan route:list --no-ansi > /dev/null
+
+      - name: Run Pest test suite
+        run: vendor/bin/pest
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install frontend dependencies from lockfile
+        run: npm ci
+
+      - name: Build production assets
+        run: npm run build
+
+      - name: Verify build output exists
+        run: test -f public/css/app.css
+
+  quality:
+    name: Quality and security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository (full history for diff checks)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Composer validation
+        run: composer validate --strict
+
+      - name: Dependency platform consistency
+        run: composer check-platform-reqs --lock
+
+      - name: PHP syntax checks
+        run: |
+          find app config database routes -type f -name '*.php' -print0 \
+            | xargs -0 -n 1 -P 4 php -l > /dev/null
+          echo "PHP syntax OK"
+
+      - name: Git whitespace check
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "null" ]; then
+            BASE="${{ github.event.before }}"
+          fi
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "No diff base for this trigger; skipping whitespace check."
+            exit 0
+          fi
+          git diff --check "$BASE" HEAD
