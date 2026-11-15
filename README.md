@@ -187,3 +187,40 @@ advance-tax receipt-voucher workflow, e-invoicing (IRP QR and reporting),
 GSTR-2B reconciliation, refund of excess customer credits, and a separate
 zero-value document workflow remain future work. Sanctum is installed
 for the later API/mobile step; this step's screens are session-only.
+
+## CI and contributions
+
+Continuous integration (`.github/workflows/ci.yml`) runs on every pull request
+targeting `main`, every push to `main`, and on manual dispatch, with read-only
+GitHub Actions permissions. It has three jobs, all on Ubuntu runners:
+
+- **Backend tests (SQLite)** — PHP 8.4 with the required extensions, Composer
+  install from the lockfile, an ephemeral application key generated on the
+  runner, configuration boot checks, and the full Pest suite on isolated
+  in-memory SQLite (`phpunit.xml` pins `DB_CONNECTION=sqlite` and
+  `DB_DATABASE=:memory:`; CI never connects to a real database).
+- **Frontend build** — Node.js 24, `npm ci`, and the production Tailwind build
+  (`npm run build`), verifying `public/css/app.css` is produced. Build output
+  stays out of the repository (gitignored).
+- **Quality and security** — `composer validate --strict`,
+  `composer check-platform-reqs --lock`, PHP syntax checks over
+  `app config database routes`, and a `git diff --check` whitespace check on
+  the incoming changes.
+
+Third-party actions are pinned to immutable commit SHAs.
+
+Local equivalents:
+
+```sh
+vendor/bin/pest      # full test suite (isolated SQLite in-memory by default)
+npm ci && npm run build   # frontend production build
+```
+
+### Pull requests and branch protection
+
+`main` is protected: changes land through pull requests (the repository owner
+may merge their own pull requests; no second approval is required), the three
+CI checks must pass, the branch must be up to date with `main`, force pushes
+and deletion are blocked, and conversations must be resolved before merging.
+Open pull requests with a summary, the tests you ran, and the database,
+security and screenshots sections of the pull-request template filled in.
