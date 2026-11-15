@@ -1,0 +1,156 @@
+# LaraLekh — Milestone Register
+
+Milestones group Works Register tasks (`WORK_REGISTER.md`) into verifiable
+completion units. A milestone is COMPLETED only when its exit criteria are
+demonstrably met — code presence alone is never evidence.
+
+| ID | Name | Included tasks | Status |
+|---|---|---|---|
+| MS-01 | Core accounting foundations (Steps 1–4) | historical (pre-register) | COMPLETED |
+| MS-02 | CI and branch protection | LL-P0-003 | COMPLETED |
+| MS-03 | UI modernization and brand | LL-P0-002 (incl. dashboard, collapsed-rail correction) | COMPLETED |
+| MS-04A | Accounting safety and essential reports | LL-P1-001…LL-P1-005 | PROPOSED — recommended next |
+| MS-04B | Additional accounting workflows | LL-P1-006…LL-P1-011 | PROPOSED (per-workflow approval) |
+| MS-05 | GST compliance completion | LL-P2-001…LL-P2-004 | PROPOSED |
+| MS-06 | UI completion and administration | LL-P3-001…LL-P3-008 | PROPOSED |
+| MS-07 | Integrations | LL-P4-001…LL-P4-004 | PROPOSED (BLOCKED items inside) |
+| MS-08 | Production readiness | LL-P5-001…LL-P5-006 | PROPOSED |
+
+Cross-cutting: **LL-P1-012** (MySQL migration/concurrency validation cadence)
+supports MS-04A, MS-04B and every future schema change; it is not a
+prerequisite for individual workflows.
+
+---
+
+## MS-01 — Core accounting foundations (Steps 1–4) — COMPLETED
+
+- **Objective:** working multi-company accounting core: auth, tenancy, sales
+  invoices, corrections, reversals, receipts/settlements, purchase bills, GST
+  return preparation.
+- **Entry criteria:** empty repository, agreed step plan (historical).
+- **Exit criteria:** every area listed in `DEVELOPMENT_PLAN.md` §5 implemented
+  with dedicated Pest coverage; immutability triggers in place; suite green.
+- **Required automated tests:** the 29 historical feature suites ( PostingService,
+  CorrectionPosting, ReceiptService, PurchaseBill, ReturnDataset/GSTR suites,
+  Tenancy, Permission, Seeders, PDF tests…).
+- **Required manual verification:** sample PDF visual review (`docs/validation.md`);
+  MySQL concurrency and migration up/down runs (`docs/mysql-test-runs.md`).
+- **Security checks:** tenancy test suite; database safety guard
+  (`tests/TestCase.php` `laravix_test_*`).
+- **Owner acceptance:** historical — continued step-by-step development on
+  `main`; no separately recorded owner sign-off exists for this milestone
+  (backfilled entry; see `CHANGELOG.md` qualification note).
+- **Evidence:** repository history to `304bd21`; `docs/validation.md`;
+  `docs/audit/laravel-audit.md`.
+
+## MS-02 — CI and branch protection — COMPLETED (PR #1)
+
+- **Objective:** automated validation and protected `main`.
+- **Included tasks:** LL-P0-003.
+- **Entry criteria:** test suite present.
+- **Exit criteria:** three required checks (Backend SQLite, Frontend build,
+  Quality & security) on every PR/push; strict up-to-date; admin-enforced;
+  force-push/deletion blocked; conversation resolution required.
+- **Owner acceptance:** owner instructed and approved publication (PR #1
+  merged 2026-11-15).
+
+## MS-03 — UI modernization and brand — COMPLETED (PR #2)
+
+- **Objective:** professional brand + design system + dashboard + registers,
+  with permission-faithful financial presentation.
+- **Included tasks:** LL-P0-002 (and its embedded audit fixes: receivables
+  mirror of `SettlementService`, permission-gated dashboard, Inter OFL).
+- **Entry criteria:** approved direction (dashboard at `/`, self-hosted Inter,
+  zero-dependency icon sprite).
+- **Exit criteria:** suite green (360/1018); build clean; collapsed/expanded
+  sidebar + tooltips verified; disclosures recorded in the PR.
+- **Owner acceptance:** PR #2 merged by the owner after independent audit
+  fixes (F1/F2/F3).
+
+## MS-04A — Accounting safety and essential reports — PROPOSED (recommended next)
+
+- **Objective:** establish confidence in the existing supplier-payment
+  accounting path and deliver essential financial management and reporting
+  screens.
+- **Included tasks:** LL-P1-001 (supplier-payment service tests), LL-P1-002
+  (supplier payments UI), LL-P1-003 (financial-year management screen),
+  LL-P1-004 (trial balance), LL-P1-005 (P&L and balance sheet).
+- **Entry criteria:** explicit owner approval of MS-04A; existing `PostPayment`
+  and related code inspected; accounting semantics and existing settlement
+  invariants documented before implementation.
+- **Exit criteria:** supplier-payment service tests cover posting,
+  permissions, tenancy and reversal behaviour; supplier-payment UI is tested
+  and permission-protected; financial-year management enforces closed-year
+  posting restrictions; trial balance reconciles; P&L and balance sheet
+  reconcile to posted ledger movements; full automated suite passes; required
+  MySQL validation passes (migration up/down/up, trigger verification,
+  posting/reversal tests on MySQL per `DEVELOPMENT_PLAN.md` §13).
+- **Required automated tests:** new service/UI tests per task; full suite.
+- **Required manual verification:** reports reviewed against a seeded
+  `laravix_test_*` dataset; screens reviewed at desktop + mobile widths.
+- **Security checks:** permission tests per new screen; tenancy tests.
+- **Owner acceptance:** owner reviews the milestone report against this exit
+  criteria list.
+- **Note:** approval of MS-04A does not authorize MS-04B.
+
+## MS-04B — Additional accounting workflows — PROPOSED
+
+- **Objective:** address additional accounting workflows only after their
+  product and accounting policies have been decided.
+- **Included tasks:** LL-P1-006 (purchase debit notes), LL-P1-007 (zero-value
+  invoice workflow), LL-P1-008 (refund of excess customer credits), LL-P1-009
+  (advance receipt voucher workflow), LL-P1-010 (inventory/COGS policy and
+  stock register), LL-P1-011 (sales debit-note correction and
+  reversal-of-reversal scope).
+- **Entry criteria:** separate explicit owner approval of the relevant
+  MS-04B work; the corresponding decisions approved before implementation of
+  the affected feature — DEC-014 (purchase debit notes), DEC-015 (zero-value
+  invoices), DEC-016 (credit refunds), DEC-013 (advance vouchers), DEC-012
+  (inventory/COGS policy), DEC-017 (debit-note correction scope).
+- **Exit criteria:** each approved workflow has a documented accounting
+  design; required service and UI tests pass; existing immutable-document and
+  settlement rules remain intact; required MySQL validation passes (per
+  `DEVELOPMENT_PLAN.md` §13, applied to each workflow's posting path).
+- **Required automated tests:** per approved workflow; full suite.
+- **Required manual verification:** per workflow, on a `laravix_test_*`
+  dataset.
+- **Security checks:** permission tests per screen/action; tenancy tests.
+- **Owner acceptance:** per workflow — approving one MS-04B workflow does not
+  authorize the others.
+
+## MS-05 — GST compliance completion — PROPOSED
+
+- **Included tasks:** LL-P2-001…LL-P2-004.
+- **Entry criteria:** MS-04B item LL-P1-009 (advance vouchers) approved;
+  official GSTR-1 schema/sample vendored (unblocks LL-P2-001); CA engaged for
+  LL-P2-003.
+- **Exit criteria:** JSON export validates against the official schema; 2B
+  import reconciles in the worksheet; every fail-closed item resolved or
+  documented as retained CA-review.
+- **Tests:** golden tests vs official samples; reconciliation tests.
+- **Owner acceptance:** milestone report reviewed with CA outputs.
+
+## MS-06 — UI completion and administration — PROPOSED
+
+- **Included tasks:** LL-P3-001…LL-P3-008.
+- **Entry criteria:** none beyond design-system availability (merged).
+- **Exit criteria:** all listed screens on the design system with unchanged
+  behaviour tests; user/role administration fully permission-tested.
+- **Owner acceptance:** visual review of each screen; admin flow sign-off.
+
+## MS-07 — Integrations — PROPOSED (blocked items)
+
+- **Included tasks:** LL-P4-001…LL-P4-004.
+- **Entry criteria:** IRP/GSP + bank decisions and credentials; API scope
+  decision for LL-P4-004.
+- **Exit criteria:** sandbox-verified integrations; API surface (if approved)
+  tested with Sanctum token auth and permission gates.
+- **Owner acceptance:** per-integration.
+
+## MS-08 — Production readiness — PROPOSED
+
+- **Included tasks:** LL-P5-001…LL-P5-006.
+- **Entry criteria:** owner decision on target hosting.
+- **Exit criteria:** documented rehearsed deployment; proven backup/restore;
+  supervised queues; audit dispositioned; README current.
+- **Owner acceptance:** go-live checklist review.

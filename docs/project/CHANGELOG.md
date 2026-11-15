@@ -1,0 +1,152 @@
+# LaraLekh — Development Changelog
+
+Chronological record of development events, drawn from the git history and
+verified records only (`git log`; `docs/validation.md`; CI runs). Entries are
+ordered oldest → newest within each release era. Task IDs reference
+`WORK_REGISTER.md`; historical work predates the register and has been
+backfilled into it at LL-P0-002…004 with evidence.
+
+**Historical-entry qualification:** backfilled entries record what happened
+historically; they do not imply that related work is currently authorized.
+Commit references, dates and subjects in this file were verified against
+`git log` on 2026-11-15; statements that could not be verified are
+marked unverified.
+
+---
+
+## 2026-11-05/06 — Steps 2–3 accounting core (historical, pre-register)
+
+- **Summary:** session authentication with membership-checked company and
+  financial-year selection (`e214ac1`, 2026-11-05); tenant-scoped GST return
+  review UI foundations (`b6cb68b`, 2026-11-06); permission-checked receipt,
+  allocation and customer statement screens (`d7697cc`, 2026-11-06).
+- **Commits:** `e214ac1`, `b6cb68b`, `d7697cc` and related (dates per `git log`).
+- **Tests:** suite validated on SQLite and MySQL (`docs/validation.md` Step 2
+  section: 208 tests / 428 assertions at that point).
+- **Outstanding:** documented in `docs/validation.md` historical sections.
+
+## 2026-11-05/06 — Steps 3–4: corrections, receipts, purchases, GST returns (historical, pre-register)
+
+- **Summary (selected commits):** sales corrections model + immutability
+  (`190000_*`); receipts + allocations (`2026_11_06_200000_create_receipts`);
+  compensation cess; purchase bills + supplier payment schema
+  (`220000_*`, `230000_*`); purchase guards and debit-note design
+  (`240000_*`); GST return snapshots + filed-record protection; audit sales
+  and purchase cancellation; GSTR-1 official-template CSV export with golden
+  tests; GSTR-3B reconciliation worksheet with ledger tie-outs; fail-closed
+  export validation; GSTIN checksum validation; B2CL threshold verification
+  against CBIC notification 12/2024; per-method permission guards on
+  state-changing Livewire methods; GSTR-1 JSON exporter left pending official
+  schema (`3b8331c`).
+- **Tests:** full suite validated on SQLite and MySQL; series-concurrency
+  harness runs recorded; GSTR golden tests.
+- **Evidence:** `git log` 2026-11-06 entries; `docs/gst-rules.md`;
+  `docs/gst-returns-test-inventory.md`.
+
+## 2026-11-07 — Laravel 13 upgrade, audit, MySQL 8.4 tooling
+
+- **Commits:** `af58222` (Laravel 13 / Pest 5 / PHPUnit 13), `76b295b`
+  (activitylog v5 attribute_changes column), `dccd9bd` (full repository
+  audit), `2f2d173` (Docker Compose MySQL 8.4 target), `304bd21` (docs).
+- **Tests:** suite green on SQLite and MySQL 8.4; migration up/down/up;
+  concurrency runs (see `docs/validation.md`, `docs/audit/laravel-audit.md`,
+  `docs/mysql-test-runs.md`).
+- **Outstanding:** composer audit advisories from the Laravel 11 era
+  disposition pending on the new stack (→ LL-P5-004).
+
+## 2026-11-15 — Publication, CI, protection (MS-02)
+
+- **Summary:** repository published to GitHub; `origin` added; CI workflow
+  (backend SQLite / frontend build / quality) and branch protection
+  (strict required checks, admin-enforced, force-push/deletion blocked,
+  conversation resolution, no reviewer count) applied; **PR #1 merged**
+  (`68b569d` CI workflow; merge commit `b54a3dd`).
+- **Task IDs:** LL-P0-003.
+- **Tests:** Pest 348/1/971 before push (recorded in the session report);
+  CI 3/3 green on PR and main.
+- **Commits:** `07d10ca` (base publication), `68b569d`, merge `b54a3dd` —
+  all dated 2026-11-15; publication was authorized in a preceding session.
+
+## 2026-11-15 — UI modernization and brand (MS-03)
+
+- **Summary:** Phase 0 UI audit (`docs/ui/ui-inventory.md`); brand tokens +
+  Inter (self-hosted, OFL); logo/favicon assets; 14 design-system components
+  with inline icon sprite; redesigned login + company selection; application
+  shell (collapsible sidebar, header, mobile drawer); dashboard at `/` with
+  permission-gated KPIs; register screens modernized; two pre-existing layout
+  bugs fixed (`$slot`/`@extends` mismatch; tenant-context guard for the
+  permission-backed nav link) with regression tests; 4 additional dashboard
+  regression tests; independent audit fixes F1 (permission-gated financial
+  HTML), F2 (receivables mirroring `SettlementService` semantics, no locking,
+  excess credits separate), F3 (verbatim Inter OFL); collapsed-sidebar
+  icon-rail correction with hover/focus tooltips (labels removed from layout
+  instead of clipped; live Alpine state binding).
+- **Task IDs:** LL-P0-002.
+- **Files/modules:** layouts, 14 components, dashboard component + view,
+  guest layout, brand assets, fonts, routes (`/`), login/select views,
+  `AuthenticationTest`, `DashboardTest` (new), `README`, `tailwind.config.js`,
+  `TenantContext` (`hasContext()` accessor), `CompanySelectionController`
+  (redirect target).
+- **Tests:** full suite **360 passed, 1 todo, 1018 assertions** (baseline
+  348/971 + 12 new tests); `npm run build` pass; browser verification at
+  1440/1366/390 including tooltips and mobile drawer.
+- **Commits:** `016399c`, `ef20542` on `ui-modernization`; merged as PR #2 →
+  `8344280`.
+- **Behavior changes (disclosed in PR #2):** `/` is the dashboard; company
+  selection redirects to `/`; dashboard financial figures permission-gated.
+- **Outstanding:** editors/detail views keep legacy styling (LL-P3-001…005);
+  month KPIs gross on UTC boundaries (plan §8); `x-button` dead link branch.
+
+## 2026-11-15 — Project planning (MS-04A/MS-04B preparation)
+
+- **Summary:** established `docs/project/` — `DEVELOPMENT_PLAN.md`,
+  `WORK_REGISTER.md` (38 tasks), `MILESTONES.md` (MS-01…MS-08 with MS-04
+  later split into MS-04A/MS-04B), `DECISION_REGISTER.md`
+  (DEC-001…DEC-022), this changelog. Recommended next milestone:
+  accounting foundations completion, starting with supplier-payment tests
+  (LL-P1-001).
+- **Task IDs:** LL-P0-001.
+- **Tests:** none (documentation-only).
+- **Outstanding:** owner review of the plan and approval of milestone scope;
+  decisions DEC-012…DEC-022 require owner input.
+
+## 2026-11-15 — Planning documentation review corrections (documentation-only)
+
+- **Summary:** owner-requested review corrections to the five planning
+  documents, all inside `docs/project/`. **No application implementation
+  occurred and no commit exists for this change yet.**
+  - `WORK_REGISTER.md`: fixed the `Basline` → `Baseline` typo; added the
+    readiness-versus-authorization rule and an interpretation table
+    (`READY` + approval `Required` ≠ authorized; `IN_PROGRESS` requires
+    recorded approval); documented the MS-04A/MS-04B milestone grouping in
+    the P1 section; added the MySQL-validation rule (SQLite CI does not
+    prove MySQL trigger behaviour) to the P1 section, LL-P1-001/002 and
+    LL-P1-012; marked statements as qualified where evidence is partial.
+  - `DEVELOPMENT_PLAN.md`: split phase P1's milestone description into
+    MS-04A (essential reports/safety) and MS-04B (decision-gated workflows);
+    rewrote §13 with explicit MySQL validation requirements (migration
+    up/down/up, trigger verification, MySQL posting/reversal tests,
+    series concurrency, `laravix_test_*` only, never dev/prod data); updated
+    §14 open-question references to MS-04A/MS-04B and DEC IDs.
+  - `MILESTONES.md`: replaced MS-04 with MS-04A/MS-04B (membership, entry
+    and exit criteria, per-workflow approval, MySQL validation in exit
+    criteria); MS-05 entry criterion now references MS-04B item LL-P1-009.
+  - `DECISION_REGISTER.md`: documented `EVIDENCED` as a distinct concept in
+    the states table (inferred from repository evidence; no separate owner
+    approval implied). No decision's status changed.
+  - `CHANGELOG.md`: this entry; historical entry corrections below.
+- **Evidence audit:** all 15 commit references in this file verified against
+  `git log` (hash, date, subject). Test-count references verified against
+  `docs/validation.md` and session records.
+- **Task IDs:** LL-P0-001 (documentation amendment).
+- **Tests:** none (documentation-only).
+- **Outstanding:** owner review; MS-04A/MS-04B remain PROPOSED and require
+  separate explicit owner approval.
+
+---
+
+## Maintenance
+
+Add one entry per merged PR / completed task with: date, task IDs, summary,
+files, tests, results, commit, outstanding issues. Never invent entries; link
+evidence (commit SHA, CI run).
