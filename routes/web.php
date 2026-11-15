@@ -58,7 +58,7 @@ Route::middleware('auth')->group(function (): void {
             Route::get('/vouchers/{voucher}/reverse', ReversalEditor::class)->middleware('can:reversals.post')->name('reversals.create');
             Route::get('/reversals/{reversal}', ReversalView::class)->name('reversals.show');
         });
-        Route::get('/', fn () => redirect()->route('invoices.index'));
+        Route::get('/', \App\Livewire\Dashboard\Home::class)->name('dashboard');
 
         Route::middleware('can:receipts.view')->group(function (): void {
             Route::get('/receipts', ReceiptList::class)->name('receipts.index');

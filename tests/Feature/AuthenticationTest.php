@@ -78,7 +78,7 @@ it('accepts company selection only for members', function () {
     $this->post(route('company.store'), ['company_id' => $other->id])
         ->assertSessionHasErrors('company_id');
     expect(app(CompanySession::class)->companyId())->toBeNull();
-    $this->post(route('company.store'), ['company_id' => $mine->id])->assertRedirect('/invoices');
+    $this->post(route('company.store'), ['company_id' => $mine->id])->assertRedirect('/');
     expect(app(CompanySession::class)->companyId())->toBe($mine->id);
 });
 
@@ -151,7 +151,8 @@ it('renders the guest login page with LaraLekh branding', function () {
 
     $response->assertOk();
     $response->assertSee('<title>LaraLekh</title>', false);
-    $response->assertSee('>LaraLekh</a>', false);
+    // The inline brand mark carries an accessible LaraLekh label.
+    $response->assertSee('aria-label="LaraLekh', false);
     $response->assertSee('name="email"', false);
     $response->assertSee('name="password"', false);
     $response->assertSee('Log in', false);
