@@ -88,6 +88,23 @@ Route::middleware('auth')->group(function (): void {
             Route::get('/purchase-bills/create', PurchaseBillEditor::class)->middleware('can:purchases.create')->name('purchases.create');
             Route::get('/purchase-bills/{bill}/edit', PurchaseBillEditor::class)->middleware('can:purchases.create')->name('purchases.edit');
             Route::get('/purchase-bills/{bill}', PurchaseBillView::class)->name('purchases.show');
+
+            // Supplier payments settle posted purchase bills. Posting is a
+            // purchases.post action enforced again per Livewire method.
+            Route::get('/supplier-payments', \App\Livewire\Purchase\SupplierPaymentList::class)->name('supplier-payments.index');
+
+            Route::get('/supplier-payments/create', \App\Livewire\Purchase\SupplierPaymentEditor::class)
+                ->middleware('can:purchases.create')->name('supplier-payments.create');
+            Route::get('/supplier-payments/{payment}', \App\Livewire\Purchase\SupplierPaymentView::class)->name('supplier-payments.show');
         });
+
+        // Company-scoped financial-year administration (create/close) — its own
+        // years.manage permission, independent of purchases.view.
+        Route::get('/financial-years', \App\Livewire\Masters\FinancialYearManager::class)->name('financial-years.index');
+
+        // Financial reports from posted voucher movements (read-only).
+        Route::get('/reports/trial-balance', \App\Livewire\Accounting\TrialBalance::class)->name('reports.trial-balance');
+        Route::get('/reports/profit-and-loss', \App\Livewire\Accounting\ProfitAndLoss::class)->name('reports.profit-and-loss');
+        Route::get('/reports/balance-sheet', \App\Livewire\Accounting\BalanceSheet::class)->name('reports.balance-sheet');
     });
 });
