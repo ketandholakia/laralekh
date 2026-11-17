@@ -9,7 +9,7 @@ demonstrably met — code presence alone is never evidence.
 | MS-01 | Core accounting foundations (Steps 1–4) | historical (pre-register) | COMPLETED |
 | MS-02 | CI and branch protection | LL-P0-003 | COMPLETED |
 | MS-03 | UI modernization and brand | LL-P0-002 (incl. dashboard, collapsed-rail correction) | COMPLETED |
-| MS-04A | Accounting safety and essential reports | LL-P1-001…LL-P1-005 | PROPOSED — recommended next |
+| MS-04A | Accounting safety and essential reports | LL-P1-001…LL-P1-005 | ACCEPTED — owner-accepted 2026-11-17 after independent audit and F-01…F-04 remediation |
 | MS-04B | Additional accounting workflows | LL-P1-006…LL-P1-011 | PROPOSED (per-workflow approval) |
 | MS-05 | GST compliance completion | LL-P2-001…LL-P2-004 | PROPOSED |
 | MS-06 | UI completion and administration | LL-P3-001…LL-P3-008 | PROPOSED |
@@ -67,7 +67,36 @@ prerequisite for individual workflows.
 - **Owner acceptance:** PR #2 merged by the owner after independent audit
   fixes (F1/F2/F3).
 
-## MS-04A — Accounting safety and essential reports — PROPOSED (recommended next)
+## MS-04A — Accounting safety and essential reports — ACCEPTED (owner-approved and accepted 2026-11-17)
+
+**Owner acceptance record:** accepted on **2026-11-17** after the independent
+acceptance audit returned **ACCEPTANCE READY**. Final evidence at acceptance:
+full Pest suite **396 passed / 1 todo / 1187 assertions** (SQLite in-memory);
+**36 MS-04A tests passed on MySQL 8.4.13** (`laravix_test_ms04a`); migration
+up/down/up, 46 immutability triggers with a runtime tamper probe, and the
+series-concurrency harness all recorded PASS; frontend build PASS;
+`git diff --check` clean. Audit findings F-01…F-04 were remediated and
+independently re-verified; F-05 (sidebar entries) and F-06 (P&L FY default)
+remain documented follow-ups and are not acceptance blockers. MS-04B
+(LL-P1-006…011) remains **not approved**.
+
+**Implementation evidence (2026-11-17):** 30 new Pest tests
+(`SupplierPaymentTest` 13, `SupplierPaymentUiTest` 5,
+`FinancialYearManagementTest` 5, `FinancialReportsTest` 7) — full suite
+390 passed / 1 todo / 1162 assertions on SQLite; the same 30 tests passed on
+MySQL 8.4.13 (`laravix_test_ms04a`); migration up/down/up PASS
+(`laravix_test_migrations`); 46 immutability triggers verified with a
+runtime tamper probe (UPDATE on a posted voucher rejected with
+"Immutable or invalid accounting document"); series-concurrency run PASS
+(`laravix_test_ms04a_conc`). Screens: supplier-payment register/editor/view,
+financial-year manager, trial balance, P&L, balance sheet.
+
+**Owner authorization record:** approved on **2026-11-17** for exactly the
+tasks LL-P1-001…LL-P1-005 (supplier-payment service tests, supplier payments
+UI, financial-year management screen, trial balance, P&L and balance sheet).
+MS-04B (LL-P1-006…LL-P1-011) is explicitly **not** approved and none of its
+policy decisions are made. Implementation proceeds under the staged sequence
+in the entry audit (Stages A–E) on a dedicated feature branch.
 
 - **Objective:** establish confidence in the existing supplier-payment
   accounting path and deliver essential financial management and reporting

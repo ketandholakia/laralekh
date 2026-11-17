@@ -16,6 +16,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(StateSeeder::class);
         $this->call(CorrectionPermissionSeeder::class);
+        $this->call(FinancialYearPermissionSeeder::class);
+        $this->call(ReportingPermissionSeeder::class);
         $this->call(PurchasePermissionSeeder::class);
         $this->call(GstReturnsPermissionSeeder::class);
         Company::each(function (Company $company): void {

@@ -150,3 +150,124 @@ marked unverified.
 Add one entry per merged PR / completed task with: date, task IDs, summary,
 files, tests, results, commit, outstanding issues. Never invent entries; link
 evidence (commit SHA, CI run).
+
+## 2026-11-17 — MS-04A owner authorization recorded (documentation-only)
+
+- **Summary:** the owner explicitly approved milestone **MS-04A
+  (accounting safety and essential reports)** for implementation on
+  **2026-11-17**. Authorized task IDs: **LL-P1-001, LL-P1-002, LL-P1-003,
+  LL-P1-004, LL-P1-005**. **MS-04B (LL-P1-006…LL-P1-011) is explicitly NOT
+  approved**; none of its policy decisions (DEC-012…DEC-017) are made or
+  assumed. Approval recorded in `WORK_REGISTER.md` (LL-P1-001…005 approval
+  fields and summary) and `MILESTONES.md` (MS-04A status + authorization
+  record). `DECISION_REGISTER.md` was inspected: it records decisions, not
+  milestone authorizations, so no entry was added there and no DEC-012…017
+  status changed.
+- **Task IDs:** LL-P1-001…LL-P1-005 (approval recording; statuses remain
+  READY until each task actually enters implementation).
+- **Implementation branch:** `feature/ms-04a-accounting-foundations`
+  (created from local `main` @ `943b550`, which includes the approved
+  planning documentation commit; `origin/main` is at `8344280` — the docs
+  commit is preserved on the feature branch and local `main`, not pushed).
+- **Tests:** none (documentation edit only).
+- **Outstanding:** entry audit, then staged implementation A–E; MySQL
+  validation per plan §13.
+
+## 2026-11-17 — MS-04A implementation (Stages A–E)
+
+- **Summary:** implemented the five owner-approved tasks on
+  `feature/ms-04a-accounting-foundations` (created from `main` @ `943b550`;
+  includes the approved planning documentation). Not committed yet.
+  - **LL-P1-001:** `tests/Feature/SupplierPaymentTest.php` (13 tests) proving
+    `PostPayment` invariants: balanced Dr supplier / Cr cash entries, SP
+    series numbering, derived bill outstanding with active-allocation
+    semantics, RCM payable = taxable amount, full-allocation rule, closed-year
+    rejection, duplicate-post rejection, rollback consuming no number,
+    tenancy isolation, reversal restoring outstanding, paise arithmetic.
+    **Found and fixed a genuine defect:** `SupplierPaymentAllocationReversal`
+    model class did not exist although `PostPayment::reverse()` and its
+    migration reference it — the payment-reversal path would have fataled.
+  - **LL-P1-002:** routes `supplier-payments.index/create/show` (behind
+    `company.context` + `purchases.view/create`), `SupplierPaymentList`/
+    `SupplierPaymentEditor`/`SupplierPaymentView` components + views; editor
+    reuses `PostPayment` (no accounting logic in Livewire); per-method
+    permission guards (`purchases.post` for posting); relations added to
+    `SupplierPayment` (party, ledger) and `SupplierPaymentAllocation`
+    (payment, purchaseBill) for display.
+  - **LL-P1-003:** `FinancialYearManager` screen (create/close behind a new
+    `years.manage` permission — `FinancialYearPermissionSeeder` registered in
+    `DatabaseSeeder`); closing is permanent (no reopen); closed years already
+    reject posting in `PostPayment`/`PostPurchaseBill`/`VoucherNumberAllocator`.
+  - **LL-P1-004/005:** read-only `FinancialReports` service
+    (`trialBalance`, `profitAndLoss`, `balanceSheet`) from posted voucher
+    movements only — no locks, no writes, exact `Money` arithmetic, sums in
+    application code (MySQL decimal/SQLite text convention); screens
+    `TrialBalance`, `ProfitAndLoss`, `BalanceSheet` behind a new
+    `reports.view` permission (`ReportingPermissionSeeder`); balance sheet
+    includes retained profit and reports a reconciliation check.
+- **Tests:** new suites 13 + 5 + 5 + 7 = **30 tests**; full suite
+  **390 passed, 1 todo, 1162 assertions** on SQLite (baseline 360/1018);
+  the same 30 tests **pass on MySQL 8.4.13** (`laravix_test_ms04a`).
+- **MySQL validation:** migration up/down/up PASS (`laravix_test_migrations`);
+  46 triggers present; runtime tamper probe (UPDATE posted voucher) rejected
+  by trigger; series-concurrency harness PASS (`laravix_test_ms04a_conc`).
+  All databases named `laravix_test_*`; dev/prod data never touched.
+- **Commits:** none yet — awaiting owner authorization to commit.
+- **Outstanding:** owner acceptance of MS-04A exit criteria; MS-04B remains
+  NOT approved; sidebar/sidebar navigation entries for the new screens are
+  minimal (register links only) pending a UI pass.
+
+## 2026-11-17 — MS-04A audit remediation (F-01…F-04, documentation of code change)
+
+- **Summary:** implemented the four owner-audit findings on
+  `feature/ms-04a-accounting-foundations` (uncommitted). Not committed yet.
+  - **F-01 (HIGH):** `SupplierPaymentEditor::persistDraft()` now derives the
+    financial year from `CompanySession::financialYearId()` (the
+    `SaveReceiptDraft` pattern) instead of a hardcoded `2026-27` name.
+  - **F-03 (MEDIUM):** draft-stage validation aligned with `SaveReceiptDraft`:
+    strictly positive amount (negative decimals rejected with an accurate
+    message), payment ledger must be `CASH_BANK`, closed selected year
+    rejected, payment date must fall inside the selected year, and a missing
+    session year reports "Select a financial year first." instead of a 500.
+    `PostPayment` remains the authoritative posting validation.
+  - **F-04 (LOW):** redundant second `catch (\OverflowException)` removed.
+  - **F-02 (MEDIUM):** five new tests for `SupplierPaymentView` and the
+    session-FY behaviour: view renders for `purchases.view` users (403 via
+    route middleware for others), foreign-company payment 404s, allocations
+    render with the bill reference, reversal banner mirrors the receipt view,
+    session-FY filing works for a non-2026-27 year, missing-FY validation
+    error, closed-year and date-outside-year rejection.
+  - **View binding fix (related to F-02):** `SupplierPaymentView::mount` now
+    takes the payment id (resolved tenant-scoped inside mount/render) instead
+    of route-model binding, which evaluated the company-scoped query before
+    any tenant context existed and 500-ed; `ReceiptView`'s id-based pattern
+    was the model.
+- **Tests:** new total **36 MS-04A tests** (30 + 6 remediation tests); full
+  suite **396 passed, 1 todo, 1187 assertions** on SQLite; the remediated
+  suites **pass on MySQL 8.4.13** (`laravix_test_ms04a`, 36 passed /
+  169 assertions). Build PASS; `git diff --check` clean.
+- **Commits:** none yet — awaiting owner authorization.
+- **Outstanding:** F-05 (sidebar entries) and F-06 (P&L FY default) remain
+  intentionally unimplemented (audit LOW items outside this authorization);
+  MS-04B remains NOT approved.
+
+## 2026-11-17 — MS-04A owner acceptance recorded
+
+- **Summary:** the owner formally **accepted MS-04A** (LL-P1-001…LL-P1-005)
+  on 2026-11-17 following the independent acceptance audit (verdict:
+  **ACCEPTANCE READY**) and the F-01…F-04 remediation, which the audit
+  re-verified. Recorded in `MILESTONES.md` (MS-04A ACCEPTED) and the
+  `WORK_REGISTER.md` task notes. Final evidence: full suite 396 passed /
+  1 todo / 1187 assertions (SQLite); 36 MS-04A tests passed on MySQL 8.4.13
+  (`laravix_test_ms04a`); migration up/down/up, trigger tamper probe and
+  series concurrency recorded PASS; build and `git diff --check` clean.
+  F-05 (sidebar entries) and F-06 (P&L FY default) remain documented
+  follow-ups, not acceptance blockers. **MS-04B remains not approved.**
+- **Task IDs:** LL-P1-001…LL-P1-005 (acceptance annotation).
+- **Commits:** a single local commit on
+  `feature/ms-04a-accounting-foundations`
+  (`feat: implement MS-04A accounting foundations`) is authorized by this
+  acceptance; **no push, no PR, no merge**.
+- **Tests:** recorded as above; no new tests in this acceptance entry.
+- **Outstanding:** commit authorization executed; push/PR/merge await
+  separate owner instruction. MS-04B and DEC-012…017 remain open decisions.
