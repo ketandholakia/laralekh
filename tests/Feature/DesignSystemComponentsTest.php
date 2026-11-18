@@ -1,8 +1,13 @@
 <?php
 
+use App\Livewire\Purchase\PurchaseBillList;
+use App\Livewire\Purchase\SupplierPaymentList;
+use App\Livewire\Sales\InvoiceList;
+use App\Livewire\Sales\ReceiptList;
 use Illuminate\Pagination\AbstractPaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Blade;
+use Livewire\Livewire;
 
 // Stage 0 shared design-system foundations: rendering, semantics and
 // accessibility contracts for the components introduced or enhanced in
@@ -122,4 +127,112 @@ it('pagination default view renders Previous/Next with accessible labels and pag
         ->and($html)->toContain('Next')
         ->and($html)->toContain('Showing')
         ->and($html)->toContain('11');
+});
+
+// Livewire's WithPagination overrides Paginator::$defaultView while a list
+// renders, so the register components must expose paginationView() for the
+// LaraLekh view to be used. These tests exercise the real Livewire rendering
+// path, not just the static default.
+it('renders the LaraLekh pagination view on the invoice list and keeps page state', function () {
+    [$user, $company] = webSession();
+    $this->actingAs($user);
+    inTenantContext($company, function (): void {
+        [$party] = masters();
+        foreach (range(1, 11) as $i) {
+            postInvoiceFor($party, sprintf('10%d.00', $i), '2026-11-06');
+        }
+    });
+
+    $page1 = inTenantContext($company, fn (): string => Livewire::test(InvoiceList::class)->html());
+    expect($page1)->toContain('x-pagination')
+        ->and($page1)->toContain('aria-current="page"')
+        ->and($page1)->toContain('rel="next"')
+        ->and($page1)->toContain('SI/10')
+        ->and($page1)->not->toContain('SI/11')
+        ->and($page1)->not->toContain('wire:click="nextPage');
+
+    $page2 = inTenantContext($company, fn (): string => Livewire::withQueryParams(['page' => 2])->test(InvoiceList::class)->html());
+    expect($page2)->toContain('x-pagination')
+        ->and($page2)->toContain('aria-current="page"')
+        ->and($page2)->toContain('rel="prev"')
+        ->and($page2)->toContain('SI/11')
+        ->and($page2)->not->toContain('SI/1"')
+        ->and($page2)->not->toContain('wire:click="nextPage');
+});
+
+it('renders the LaraLekh pagination view on the receipt list and keeps page state', function () {
+    [$user, $company] = receiptSession();
+    $this->actingAs($user);
+    inTenantContext($company, function (): void {
+        [$party] = masters();
+        foreach (range(1, 11) as $i) {
+            receiptDraft($party, (string) (1000 + $i).'.00', ['payment_reference' => 'UTR-'.$i]);
+        }
+    });
+
+    $page1 = inTenantContext($company, fn (): string => Livewire::test(ReceiptList::class)->html());
+    expect($page1)->toContain('x-pagination')
+        ->and($page1)->toContain('aria-current="page"')
+        ->and($page1)->toContain('rel="next"')
+        ->and($page1)->toContain('UTR-10')
+        ->and($page1)->not->toContain('UTR-11')
+        ->and($page1)->not->toContain('wire:click="nextPage');
+
+    $page2 = inTenantContext($company, fn (): string => Livewire::withQueryParams(['page' => 2])->test(ReceiptList::class)->html());
+    expect($page2)->toContain('x-pagination')
+        ->and($page2)->toContain('rel="prev"')
+        ->and($page2)->toContain('UTR-11')
+        ->and($page2)->not->toContain('wire:click="nextPage');
+});
+
+it('renders the LaraLekh pagination view on the purchase bill list and keeps page state', function () {
+    [$user, $company] = webSession('viewer', ['purchases.view']);
+    $this->actingAs($user);
+    inTenantContext($company, function (): void {
+        foreach (range(1, 11) as $i) {
+            supplierBillFixture([
+                'supplier_bill_number' => 'PB-'.$i,
+                'date' => $i === 11 ? '2026-11-01' : '2026-12-01',
+            ]);
+        }
+    });
+
+    $page1 = inTenantContext($company, fn (): string => Livewire::test(PurchaseBillList::class)->html());
+    expect($page1)->toContain('x-pagination')
+        ->and($page1)->toContain('aria-current="page"')
+        ->and($page1)->toContain('rel="next"')
+        ->and($page1)->toContain('PB-10')
+        ->and($page1)->not->toContain('PB-11')
+        ->and($page1)->not->toContain('wire:click="nextPage');
+
+    $page2 = inTenantContext($company, fn (): string => Livewire::withQueryParams(['page' => 2])->test(PurchaseBillList::class)->html());
+    expect($page2)->toContain('x-pagination')
+        ->and($page2)->toContain('rel="prev"')
+        ->and($page2)->toContain('PB-11')
+        ->and($page2)->not->toContain('wire:click="nextPage');
+});
+
+it('renders the LaraLekh pagination view on the supplier payment list and keeps page state', function () {
+    [$user, $company] = webSession('viewer', ['purchases.view']);
+    $this->actingAs($user);
+    inTenantContext($company, function (): void {
+        [$party] = masters();
+        foreach (range(1, 11) as $i) {
+            supplierPaymentDraft($party, (string) (1000 + $i).'.00');
+        }
+    });
+
+    $page1 = inTenantContext($company, fn (): string => Livewire::test(SupplierPaymentList::class)->html());
+    expect($page1)->toContain('x-pagination')
+        ->and($page1)->toContain('aria-current="page"')
+        ->and($page1)->toContain('rel="next"')
+        ->and($page1)->toContain('₹1,010.00')
+        ->and($page1)->not->toContain('₹1,011.00')
+        ->and($page1)->not->toContain('wire:click="nextPage');
+
+    $page2 = inTenantContext($company, fn (): string => Livewire::withQueryParams(['page' => 2])->test(SupplierPaymentList::class)->html());
+    expect($page2)->toContain('x-pagination')
+        ->and($page2)->toContain('rel="prev"')
+        ->and($page2)->toContain('₹1,011.00')
+        ->and($page2)->not->toContain('wire:click="nextPage');
 });

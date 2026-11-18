@@ -17,6 +17,13 @@ final class ReceiptList extends Component
 {
     use WithPagination;
 
+    // Render register pagination with the shared LaraLekh view; Livewire's
+    // WithPagination otherwise overrides the Laravel default view.
+    public function paginationView(): string
+    {
+        return 'pagination.laralekh';
+    }
+
     #[Url]
     public string $search = '';
 
