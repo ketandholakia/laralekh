@@ -277,8 +277,8 @@ evidence (commit SHA, CI run).
 - **Summary:** the owner explicitly authorized four tasks on 2026-11-18 —
   **LL-P1-013** (supplier-payment draft hardening), **LL-P1-012** (MySQL
   validation cadence), **LL-P5-001** (README refresh) and **LL-P5-004**
-  (composer audit re-review). All four are implemented and verified; nothing
-  is committed. **MS-04B (LL-P1-006…011), DEC-012…017, F-05, F-06 and MS-05A
+  (composer audit re-review). All four are implemented, verified and merged.
+  **MS-04B (LL-P1-006…011), DEC-012…017, F-05, F-06 and MS-05A
   were explicitly excluded and were not touched.**
   - **LL-P1-013** (new register entry, owner-approved by name in the
     authorization): `SupplierPaymentEditor::persistDraft()` now re-resolves
@@ -322,7 +322,19 @@ evidence (commit SHA, CI run).
   UPDATE and DELETE on a posted voucher) rejected by triggers; direct SQL
   inserts of posted vouchers also rejected. All databases `laravix_test_*`;
   dev/prod data never touched.
-- **Commits:** none — awaiting separate owner authorization.
+- **Commits:** single commit `16c599a6b82f9a772d1e6408d8e8d7f774d035b4`
+  (`feat: harden supplier payments and complete project maintenance`) on
+  `feature/ms-04a-accounting-foundations`, created after the read-only
+  pre-commit audit returned READY TO COMMIT. Published and merged with
+  explicit owner authorization: branch pushed as a fast-forward
+  (`3f6ca27..16c599a`); **PR #4** opened against `main` (containing exactly
+  this one commit and the ten audited files); all three required CI checks
+  (Backend tests SQLite, Frontend build, Quality and security) completed
+  SUCCESS; **PR #4 merged as merge commit `8132cf8f3f0a7b7816dfb74ef1ea3b17f1828adb`**
+  — post-merge CI on `main` @ `8132cf8` also green. The feature branch was
+  preserved (not deleted); no squash, no rebase, no force-push.
+- **Post-merge baseline:** `main` @ `8132cf8` — suite 398 passed / 1 todo /
+  1207 assertions (SQLite).
 - **Independent review:** an independent review agent re-ran the full SQLite
   suite (exact match: 398 passed / 1 todo / 1207 assertions) and audited all
   five criteria (correctness, scope creep, documentation accuracy, code

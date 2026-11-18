@@ -14,7 +14,7 @@ demonstrably met — code presence alone is never evidence.
 | MS-05 | GST compliance completion | LL-P2-001…LL-P2-004 | PROPOSED |
 | MS-06 | UI completion and administration | LL-P3-001…LL-P3-008 | PROPOSED |
 | MS-07 | Integrations | LL-P4-001…LL-P4-004 | PROPOSED (BLOCKED items inside) |
-| MS-08 | Production readiness | LL-P5-001…LL-P5-006 | PROPOSED |
+| MS-08 | Production readiness | LL-P5-001…LL-P5-006 | PROPOSED (LL-P5-001, LL-P5-004 completed via PR #4, 2026-11-18) |
 
 Cross-cutting: **LL-P1-012** (MySQL migration/concurrency validation cadence)
 supports MS-04A, MS-04B and every future schema change; it is not a
@@ -176,8 +176,17 @@ in the entry audit (Stages A–E) on a dedicated feature branch.
   tested with Sanctum token auth and permission gates.
 - **Owner acceptance:** per-integration.
 
-## MS-08 — Production readiness — PROPOSED
+## MS-08 — Production readiness — PROPOSED (partial progress 2026-11-18)
 
+- **Progress annotation:** LL-P5-001 (README refresh) and LL-P5-004 (composer
+  audit re-review) were completed on 2026-11-18 as part of the
+  owner-authorized hardening/documentation pass — commit `16c599a`, **PR #4**
+  merged as `8132cf8`, all three required CI checks green on the PR and on
+  `main` after the merge. Remaining tasks: LL-P5-002 (deployment), LL-P5-003
+  (backup/restore), LL-P5-005 (queue supervision) — all PROPOSED, approval
+  Required; LL-P5-006 (MySQL trigger-parity lane) — PROPOSED, approval Not
+  Required. The milestone itself remains PROPOSED pending the hosting
+  decision (DEC-022).
 - **Included tasks:** LL-P5-001…LL-P5-006.
 - **Entry criteria:** owner decision on target hosting.
 - **Exit criteria:** documented rehearsed deployment; proven backup/restore;
