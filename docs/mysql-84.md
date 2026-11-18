@@ -5,6 +5,9 @@ install can run the suite against a containerised 8.4 server via Docker
 Compose. (This host's `C:/tools/mysql` carries only 9.7.2; Docker Desktop is
 installed but its daemon must be running.)
 
+> When to run what: see [MySQL validation cadence](mysql-validation-cadence.md)
+> (LL-P1-012) — this file is the how-to; the cadence document is the routine.
+
 ## Steps
 
 ```sh

@@ -271,3 +271,66 @@ evidence (commit SHA, CI run).
 - **Tests:** recorded as above; no new tests in this acceptance entry.
 - **Outstanding:** commit authorization executed; push/PR/merge await
   separate owner instruction. MS-04B and DEC-012…017 remain open decisions.
+
+## 2026-11-18 — Hardening/documentation pass (owner-authorized "Option A")
+
+- **Summary:** the owner explicitly authorized four tasks on 2026-11-18 —
+  **LL-P1-013** (supplier-payment draft hardening), **LL-P1-012** (MySQL
+  validation cadence), **LL-P5-001** (README refresh) and **LL-P5-004**
+  (composer audit re-review). All four are implemented and verified; nothing
+  is committed. **MS-04B (LL-P1-006…011), DEC-012…017, F-05, F-06 and MS-05A
+  were explicitly excluded and were not touched.**
+  - **LL-P1-013** (new register entry, owner-approved by name in the
+    authorization): `SupplierPaymentEditor::persistDraft()` now re-resolves
+    the draft under a row lock and refuses to update anything that is no
+    longer a draft, so a stale editor tab can no longer overwrite a posted
+    payment's date/amount/ledger; `validateDraft()` now rejects a party
+    without a liability (supplier) ledger at draft stage, mirroring
+    `PostPayment`'s authoritative rule (customers, asset/expense-ledger
+    parties and ledger-less parties are refused before anything is
+    persisted). Two new UI tests prove both behaviours. UI-level only — no
+    migration, trigger or allocator change.
+  - **LL-P1-012:** created `docs/mysql-validation-cadence.md` — the
+    documented routine (when the full vs reduced cadence runs, the five
+    checks, host notes, last-executed record), cross-referenced from
+    `DEVELOPMENT_PLAN.md` §13 and `docs/mysql-84.md`. Delivered as the
+    checklist variant the register allowed; a MySQL CI lane would change CI
+    and remains an owner decision.
+  - **LL-P5-001:** README refreshed — PHP 8.4+ setup text, dependency-status
+    rewritten for Laravel 13 with the clean audit result, "purchase and stock
+    workflows are reserved for later steps" corrected, "Deferred to later
+    steps" list updated, and a new "Purchases, supplier payments and
+    financial reports" section verified against `PostPurchaseBill`,
+    `PostPayment` and the seeded permissions.
+  - **LL-P5-004:** `composer audit --locked` re-run via the official
+    `composer-stable.phar` (Composer 2.11.2, PHP 8.5.9 host): **0 advisories,
+    0 abandoned packages** on the lockfile (`laravel/framework` v13.40.0);
+    disposition recorded in `docs/validation.md`.
+- **Task IDs:** LL-P1-012, LL-P1-013, LL-P5-001, LL-P5-004.
+- **Files/modules:** `app/Livewire/Purchase/SupplierPaymentEditor.php`,
+  `tests/Feature/SupplierPaymentUiTest.php`, `docs/mysql-validation-cadence.md`
+  (new), `docs/mysql-84.md`, `docs/mysql-test-runs.md`, `docs/validation.md`,
+  `README.md`, `docs/project/WORK_REGISTER.md`,
+  `docs/project/DEVELOPMENT_PLAN.md` (§13 cadence cross-reference), this
+  changelog.
+- **Tests:** full suite **398 passed, 1 todo, 1207 assertions** on SQLite
+  (baseline 396/1187 + 2 new tests); `npm run build` PASS; `git diff --check`
+  clean. Reduced MySQL cadence executed (per the new cadence document):
+  migration up/down/up PASS (`laravix_test_migrations`), supplier-payment
+  suites **26 passed (115 assertions) on MySQL 8.4.13**
+  (`laravix_test_ms04a_20261118`), 46 triggers present, tamper probe (raw
+  UPDATE and DELETE on a posted voucher) rejected by triggers; direct SQL
+  inserts of posted vouchers also rejected. All databases `laravix_test_*`;
+  dev/prod data never touched.
+- **Commits:** none — awaiting separate owner authorization.
+- **Independent review:** an independent review agent re-ran the full SQLite
+  suite (exact match: 398 passed / 1 todo / 1207 assertions) and audited all
+  five criteria (correctness, scope creep, documentation accuracy, code
+  quality, register governance). Verdict: **ACCEPT WITH FINDINGS** — one
+  MAJOR (register summary READY/PROPOSED split off by one) and one MINOR
+  (editor class docblock contradicted the new draft-stage mirroring), both
+  corrected immediately after the review; the affected suites were re-run
+  green (26 passed / 115 assertions). No blockers; no scope creep found
+  (diff touches exactly the nine declared files plus the new cadence doc).
+- **Outstanding:** no other follow-ups introduced. MS-04B, DEC-012…017, F-05,
+  F-06, MS-05A remain unapproved and untouched.

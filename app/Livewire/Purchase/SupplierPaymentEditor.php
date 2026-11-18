@@ -15,17 +15,21 @@ use App\Domain\Purchase\Models\SupplierPaymentAllocation;
 use App\Domain\Shared\Tenancy\CompanySession;
 use App\Domain\Shared\ValueObjects\Money;
 use Carbon\CarbonImmutable;
+use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 // Supplier-payment editor: cash/bank ledger, date, amount and allocations of
 // the funds to the supplier's posted bills. The draft row is field-only data
-// created here; every accounting rule (balanced entries, series numbering,
-// outstanding caps, closed years) is enforced by PostPayment — nothing is
-// duplicated in this component. Drafts support later posting; posting itself
-// requires the purchases.post permission on top of purchases.create.
+// created here; the accounting rules are mirrored at draft stage for accurate
+// errors (cash/bank ledger, supplier-liability party), while every posting
+// rule (balanced entries, series numbering, outstanding caps, closed years)
+// stays authoritative in PostPayment and is re-checked there under lock.
+// Drafts support later posting; posting itself requires the purchases.post
+// permission on top of purchases.create.
 #[Layout('layouts.app')]
 final class SupplierPaymentEditor extends Component
 {
@@ -201,6 +205,18 @@ final class SupplierPaymentEditor extends Component
         $errors = [];
         if ($this->partyId === null) {
             $errors['party'][] = 'Select the supplier being paid.';
+        } else {
+            // Mirror PostPayment's authoritative rule at draft stage: only a
+            // party carrying a liability ledger is a supplier. Customers and
+            // non-ledger parties are rejected before anything is persisted;
+            // posting re-checks this under lock.
+            $party = Party::find($this->partyId);
+            $nature = $party?->ledger !== null
+                ? LedgerGroup::whereKey($party->ledger->ledger_group_id)->value('nature')
+                : null;
+            if ($nature !== 'liability') {
+                $errors['party'][] = 'Payments must be made to a supplier with a liability ledger.';
+            }
         }
         if ($this->ledgerId === 0) {
             $errors['ledger'][] = 'Select the cash or bank ledger to pay from.';
@@ -256,14 +272,21 @@ final class SupplierPaymentEditor extends Component
         // year is present, open, and contains the payment date.
         $yearId = app(CompanySession::class)->financialYearId();
         $data = $this->input();
-        if ($this->paymentId !== null) {
-            $draft = SupplierPayment::findOrFail($this->paymentId);
+        if ($this->paymentId === null) {
+            return SupplierPayment::create($data + ['financial_year_id' => $yearId]);
+        }
+        // Re-check the draft status under row lock: a stale editor (the
+        // payment was posted from another tab meanwhile) must never overwrite
+        // the fields of a posted payment.
+        return DB::transaction(function () use ($data, $yearId): SupplierPayment {
+            $draft = SupplierPayment::whereKey($this->paymentId)->lockForUpdate()->firstOrFail();
+            if ($draft->status !== 'draft') {
+                throw new DomainException('This payment is no longer a draft.');
+            }
             $draft->update($data + ['financial_year_id' => $yearId]);
 
             return $draft;
-        }
-
-        return SupplierPayment::create($data + ['financial_year_id' => $yearId]);
+        });
     }
 
     public function save(): void
@@ -275,7 +298,13 @@ final class SupplierPaymentEditor extends Component
         if ($this->getErrorBag()->isNotEmpty()) {
             return;
         }
-        $draft = $this->persistDraft();
+        try {
+            $draft = $this->persistDraft();
+        } catch (DomainException $e) {
+            $this->addError('status', $e->getMessage());
+
+            return;
+        }
         session()->flash('status', 'Payment draft saved.');
         $this->redirectRoute('supplier-payments.show', $draft->id);
     }
@@ -291,8 +320,14 @@ final class SupplierPaymentEditor extends Component
         }
         try {
             $draft = $this->persistDraft();
+        } catch (DomainException $e) {
+            $this->addError('status', $e->getMessage());
+
+            return;
+        }
+        try {
             $posted = app(PostPayment::class)->post($draft->id, $this->allocations);
-        } catch (\DomainException $e) {
+        } catch (DomainException $e) {
             $this->addError('amount', $e->getMessage());
 
             return;

@@ -285,7 +285,8 @@ MS-04A/MS-04B/MS-05; MS-07 is blocked on external credentials; MS-08 is last.
   tests run against MySQL; (4) number-series concurrency validation where
   applicable; (5) tests use a `laravix_test_*` database; (6) tests never
   target development or production data. Tooling and records:
-  `docs/mysql-84.md`, `docs/mysql-test-runs.md`; routine cadence via LL-P1-012.
+  `docs/mysql-84.md`, `docs/mysql-test-runs.md`; the documented routine
+  cadence is `docs/mysql-validation-cadence.md` (LL-P1-012).
 - Releases: no release process exists yet — defined in MS-08.
 
 ## 14. Open questions requiring owner decisions

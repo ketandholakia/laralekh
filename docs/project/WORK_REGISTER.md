@@ -67,7 +67,8 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 | LL-P1-009 | Advance receipt voucher workflow | GST-correct advance receipts (time of supply, receipt voucher rules per `docs/settlements-design.md` § GST treatment of advances) | feature | High | PROPOSED | — | Required | Advance vouchers/records exist; later allocation converts advance to settlement; GST documents unaffected until supply | Service tests; CA review sign-off | Legal treatment already verified in docs — implementation design needed |
 | LL-P1-010 | Inventory/COGS policy and stock register | Decide whether sales post stock/COGS; add valuation + stock register screens | feature | Medium | PROPOSED | DEC-012 | Required | Policy recorded in `DEC-012`; implementation matches it | Tests per decision | Purchases already record stock movements; sales do not |
 | LL-P1-011 | Sales debit-note correction & reversal-of-reversal scope | Extend corrections where MVP deliberately defers: debit-note correction, reversal-of-reversal | feature | Medium | PROPOSED | — | Required | Scope approved and documented in `docs/corrections-design.md`; implemented with capacity guards | Service tests | `docs/corrections-design.md` marks these as later workflows |
-| LL-P1-012 | MySQL migration/concurrency validation cadence | Cross-cutting validation task (not a prerequisite for individual MS-04B workflows): promote migration up/down/up, immutability-trigger verification, and series-concurrency runs from ad-hoc docs to a documented routine (checklist or CI job on MySQL) | infrastructure | Medium | READY | — | Not Required | Documented cadence executed for each schema change; covers the P1 MySQL validation rule above | `docs/mysql-84.md`, `docs/mysql-test-runs.md` records | Requires local MySQL 8.4 (Docker path exists) |
+| LL-P1-012 | MySQL migration/concurrency validation cadence | Cross-cutting validation task (not a prerequisite for individual MS-04B workflows): promote migration up/down/up, immutability-trigger verification, and series-concurrency runs from ad-hoc docs to a documented routine (checklist or CI job on MySQL) | infrastructure | Medium | COMPLETED | — | Not Required | Documented cadence executed for each schema change; covers the P1 MySQL validation rule above | `docs/mysql-validation-cadence.md` (created 2026-11-18), cross-referenced from `DEVELOPMENT_PLAN.md` §13 and `docs/mysql-84.md`; run records in `docs/mysql-test-runs.md` | Delivered as the documented checklist variant (the register allowed "checklist or CI job"); a MySQL CI lane remains available as a future option and needs owner approval since it changes CI |
+| LL-P1-013 | Supplier-payment draft hardening | Harden the `SupplierPaymentEditor` draft path: re-verify `status = draft` under row lock at persist time (a stale editor must never overwrite a posted payment), and validate at draft stage that the selected party carries a liability (supplier) ledger, mirroring `PostPayment`'s authoritative rule | security | High | COMPLETED | LL-P1-002 | Approved (owner authorized 2026-11-18 as part of the hardening/documentation pass) | Stale save/post rejected with a validation error and no write; non-supplier party rejected at draft stage; suite green | 2 new UI tests in `SupplierPaymentUiTest`; full suite 398 passed / 1 todo / 1207 assertions (SQLite) | UI-level validation only — no migration, trigger or allocator change; per `docs/mysql-validation-cadence.md` the reduced MySQL cadence applies to this branch |
 
 ### P2 — GST compliance completion
 
@@ -104,34 +105,37 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 
 | ID | Work item | Description | Category | Priority | Status | Deps | Owner approval | Acceptance criteria | Verification | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| LL-P5-001 | README refresh | Update stale sections: "purchase and stock workflows are reserved for later steps" (purchases implemented), the "Deferred to later steps" list, and PHP 8.3 setup text (stack is PHP 8.4+/Laravel 13) | documentation | High | READY | — | Not Required | README matches the actual codebase | Review | Also fold in the CI/contribution section already present |
+| LL-P5-001 | README refresh | Update stale sections: "purchase and stock workflows are reserved for later steps" (purchases implemented), the "Deferred to later steps" list, and PHP 8.3 setup text (stack is PHP 8.4+/Laravel 13) | documentation | High | COMPLETED | — | Not Required | README matches the actual codebase | Review | Refreshed 2026-11-18: PHP 8.4+ setup, dependency-status rewritten for Laravel 13 + clean audit, deferred list corrected, new "Purchases, supplier payments and financial reports" section; verified against `PostPurchaseBill`/`PostPayment` and the seeded permissions |
 | LL-P5-002 | Deployment pipeline and production environment | Reproducible deployment (migrations, seeders, assets, queue workers) | infrastructure | High | PROPOSED | — | Required | A documented, rehearsed deployment path exists | Rehearsal on a test host | Target hosting needs owner decision |
 | LL-P5-003 | Backup and restore strategy | Backup schedule, restore runbook, tested against a `laravix_test_*` database | infrastructure | Critical | PROPOSED | — | Required | Restore proven end-to-end | Restore rehearsal | Accounting data loss is unrecoverable without this |
-| LL-P5-004 | composer audit re-review on Laravel 13 | The recorded advisories predate the Laravel 13 upgrade; re-run `composer audit` and disposition findings | security | Medium | READY | — | Not Required | Findings dispositioned in `docs/validation.md` | `composer audit` output | — |
+| LL-P5-004 | composer audit re-review on Laravel 13 | The recorded advisories predate the Laravel 13 upgrade; re-run `composer audit` and disposition findings | security | Medium | COMPLETED | — | Not Required | Findings dispositioned in `docs/validation.md` | `composer audit` output | Re-run 2026-11-18 via official `composer-stable.phar` (Composer 2.11.2): **0 advisories, 0 abandoned packages** on the lockfile (`laravel/framework` v13.40.0); disposition recorded in `docs/validation.md`; README dependency-status updated |
 | LL-P5-005 | Queue supervision and monitoring | `queue:work redis` is documented but unsupervised; add supervision/monitoring approach | infrastructure | Medium | PROPOSED | LL-P5-002 | Required | Queued jobs run reliably in production shape | Ops checklist | — |
 | LL-P5-006 | SQLite/MySQL trigger parity tests | Immutability triggers are MySQL-only; add a MySQL-run test lane or documented coverage note | testing | Medium | PROPOSED | — | Not Required | Posted-document immutability covered by automated tests on MySQL | MySQL test lane | LL-P1-012 provides the MySQL cadence |
 
 ## Summary
 
-**Total tasks: 38**
+**Total tasks: 39**
 
-By status: COMPLETED 4 · READY 17 · PROPOSED 12 · BLOCKED 4 · DEFERRED 1 ·
+By status: COMPLETED 13 · READY 9 · PROPOSED 12 · BLOCKED 4 · DEFERRED 1 ·
 IN_PROGRESS 0 · IN_REVIEW 0 · CANCELLED 0
 
-By priority: Critical 2 · High 13 · Medium 21 · Low 2
+By priority: Critical 2 · High 14 · Medium 21 · Low 2
 
-Tasks requiring owner approval before work starts ("Required") — **24**:
-LL-P1-001…LL-P1-011, LL-P2-001…LL-P2-004, LL-P3-006, LL-P3-008,
+Tasks requiring owner approval before work starts ("Required") — **19**:
+LL-P1-006…LL-P1-011, LL-P2-001…LL-P2-004, LL-P3-006, LL-P3-008,
 LL-P4-001…LL-P4-004, LL-P5-002, LL-P5-003, LL-P5-005.
 
 "Not Required" — **11**: LL-P0-001, LL-P1-012, LL-P3-001…LL-P3-005,
 LL-P3-007, LL-P5-001, LL-P5-004, LL-P5-006. These may start on normal
 instruction.
 
-Approved — **8**: LL-P0-002, LL-P0-003, LL-P0-004 (historical evidence
-recorded in the task rows: merged PRs / pushed commits) and LL-P1-001…LL-P1-005
+Approved — **9**: LL-P0-002, LL-P0-003, LL-P0-004 (historical evidence
+recorded in the task rows: merged PRs / pushed commits), LL-P1-001…LL-P1-005
 (MS-04A owner-approved on 2026-11-17 — implementation authorization limited to
-that milestone's scope; MS-04B remains NOT approved).
+that milestone's scope; MS-04B remains NOT approved) and LL-P1-013
+(owner-authorized 2026-11-18 as part of the hardening/documentation pass,
+together with LL-P1-012, LL-P5-001 and LL-P5-004, which are "Not Required"
+tasks executed on normal instruction).
 
 > Maintenance rules: keep this table the single source of task truth; when a
 > task moves, update its Status here and add a CHANGELOG entry with evidence.
