@@ -2,13 +2,13 @@
 
 **Smart Accounts. Simplified Business.**
 
-LaraLekh is Indian GST accounting and business management software built with Laravel 13. It provides a Livewire 3-based backend and UI for sales invoices, correction notes, internal reversals, and customer receipts.
+LaraLekh is Indian GST accounting and business management software built with Laravel 13. It provides a Livewire 3-based backend and UI for sales invoices, correction notes, internal reversals, customer receipts and settlements, purchase bills, supplier payments, financial-year management, and trial balance / profit & loss / balance-sheet reports.
 
 Current stack targets PHP 8.4+, Laravel 13, MySQL 8, Livewire 3 (including Alpine), Tailwind 3, Redis, Pest, Spatie permission and activitylog, DomPDF via its Laravel integration, chillerlan/php-qrcode for the invoice payment QR, and Sanctum.
 
 ## Setup
 
-Install PHP 8.3 with BCMath, PDO MySQL, mbstring, XML, curl, zip and fileinfo.
+Install PHP 8.4 or newer with BCMath, PDO MySQL, mbstring, XML, curl, zip and fileinfo.
 Redis connections use the phpredis extension (no additional Composer client).
 
 Typeface: the UI uses [Inter](https://github.com/rsms/inter), self-hosted in
@@ -36,12 +36,13 @@ laravix_test_migrations database to verify migration up/down/up.
 
 ## Dependency status
 
-Laravel 11 was explicitly requested. Its security support ended on March 12, 2026:
-<https://laravel.com/docs/11.x/releases>. Composer currently reports advisories
-against Laravel 11. Initial dependency resolution required a one-time
-`--no-security-blocking` override; project security policy is not disabled.
-Run `composer audit` and upgrade the framework before exposing this app publicly.
-The lockfile preserves the dependency set, not a claim of security clearance.
+The stack is Laravel 13 (`laravel/framework` v13.x, PHP >= 8.4.1), upgraded
+from the originally requested Laravel 11, which reached the end of its
+security support on March 12, 2026: <https://laravel.com/docs/11.x/releases>.
+The upgrade and its validation are recorded in
+[validation notes](docs/validation.md). `composer audit --locked` reports no
+security advisories and no abandoned packages as of 18 November 2026; rerun it
+before exposing this app publicly (it is part of the pre-release checklist).
 
 Only requested direct packages are installed. Pest and framework dependencies are
 transitive. Alpine ships with Livewire; Tailwind's CLI handles the placeholder CSS.
@@ -51,8 +52,10 @@ There is no separate Alpine bootstrap, starter UI, or extra Redis client package
 
 Domain models and business services live in app/Domain/{Accounting,Sales,Purchase,
 Inventory,Gst,Masters}. Shared money, casts and tenancy live in app/Domain/Shared.
-Purchase and stock workflows are reserved for later steps; their foundation tables
-exist. Sales posting currently posts the financial voucher, not stock or cost of goods.
+Purchase bills and supplier payments are implemented (see below). Sales posting
+currently posts the financial voucher, not stock or cost of goods — the
+inventory/COGS policy is an open decision; purchase bills already record stock
+movements.
 
 After authenticating AND authorizing company membership, enter a scoped context:
 
@@ -184,13 +187,38 @@ grant `receipts.view/create/post/allocate` through company-scoped roles.
 
 See [settlement design and limitations](docs/settlements-design.md).
 
+## Purchases, supplier payments and financial reports
+
+Purchase bills post through the same balanced-voucher pipeline (Dr purchases /
+input GST, Cr supplier/payables), record stock movements, and are immutable
+once posted. Supplier payments post Dr supplier / Cr cash-or-bank with a
+per-year `SP` number allocated inside the locking transaction; a payment must
+be fully allocated to posted bills of the same supplier, outstanding balances
+are derived (bill payable less active allocations, reversal markers excluded),
+and payment reversals restore bill outstanding through immutable linked
+records. Reverse-charge bills are payable at their taxable value.
+
+Screens (membership/permission checked server-side): purchase register,
+supplier-payment register/editor/view guarded by `purchases.view`,
+`purchases.create` and `purchases.post`, a financial-year create/close screen
+guarded by `years.manage` (closing is permanent; closed years reject posting),
+and read-only trial balance, profit & loss and balance-sheet reports guarded by
+`reports.view`, computed from posted voucher movements only and reconciled to
+the ledger totals. Grant the new permissions through the existing
+company-scoped Spatie roles; seeders define them without widening existing
+roles.
+
 ## Deferred to later steps
 
-Purchases, supplier payments, inventory posting, GST return exports, the
-advance-tax receipt-voucher workflow, e-invoicing (IRP QR and reporting),
-GSTR-2B reconciliation, refund of excess customer credits, and a separate
-zero-value document workflow remain future work. Sanctum is installed
-for the later API/mobile step; this step's screens are session-only.
+Inventory/COGS posting on sales (policy decision pending), purchase debit-note
+and sales debit-note correction workflow extensions, GST return exports
+(GSTR-1 JSON awaits the official schema; GSTR-2B reconciliation needs an
+import-format decision), the advance-tax receipt-voucher workflow, e-invoicing
+(IRP QR and reporting), refund of excess customer credits, user and role
+management screens, item master screens, PDF template customization, a
+separate zero-value document workflow, and the deployment/backup workstreams
+remain future work. Sanctum is installed for the later API/mobile step; this
+step's screens are session-only.
 
 ## CI and contributions
 

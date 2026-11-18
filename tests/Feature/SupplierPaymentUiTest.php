@@ -314,3 +314,58 @@ it('shows the reversal banner on a reversed payment like the receipt view does',
             ->assertSee('Supplier returned the funds', false);
     });
 });
+
+
+// --- Draft hardening (LL-P1-013) ---
+
+it('refuses to save or post a payment that was posted after the editor was opened', function () {
+    [$user, $company] = supplierUiSession(['purchases.view', 'purchases.create', 'purchases.post']);
+    $this->actingAs($user);
+    $billId = inTenantContext($company, function (): int {
+        $bill = supplierBillFixture();
+        app(PostPurchaseBill::class)->handle($bill->id);
+
+        return $bill->id;
+    });
+
+    inTenantContext($company, function () use ($billId): void {
+        $party = \App\Domain\Masters\Models\Party::where('name', 'Supplier')->sole();
+        $draft = supplierPaymentDraft($party, '400.00');
+        $component = Livewire::test(SupplierPaymentEditor::class, ['payment' => $draft->id]);
+
+        // Another tab posts the payment while this editor is still open.
+        app(PostPayment::class)->post($draft->id, [$billId => '400.00']);
+
+        // A stale save must never overwrite the posted payment's fields.
+        $component->set('amount', '999.00')->set('date', '2026-11-12')
+            ->call('save')->assertHasErrors(['status']);
+        $posted = SupplierPayment::sole();
+        expect($posted->status)->toBe('posted')
+            ->and((string) $posted->amount)->toBe('400.00')
+            ->and($posted->date->toDateString())->toBe('2026-11-06');
+
+        // A stale post is refused the same way and posts nothing new.
+        $component->set('amount', '999.00')->call('post')->assertHasErrors(['status']);
+        expect(SupplierPayment::count())->toBe(1)
+            ->and((string) SupplierPayment::sole()->amount)->toBe('400.00');
+    });
+});
+
+it('rejects a draft payment to a party that is not a supplier', function () {
+    [$user, $company] = supplierUiSession(['purchases.view', 'purchases.create', 'purchases.post']);
+    $this->actingAs($user);
+    inTenantContext($company, function (): void {
+        [$customer] = masters(); // customer party on the RECEIVABLES (asset) ledger
+        $component = Livewire::test(SupplierPaymentEditor::class)
+            ->set('partyId', $customer->id)->set('partyName', 'Customer')
+            ->set('ledgerId', cashLedger()->id)
+            ->set('date', '2026-11-10')->set('amount', '100.00');
+
+        $component->call('save')->assertHasErrors(['party']);
+        expect(SupplierPayment::count())->toBe(0);
+
+        $component->call('post')->assertHasErrors(['party']);
+        expect(SupplierPayment::count())->toBe(0)
+            ->and(\App\Domain\Accounting\Models\Voucher::where('type', 'payment')->count())->toBe(0);
+    });
+});

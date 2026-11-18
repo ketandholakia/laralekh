@@ -1,8 +1,34 @@
 # Validation history
 
-Latest: [Laravel 13 upgrade validation](#laravel-13-upgrade-7-november-2026)
-on branch `upgrade-laravel-13` — PHP 8.5.9 host, MySQL 8.4.13 via Docker.
-Earlier sections are historical.
+Latest: [Composer audit re-review](#composer-audit-re-review-18-november-2026)
+(18 November 2026). Earlier sections are historical.
+
+## Composer audit re-review (18 November 2026)
+
+Re-review of `composer audit` on the current Laravel 13 lockfile (LL-P5-004).
+The historical Step 1–4 records carried 5 Laravel 11 advisories that predated
+the Laravel 13 upgrade; the upgrade section already recorded 0 advisories.
+This run re-verified the disposition on the lockfile as it stands now
+(`laravel/framework` **v13.40.0**):
+
+| Check | Result |
+| --- | --- |
+| `composer audit --locked` (Composer 2.11.2, PHP 8.5.9 host) | **0 advisories, 0 abandoned packages** |
+| `composer audit --locked --format=json` | `advisories: []`, `abandoned: []` |
+
+**Disposition:** no findings to remediate; no packages require upgrading for
+security reasons, and no audit exclusions exist or were added. The historical
+Laravel 11 advisory entries in `docs/dependency-audit.json` remain as a record
+of the pre-upgrade state and no longer describe the current dependency set.
+
+Environment notes for transparency: this host has no Composer binary, so the
+audit ran via the official `composer-stable.phar` (Composer 2.11.2) against
+the project lockfile from the repository root. The runner emitted
+`You are running Composer with SSL/TLS protection disabled` (host `php.ini`
+provides no explicit CA bundle; the advisory API was still queried
+successfully, as the JSON result shows). For a belt-and-braces re-check,
+`composer audit --locked` can be rerun in the CI environment (Composer is
+preinstalled on the GitHub Actions runners used by the quality job).
 
 ## Step 2 validation (historical)
 
