@@ -78,6 +78,79 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+    /* Shared-table conventions: styling lives here so every table using
+       <x-table> (or the plain x-table class) looks identical. Callers
+       override per-cell with their own utilities. */
+    .x-table thead {
+        @apply bg-slate-50;
+    }
+
+    .x-table thead th {
+        @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600;
+    }
+
+    .x-table tbody tr + tr {
+        @apply border-t border-slate-100;
+    }
+
+    .x-table tbody td {
+        @apply px-4 py-3 text-slate-800 align-middle;
+    }
+
+    /* Shared pagination, wired via Pagination::defaultView(). */
+    .x-pagination {
+        @apply flex items-center justify-between gap-4;
+    }
+
+    .x-pagination-summary {
+        @apply text-sm text-slate-600;
+    }
+
+    .x-pagination-nav {
+        @apply inline-flex items-stretch isolate;
+    }
+
+    .x-pagination-item {
+        @apply inline-flex items-center -ml-px border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 leading-5 transition-colors hover:bg-slate-50 hover:text-brand-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 disabled:cursor-not-allowed disabled:text-slate-400;
+    }
+
+    .x-pagination-item[aria-current='page'] {
+        @apply bg-brand-700 text-white border-brand-700 cursor-default hover:bg-brand-700 hover:text-white;
+    }
+
+    .x-pagination-item.is-disabled {
+        @apply cursor-not-allowed text-slate-400 hover:bg-white hover:text-slate-400;
+    }
+
+    .x-pagination-item:first-child {
+        @apply ml-0 rounded-l-md;
+    }
+
+    .x-pagination-item:last-child {
+        @apply rounded-r-md;
+    }
+
+    /* Dialog panel entrance (respecting reduced-motion preferences). */
+    @media (prefers-reduced-motion: no-preference) {
+        .x-dialog-panel {
+            animation: x-dialog-in 160ms ease-out;
+        }
+    }
+
+    @keyframes x-dialog-in {
+        from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.98);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+}
+
 @layer base {
     html {
         -webkit-tap-highlight-color: transparent;
