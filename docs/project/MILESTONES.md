@@ -12,7 +12,7 @@ demonstrably met — code presence alone is never evidence.
 | MS-04A | Accounting safety and essential reports | LL-P1-001…LL-P1-005 | ACCEPTED — owner-accepted 2026-11-17 after independent audit and F-01…F-04 remediation |
 | MS-04B | Additional accounting workflows | LL-P1-006…LL-P1-011 | PROPOSED (per-workflow approval) |
 | MS-05 | GST compliance completion | LL-P2-001…LL-P2-004 | PROPOSED |
-| MS-06 | UI completion and administration | LL-P3-001…LL-P3-008 | PROPOSED |
+| MS-06 | UI completion and administration | LL-P3-001…LL-P3-008 | PROPOSED (Stage 0 — LL-P3-000 — completed via PR #6, 2026-11-18) |
 | MS-07 | Integrations | LL-P4-001…LL-P4-004 | PROPOSED (BLOCKED items inside) |
 | MS-08 | Production readiness | LL-P5-001…LL-P5-006 | PROPOSED (LL-P5-001, LL-P5-004 completed via PR #4, 2026-11-18) |
 
@@ -159,9 +159,43 @@ in the entry audit (Stages A–E) on a dedicated feature branch.
 - **Tests:** golden tests vs official samples; reconciliation tests.
 - **Owner acceptance:** milestone report reviewed with CA outputs.
 
-## MS-06 — UI completion and administration — PROPOSED
+## MS-06 — UI completion and administration — PROPOSED (Stage 0 completed 2026-11-18)
 
-- **Included tasks:** LL-P3-001…LL-P3-008.
+**Stage 0 — shared UI foundations (LL-P3-000) — COMPLETED (PR #6, 2026-11-18):**
+delivered as a separate PR per the owner's binding decision on the approved
+MS-06 implementation plan. Scope: shared design-system primitives for the
+remaining screen work — `x-table`, `x-dialog` (native `<dialog>`),
+`x-combobox`, `x-textarea`, `x-detail-list` — the LaraLekh pagination view
+(`pagination.laralekh`, registered as the Laravel default and wired via
+`paginationView()` on the four register lists after review finding F-01),
+field-error accessibility wiring (stable `{name}-error`/`{name}-hint` ids,
+additive `aria-invalid`/`aria-describedby`), and the missing `brand-200`
+token. The independent review findings **F-01** (Livewire's `WithPagination`
+overriding the default pagination view) and **F-02** (table row-divider CSS)
+were remediated on the same branch (commit `22fbdc0`).
+
+- **Evidence:** commits `1da192d` (Stage 0) and `22fbdc0` (remediation) merged
+  via **PR #6** (merge commit `0e46f11`, 2026-11-18T13:38:19Z; branch
+  preserved); PR CI run `44314872756` 3/3 SUCCESS; post-merge CI run
+  `44315749152` 3/3 SUCCESS; final suite **412 passed / 1 todo / 1311
+  assertions** (SQLite); `npm run build` PASS; reduced MySQL cadence PASS
+  (migration up/down/up on `laravix_test_migrations`; 46 triggers +
+  immutability tamper probe on `laravix_test_ms06_s0`). No accounting,
+  domain, route, permission or schema changes.
+- **Remaining work (outstanding):** LL-P3-001 (sales invoice editor + view),
+  LL-P3-002 (receipt editor + view), LL-P3-003 (purchase editor + view),
+  LL-P3-004 (corrections and reversals), LL-P3-005 (customer outstanding +
+  statement) — in the approved implementation sequence — plus the gated
+  LL-P3-006…LL-P3-008. The four Livewire list components received only the
+  `paginationView()` method; their screen modernization has not started.
+- **Owner decisions carried from the approved MS-06 plan (unchanged):** GST
+  returns detail excluded (separate proposal only); mobile drawer focus trap
+  and user-menu keyboard management deferred; `docs/ui/ui-inventory.md`
+  refresh at MS-06 completion. READY statuses are not implementation
+  authorization.
+
+- **Included tasks:** LL-P3-001…LL-P3-008 (plus the LL-P3-000 enabler
+  substage, completed above).
 - **Entry criteria:** none beyond design-system availability (merged).
 - **Exit criteria:** all listed screens on the design system with unchanged
   behaviour tests; user/role administration fully permission-tested.

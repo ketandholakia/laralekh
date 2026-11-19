@@ -346,3 +346,77 @@ evidence (commit SHA, CI run).
   (diff touches exactly the nine declared files plus the new cadence doc).
 - **Outstanding:** no other follow-ups introduced. MS-04B, DEC-012…017, F-05,
   F-06, MS-05A remain unapproved and untouched.
+
+## 2026-11-18 — MS-06 Stage 0 shared UI foundations (PR #6)
+
+- **Summary:** implemented the Stage 0 enabler substage of MS-06 on the
+  dedicated branch `feature/ms-06-stage-0-ui-foundation` (created from
+  `main` @ `8327663`) and merged it as **PR #6**:
+  https://github.com/ketandholakia/laralekh/pull/6. Presentation
+  infrastructure only — no accounting or domain behaviour changes.
+  - **Shared components:** `x-table` (semantic, responsive, optional
+    caption), `x-dialog` (native `<dialog>` with `role="dialog"`,
+    `aria-modal`, labelled title, delegated open/close/backdrop handling),
+    `x-combobox` (ARIA combobox/listbox/option semantics with
+    ArrowUp/Down/Enter/Escape keyboard navigation), `x-textarea`
+    (label/hint/error presentation), `x-detail-list` (semantic
+    `dl`/`dt`/`dd` rows).
+  - **Brand pagination:** `resources/views/pagination/laralekh.blade.php`
+    replaces the stock Laravel/Livewire pagination styling; registered via
+    `Paginator::defaultView('pagination.laralekh')` and, after review
+    finding F-01, via `paginationView()` on the four register list
+    components (`InvoiceList`, `ReceiptList`, `PurchaseBillList`,
+    `SupplierPaymentList`) — page state, query-string filters and
+    prev/next/page-number navigation preserved.
+  - **Accessibility:** `x-field` gained stable `{name}-error`/`{name}-hint`
+    ids; `x-input`/`x-select` gained an additive optional `:error` prop
+    wiring `aria-invalid`/`aria-describedby` (existing error-bag keys
+    unchanged); `x-icon` no longer leaks the icon name onto `<svg>`.
+  - **Tokens/CSS:** added the missing `brand-200` token (fixes the `x-alert`
+    info border); shared `@layer components` conventions for tables,
+    pagination and the dialog panel (reduced-motion respecting).
+  - **Independent review:** an independent read-only review of the PR
+    returned **CHANGES REQUIRED** with one MAJOR finding — F-01: Livewire's
+    `WithPagination` overrides `Paginator::$defaultView` while a list
+    renders, so the brand pagination view was never used at runtime — plus
+    F-02 (`.x-table` row-divider CSS compiled to cell-level borders). The
+    owner authorized remediation of both; F-01 was fixed with
+    `paginationView()` on the four list components and proven by four new
+    runtime regression tests (each list rendered through `Livewire::test`
+    with 11 records, asserting LaraLekh pagination markup, page-1/page-2
+    content via `?page=2`, and absence of stock Livewire pagination
+    markup); F-02 was corrected to `.x-table tbody tr + tr` full-width
+    top borders and verified in the compiled CSS.
+- **Task IDs:** LL-P3-000 (new register row, ID assigned during the
+  owner-authorized documentation reconciliation; Stage 0 is the enabler
+  substage of MS-06). LL-P3-001…LL-P3-005 remain READY/outstanding — the
+  four Livewire list components received only the `paginationView()` method.
+- **Files/modules:** `app/Providers/AppServiceProvider.php`,
+  `app/Livewire/{Sales/InvoiceList,Sales/ReceiptList,
+  Purchase/PurchaseBillList,Purchase/SupplierPaymentList}.php`,
+  `resources/css/app.css`, `resources/views/components/{table,dialog,
+  combobox,textarea,detail-list,field,icon,input,select}.blade.php`,
+  `resources/views/pagination/laralekh.blade.php` (new), `tailwind.config.js`,
+  `tests/Feature/DesignSystemComponentsTest.php` (new).
+- **Tests:** Stage 0 component tests 14 passed / 104 assertions; full suite
+  **412 passed / 1 todo / 1311 assertions** (SQLite, up from 398/1207);
+  `npm run build` PASS; `git diff --check` clean. Reduced MySQL cadence
+  (per `docs/mysql-validation-cadence.md`): migration up/down/up PASS
+  (`laravix_test_migrations`); 46 triggers present and the immutability
+  tamper probe PASS on `laravix_test_ms06_s0` (raw UPDATE/DELETE on a posted
+  voucher rejected).
+- **Commits:** `1da192d4d24071dca155ed194ae4e259c0b10457` (Stage 0) and
+  `22fbdc0650c24458fe2c5dbc7e2bbc96495f1028` (F-01/F-02 remediation) on
+  `feature/ms-06-stage-0-ui-foundation`, merged as **PR #6** (normal merge
+  commit **`0e46f119061697b558d391bfd60890539d6e5519`**, 2026-11-18T13:38:19Z;
+  feature branch preserved; no squash/rebase/force-push).
+- **CI:** PR run `44314872756` 3/3 SUCCESS (Backend SQLite 56s, Frontend
+  build 8s, Quality and security 10s); post-merge run `44315749152` on
+  `main` @ `0e46f11` 3/3 SUCCESS (55s / 10s / 18s).
+- **Post-merge baseline:** `main` @ `0e46f11` — suite 412 passed / 1 todo /
+  1311 assertions (SQLite).
+- **Outstanding:** MS-06 screen modernization (LL-P3-001…005, in the
+  approved sequence) remains outstanding; GST returns detail excluded
+  (separate proposal only); mobile drawer focus trap and user-menu keyboard
+  management deferred; `docs/ui/ui-inventory.md` refresh deferred to MS-06
+  completion. MS-04B, MS-05A, F-05, F-06 remain unapproved and untouched.
