@@ -5,6 +5,11 @@
         :sub="'Customer outstanding · ' . ($summary['party']->gstin ?? 'unregistered')"
     >
         <x-slot name="actions">
+            @if ($summary['excess_credits']->isPositive() || $summary['advances']->isPositive())
+                @can('receipts.create')
+                    <x-button :href="route('customers.refunds.create', $summary['party'])" variant="primary" icon="wallet">Refund credit</x-button>
+                @endcan
+            @endif
             <x-button :href="route('customers.statement', $summary['party'])" variant="secondary" icon="swap">Statement</x-button>
             <x-button :href="route('customers.index')" variant="ghost">All customers</x-button>
         </x-slot>

@@ -6,6 +6,8 @@ namespace App\Domain\Sales\Services;
 
 use App\Domain\Accounting\Models\VoucherReversal;
 use App\Domain\Masters\Models\Party;
+use App\Domain\Sales\Models\CustomerRefund;
+use App\Domain\Sales\Models\CustomerRefundReversal;
 use App\Domain\Sales\Models\Invoice;
 use App\Domain\Sales\Models\Receipt;
 use App\Domain\Sales\Models\ReceiptReversal;
@@ -23,7 +25,8 @@ use Illuminate\Support\Carbon;
 final class CustomerStatement
 {
     private const KIND_ORDER = ['invoice' => 1, 'debit_note' => 2, 'receipt_reversal' => 3,
-        'receipt' => 4, 'credit_note' => 5, 'invoice_reversal' => 6];
+        'customer_refund' => 4, 'receipt' => 5, 'credit_note' => 6, 'invoice_reversal' => 7,
+        'customer_refund_reversal' => 8];
 
     public function __construct(private SettlementService $settlement) {}
 
@@ -111,6 +114,22 @@ final class CustomerStatement
             $rows[] = $this->row('invoice_reversal', $reversal->id, $reversal->date->format('Y-m-d'),
                 'Invoice reversal (of '.$reversal->original_snapshot['number'].')',
                 '0.00', (string) ($reversal->entries_snapshot[0]['credit'] ?? '0.00'));
+        }
+        foreach (CustomerRefund::query()->where('party_id', $partyId)->where('status', 'posted')
+            ->where('date', '>=', $from)
+            ->where('date', '<', Carbon::parse($asOf)->addDay()->toDateString())->orderBy('id')->get() as $refund) {
+            $rows[] = $this->row('customer_refund', $refund->id, $refund->date->format('Y-m-d'),
+                'Customer refund '.$refund->label().($refund->payment_reference ? ' (ref '.$refund->payment_reference.')' : ''),
+                (string) $refund->amount, '0.00');
+        }
+        foreach (CustomerRefundReversal::query()->where('status', 'posted')
+            ->where('date', '>=', $from)
+            ->where('date', '<', Carbon::parse($asOf)->addDay()->toDateString())
+            ->whereHas('refund', fn ($q) => $q->where('party_id', $partyId))
+            ->orderBy('id')->get() as $reversal) {
+            $rows[] = $this->row('customer_refund_reversal', $reversal->id, $reversal->date->format('Y-m-d'),
+                'Customer refund reversal (of '.($reversal->original_snapshot['number'] ?? '').')',
+                '0.00', (string) ($reversal->original_snapshot['amount'] ?? '0.00'));
         }
 
         return $rows;
