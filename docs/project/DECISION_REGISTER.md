@@ -31,13 +31,13 @@ still need an owner call are `PROPOSED`.
 | DEC-011 | UI modernization direction | Dashboard at `/`; company selection redirects to `/`; brand tokens (teal/navy/saffron) + self-hosted Inter (OFL) + zero-dependency icon sprite; permission-gated financial KPIs; receivables mirror `SettlementService` semantics read-only | PR #2 (disclosed in body; audited F1/F2/F3) merged 2026-11-15 | OWNER_APPROVED (PR #2) |
 | DEC-012 | Inventory / COGS policy | UNDECIDED: purchases record stock movements; sales post no stock/COGS. Whether sales should move stock, and the valuation method, needs an owner decision before any stock/COGS feature | `README.md` ("Sales posting currently posts the financial voucher, not stock or cost of goods"); `PostPurchaseBill` uses `StockMovement` | PROPOSED |
 | DEC-013 | Advance receipt vouchers | UNDECIDED: GST treatment already verified in `docs/settlements-design.md`; whether to build the workflow now | LL-P1-009 / LL-P2-004 | PROPOSED |
-| DEC-014 | Purchase debit notes | UNDECIDED: schema designed (`purchase_guards_and_debit_note_design`), workflow not built | LL-P1-006 | PROPOSED |
+| DEC-014 | Purchase debit notes | Built upon `purchase_guards_and_debit_note_design` schema: capacity tracking against returnable quantities, proportional tax reversal, Dr. Payable / Cr. Purchase & Input GST, stock reduction for tracked items | LL-P1-006; PR #27 (merge `769b961`, 2026-11-24) | OWNER_APPROVED (PR #27) |
 | DEC-015 | Zero-value invoice workflow | UNDECIDED: excluded from posting today; needs a non-accounting document design | `README.md`; LL-P1-007 | PROPOSED |
 | DEC-016 | Refund of excess customer credits | UNDECIDED: credits displayed separately only | LL-P1-008 | PROPOSED |
 | DEC-017 | Sales debit-note correction / reversal-of-reversal scope | UNDECIDED: deliberately deferred in the corrections MVP | `docs/corrections-design.md`; LL-P1-011 | PROPOSED |
 | DEC-018 | GSTR-2B import format | UNDECIDED: manual import needs a format decision (no portal feed exists) | LL-P2-002 | PROPOSED |
 | DEC-019 | User administration expectations | Direct user creation/linking with initial password; `is_active` boolean on `company_user` pivot table (deactivated members fail `isMemberOf`); company-scoped custom roles with permission catalog and quick templates | PR #18 (merge `60765ff`, 2026-11-24); `UserManager`, `RoleManager`, `UserAndRoleManagementTest` | OWNER_APPROVED (PR #18) |
-| DEC-020 | PDF customization scope | UNDECIDED: letterhead/logo/footer options | LL-P3-008 | PROPOSED |
+| DEC-020 | PDF customization scope | Company-level letterhead spacer (`hide_header`), custom secondary trade names, contact info lines, logo data URI, bank remittance details, footer terms, and signature designation | LL-P3-008; PR #25 (merge `af18f0e`, 2026-11-24) | OWNER_APPROVED (PR #25) |
 | DEC-021 | Integration providers and credentials | UNDECIDED: IRP/GSP choice, e-way credentials, bank feed source | LL-P4-001…003 | PROPOSED |
 | DEC-022 | Hosting/deployment target | UNDECIDED: environment for production readiness work | LL-P5-002 | PROPOSED |
 

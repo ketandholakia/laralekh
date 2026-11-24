@@ -631,3 +631,25 @@ evidence (commit SHA, CI run).
 - **CI:** PR run `45419445644` 3/3 SUCCESS (Backend SQLite 1m4s, Frontend build 13s, Quality and security 10s).
 - **Post-merge baseline:** `main` @ `af18f0e` — full suite 439 passed / 1 todo / 1436 assertions (SQLite).
 - **Outstanding:** MS-06 is fully completed. Next on roadmap: MS-04B (additional accounting workflows) and MS-05 (GST compliance completion).
+
+## 2026-11-24 — Purchase debit-note workflow (LL-P1-006, PR #27)
+
+- **Summary:** Implemented the full purchase debit-note workflow utilizing the existing `purchase_debit_notes` and `purchase_debit_note_lines` database schema (`2026_11_06_240000_purchase_guards_and_debit_note_design.php`). Features draft creation and editing (`PurchaseDebitNoteEditor` at `/purchase-bills/{bill}/debit-notes/create` and `/purchase-debit-notes/{id}/edit`), returnable item capacity enforcement (`max_returnable = quantity - sum(prior_debits)`), proportional tax calculation across CGST, SGST, UTGST, IGST, and Cess, and atomic debit note posting (`PostPurchaseDebitNote`). The posting action allocates standard voucher numbers (`PDN/1`) via `VoucherNumberAllocator`, posts balanced general ledger vouchers (`type: 'debit_note'`: Dr. Supplier Payable / Creditor, Cr. Purchase/Expense Ledger, Cr. Input GST Ledgers), records negative `StockMovement` records for tracked goods, and locks the debit note into immutable `posted` state. Integrated debit note inspection (`PurchaseDebitNoteView` at `/purchase-debit-notes/{id}`) and "Issue Debit Note" actions into `PurchaseBillView`.
+- **Task ID:** LL-P1-006 (COMPLETED). Advances milestone **MS-04B (Additional accounting workflows)**.
+- **Files/modules:** `app/Domain/Purchase/Actions/PostPurchaseDebitNote.php`,
+  `app/Domain/Purchase/Actions/SavePurchaseDebitNoteDraft.php`,
+  `app/Domain/Purchase/Models/PurchaseBill.php`,
+  `app/Domain/Purchase/Models/PurchaseBillItem.php`,
+  `app/Domain/Purchase/Models/PurchaseDebitNote.php`,
+  `app/Domain/Purchase/Models/PurchaseDebitNoteLine.php`,
+  `app/Livewire/Purchase/PurchaseBillView.php`,
+  `app/Livewire/Purchase/PurchaseDebitNoteEditor.php`,
+  `app/Livewire/Purchase/PurchaseDebitNoteView.php`,
+  `resources/views/livewire/purchase/purchase-bill-view.blade.php`,
+  `resources/views/livewire/purchase/purchase-debit-note-editor.blade.php`,
+  `resources/views/livewire/purchase/purchase-debit-note-view.blade.php`,
+  `routes/web.php`, `tests/Feature/PurchaseDebitNoteTest.php`.
+- **Commits:** `88f2236` merged via **PR #27** (merge commit **`769b961`**, 2026-11-24).
+- **CI:** PR run `45507207230` 3/3 SUCCESS (Backend SQLite 48s, Frontend build 9s, Quality and security 10s).
+- **Post-merge baseline:** `main` @ `769b961` — full suite 445 passed / 1 todo / 1463 assertions (SQLite).
+- **Outstanding:** MS-04B remaining workflows are LL-P1-008 (customer credit refund) and LL-P1-009 (advance receipt voucher).

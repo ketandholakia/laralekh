@@ -61,7 +61,7 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 | LL-P1-003 | Financial-year management screen | Create/close financial years per company with guards (no posting into closed years) | feature | High | COMPLETED | — | Approved | FY create/close works for members with an admin role; closed years reject posting | UI + service tests | FYs currently only created via seeders/tests/code. **MS-04A owner-approved 2026-11-17.** **Owner-accepted 2026-11-17 (MS-04A acceptance; audit verdict ACCEPTANCE READY).** |
 | LL-P1-004 | Trial balance report | Debit/credit totals per ledger for a period, from posted vouchers only | feature | High | COMPLETED | — | Approved | TB debits equal credits; respects tenant scope; period filters | Service + UI tests | Reuse ledger movement aggregation patterns from `SettlementService::ledgerBalance` (read-only variant). **MS-04A owner-approved 2026-11-17.** **Owner-accepted 2026-11-17 (MS-04A acceptance; audit verdict ACCEPTANCE READY).** |
 | LL-P1-005 | Profit & loss and balance sheet reports | P&L for a period and balance sheet as at a date from the chart of accounts and posted vouchers | feature | High | COMPLETED | LL-P1-004 | Approved | Reports reconcile to ledger totals; empty state for new companies | Service + UI tests | Depends on ledger-group classification in the seeded chart. **MS-04A owner-approved 2026-11-17.** **Owner-accepted 2026-11-17 (MS-04A acceptance; audit verdict ACCEPTANCE READY).** |
-| LL-P1-006 | Purchase debit-note workflow | Workflow for the designed purchase debit-note storage (`purchase_guards_and_debit_note_design` migration) | feature | Medium | PROPOSED | — | Required | Mirrors sales-correction rigour: capacity, immutability, GST treatment decided | Service + UI tests | Design exists in schema; scope needs owner approval |
+| LL-P1-006 | Purchase debit-note workflow | Workflow for the designed purchase debit-note storage (`purchase_guards_and_debit_note_design` migration) | feature | Medium | COMPLETED | — | Approved (PR #27 merged 2026-11-24) | Mirrors sales-correction rigour: capacity, immutability, GST treatment decided | 6 new Feature tests in PurchaseDebitNoteTest; PR #27 CI 3/3 green | Implemented SavePurchaseDebitNoteDraft & PostPurchaseDebitNote actions, PurchaseDebitNoteEditor & PurchaseDebitNoteView UI, PurchaseBill integration; PR #27 merge 769b961 |
 | LL-P1-007 | Zero-value invoice document workflow | Non-accounting document workflow for zero-value invoices (explicitly excluded from posting today) | feature | Medium | PROPOSED | — | Required | Zero-value documents recorded without accounting postings; GST documents list unaffected | Tests | README: "Zero-value invoices require a future non-accounting document workflow" |
 | LL-P1-008 | Refund of excess customer credits | Workflow to refund excess credits/advances without disturbing immutable history | feature | Medium | PROPOSED | — | Required | Refund posts a mirrored voucher; credits/advances reduce accordingly; statements reconcile | Service + UI tests | Excess credits currently displayed separately only |
 | LL-P1-009 | Advance receipt voucher workflow | GST-correct advance receipts (time of supply, receipt voucher rules per `docs/settlements-design.md` § GST treatment of advances) | feature | High | PROPOSED | — | Required | Advance vouchers/records exist; later allocation converts advance to settlement; GST documents unaffected until supply | Service tests; CA review sign-off | Legal treatment already verified in docs — implementation design needed |
@@ -117,23 +117,24 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 
 **Total tasks: 40**
 
-By status: COMPLETED 16 · READY 7 · PROPOSED 12 · BLOCKED 4 · DEFERRED 1 ·
+By status: COMPLETED 17 · READY 7 · PROPOSED 11 · BLOCKED 4 · DEFERRED 1 ·
 IN_PROGRESS 0 · IN_REVIEW 0 · CANCELLED 0
 
 By priority: Critical 2 · High 14 · Medium 22 · Low 2
 
-Tasks requiring owner approval before work starts ("Required") — **17**:
-LL-P1-006…LL-P1-011, LL-P2-001…LL-P2-004,
+Tasks requiring owner approval before work starts ("Required") — **16**:
+LL-P1-007…LL-P1-011, LL-P2-001…LL-P2-004,
 LL-P4-001…LL-P4-004, LL-P5-002, LL-P5-003, LL-P5-005.
 
 "Not Required" — **12**: LL-P0-001, LL-P1-012, LL-P3-000, LL-P3-001…LL-P3-005,
 LL-P3-007, LL-P5-001, LL-P5-004, LL-P5-006. These may start on normal
 instruction.
 
-Approved — **11**: LL-P0-002, LL-P0-003, LL-P0-004 (historical evidence
+Approved — **12**: LL-P0-002, LL-P0-003, LL-P0-004 (historical evidence
 recorded in the task rows: merged PRs / pushed commits), LL-P1-001…LL-P1-005
 (MS-04A owner-approved on 2026-11-17 — implementation authorization limited to
-that milestone's scope; MS-04B remains NOT approved), LL-P1-013
+that milestone's scope; MS-04B remains NOT approved), LL-P1-006
+(owner-approved 2026-11-24 via PR #27), LL-P1-013
 (owner-authorized 2026-11-18 as part of the hardening/documentation pass,
 together with LL-P1-012, LL-P5-001 and LL-P5-004, which are "Not Required"
 tasks executed on normal instruction), LL-P3-006 (owner-approved 2026-11-24
