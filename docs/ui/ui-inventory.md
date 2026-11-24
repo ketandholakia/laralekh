@@ -1,99 +1,121 @@
-# LaraLekh UI Inventory & Audit (Phase 0)
+# LaraLekh UI Inventory & Audit (Post-MS-06 Completion)
 
-Audit date: 2026-11-15 · Branch `main` @ `b54a3ddf` · baseline: Pest 348 passed / 1 todo / 971 assertions, CI green.
+Audit date: 2026-11-24 · Branch `main` · Baseline: Pest 435 passed / 1 todo / 1419 assertions, CI green.
 
-## 1. Stack verification (verified, not assumed)
+---
+
+## 1. Stack & Design System Verification (Verified on `main`)
 
 | Component | Verified state |
 |---|---|
 | Laravel | `laravel/framework ^13.0`, PHP `^8.4.1` (composer.lock platform 8.4.1) |
-| Livewire | `livewire/livewire ^3.8` — Alpine bundled, `resources/js/app.js` is a comment only (no second copy loaded) |
-| Tailwind | `tailwindcss ^3.4.17` via Tailwind CLI only: `tailwindcss -i resources/css/app.css -o public/css/app.css --minify`. No PostCSS, no bundler |
-| Tailwind config | Stock Laravel default. `fontFamily.sans` references **Figtree, which is never actually loaded** (no CDN link, no font files). Content globs include vendor pagination + blade + js |
-| CSS | `resources/css/app.css` = bare `@tailwind` directives, zero custom styles |
-| Icons | **No icon library** installed |
-| Blade components | **`resources/views/components/` does not exist** — every screen repeats inline utility classes |
-| PDFs | 5 DomPDF views under `resources/views/pdf/` (invoice, receipt, correction, reversal, statement) — out of UI scope, reviewed only for brand consistency later |
-| Favicon | `public/favicon.ico` is the **stock Laravel favicon and is not referenced** in the layout head |
-| Fonts | None loaded anywhere; system default rendering |
-| Tests / CI | Pest suite green (348/1/971); CI: 3 jobs on PRs + pushes to `main`, branch protection active |
+| Livewire | `livewire/livewire ^3.8` — bundled Alpine, single runtime instance |
+| Tailwind CSS | `tailwindcss ^3.4.17` via CLI: `tailwindcss -i resources/css/app.css -o public/css/app.css --minify` |
+| Design Tokens | Extended `tailwind.config.js` with `brand` (teal `#0F766E` primary, `navy` `#172554` secondary, `saffron` `#F59E0B` accent, `slate` neutrals, `brand-200` fix) |
+| Typography | Inter Latin + Latin Ext (`400`, `500`, `600`, `700`) self-hosted `woff2` under `public/fonts/` with `@font-face` definitions and preload tags |
+| Icons | Single zero-dependency SVG sprite (`resources/views/components/icon.blade.php`) exposing `<x-icon name="..."/>` with 25+ Lucide geometries |
+| Blade Components | 19 design-system primitives under `resources/views/components/` (`x-icon`, `x-badge`, `x-button`, `x-card`, `x-empty-state`, `x-field`, `x-input`, `x-select`, `x-textarea`, `x-table`, `x-dialog`, `x-combobox`, `x-detail-list`, `x-kpi`, `x-money`, `x-alert`, `x-page-header`, `x-skeleton`, and `pagination.laralekh`) |
+| Layout & Shell | Modern responsive application layout (`resources/views/layouts/app.blade.php`) featuring collapsible icon-rail sidebar, topbar with active company and financial year selectors, user profile menu, and mobile off-canvas drawer |
+| Favicon & Logo | Hand-authored SVG "ledger/Lekh" mark, wordmark variants, and standard favicon assets |
+| PDFs | DomPDF views under `resources/views/pdf/` (`invoice`, `receipt`, `correction`, `reversal`, `statement`) styled with DejaVu Sans and statutory compliance |
+| Tests / CI | 435 tests passing, 1 todo, 1419 assertions; 3 GitHub Actions CI workflows active (Backend SQLite, Frontend build, Quality & security) |
 
-## 2. Route & permission map (all routes verified)
+---
 
-Two screens run **outside** tenant context: `login` (guest) and `company.select`/`company.store` (auth only).
-Everything else is behind `company.context` (`EnsureCompanyContext`) + `can:` permission middleware.
+## 2. Route & Permission Map
+
+Two routes run outside tenant context: `/login` (guest) and `/companies` (authenticated membership selection).
+All operational routes require `EnsureCompanyContext` + permission middleware.
 
 | Route | Name | Livewire component / controller | Permission |
 |---|---|---|---|
-| `/login` GET/POST | `login`, `login.store` | view + `LoginController` | guest |
-| `/companies` GET/POST | `company.select`, `company.store` | `CompanySelectionController` | auth, membership-checked |
-| `/` | — | redirect → `invoices.index` | invoices.view (via group) |
-| `/invoices` (+create/show/edit/pdf) | `invoices.*` | `Sales\InvoiceList/Editor/View` | `invoices.view` (+`invoices.create`) |
+| `/login` GET/POST | `login`, `login.store` | View + `LoginController` | guest |
+| `/companies` GET/POST | `company.select`, `company.store` | `CompanySelectionController` | auth |
+| `/` | `dashboard` | `App\Livewire\Dashboard` | auth, company.context |
+| `/invoices` | `invoices.index` | `Sales\InvoiceList` | `invoices.view` |
+| `/invoices/create` | `invoices.create` | `Sales\InvoiceEditor` | `invoices.create` |
+| `/invoices/{invoice}` | `invoices.show` | `Sales\InvoiceView` | `invoices.view` |
+| `/invoices/{invoice}/edit` | `invoices.edit` | `Sales\InvoiceEditor` | `invoices.create` |
+| `/invoices/{invoice}/pdf` | `invoices.pdf` | `InvoicePdfController` | `invoices.view` |
 | `/invoices/{invoice}/corrections/create` | `corrections.create` | `Sales\CorrectionEditor` | `corrections.create` |
-| `/corrections/{c}` (+edit/pdf) | `corrections.*` | `Sales\CorrectionEditor/View`, PDF controller | `corrections.view`/`create` |
+| `/corrections/{c}` | `corrections.show` | `Sales\CorrectionView` | `corrections.view` |
+| `/corrections/{c}/edit` | `corrections.edit` | `Sales\CorrectionEditor` | `corrections.create` |
+| `/corrections/{c}/pdf` | `corrections.pdf` | `CorrectionPdfController` | `corrections.view` |
 | `/vouchers/{v}/reverse` | `reversals.create` | `Accounting\ReversalEditor` | `reversals.post` |
-| `/reversals/{r}` (+pdf) | `reversals.show`, `reversals.pdf` | `Accounting\ReversalView`, PDF controller | `corrections.view` |
-| `/receipts` (+create/show/edit/pdf) | `receipts.*` | `Sales\ReceiptList/Editor/View` | `receipts.view` (+`create`) |
-| `/customers` (+show/statement/pdf) | `customers.*` | `Sales\CustomerList/Outstanding/Statement` | `receipts.view` (group) |
-| `/purchase-bills` (+create/show/edit) | `purchases.*` | `Purchase\PurchaseBillList/Editor/View` | `purchases.view` (+`create`) |
-| `/gst/returns` (+`{period}`, csv) | `gst.returns.*` | `Gst\Returns\Dashboard/Detail`, CSV controller | `returns.view` (+`returns.export`) |
+| `/reversals/{r}` | `reversals.show` | `Accounting\ReversalView` | `corrections.view` |
+| `/reversals/{r}/pdf` | `reversals.pdf` | `ReversalPdfController` | `corrections.view` |
+| `/receipts` | `receipts.index` | `Sales\ReceiptList` | `receipts.view` |
+| `/receipts/create` | `receipts.create` | `Sales\ReceiptEditor` | `receipts.create` |
+| `/receipts/{receipt}` | `receipts.show` | `Sales\ReceiptView` | `receipts.view` |
+| `/receipts/{receipt}/edit` | `receipts.edit` | `Sales\ReceiptEditor` | `receipts.create` |
+| `/receipts/{receipt}/pdf` | `receipts.pdf` | `ReceiptPdfController` | `receipts.view` |
+| `/customers` | `customers.index` | `Sales\CustomerList` | `receipts.view` |
+| `/customers/{party}` | `customers.show` | `Sales\CustomerOutstanding` | `receipts.view` |
+| `/customers/{party}/statement` | `customers.statement` | `Sales\CustomerStatement` | `receipts.view` |
+| `/customers/{party}/statement/pdf` | `customers.statement.pdf` | `StatementPdfController` | `receipts.view` |
+| `/purchase-bills` | `purchases.index` | `Purchase\PurchaseBillList` | `purchases.view` |
+| `/purchase-bills/create` | `purchases.create` | `Purchase\PurchaseBillEditor` | `purchases.create` |
+| `/purchase-bills/{bill}` | `purchases.show` | `Purchase\PurchaseBillView` | `purchases.view` |
+| `/purchase-bills/{bill}/edit` | `purchases.edit` | `Purchase\PurchaseBillEditor` | `purchases.create` |
+| `/supplier-payments` | `supplier-payments.index` | `Purchase\SupplierPaymentList` | `purchases.view` |
+| `/supplier-payments/create` | `supplier-payments.create` | `Purchase\SupplierPaymentEditor` | `purchases.create` |
+| `/supplier-payments/{payment}` | `supplier-payments.show` | `Purchase\SupplierPaymentView` | `purchases.view` |
+| `/financial-years` | `financial-years.index` | `Admin\FinancialYearManager` | `admin` |
+| `/reports/trial-balance` | `reports.trial-balance` | `Reports\TrialBalance` | `accounting.view` |
+| `/reports/profit-and-loss` | `reports.profit-and-loss` | `Reports\ProfitAndLoss` | `accounting.view` |
+| `/reports/balance-sheet` | `reports.balance-sheet` | `Reports\BalanceSheet` | `accounting.view` |
+| `/items` | `items.index` | `Inventory\ItemManager` | `items.view` (+ `items.manage`) |
+| `/users` | `users.index` | `Admin\UserManager` | `users.manage` |
+| `/roles` | `roles.index` | `Admin\RoleManager` | `users.manage` |
+| `/gst/returns` | `gst.returns.index` | `Gst\Returns\Dashboard` | `returns.view` |
+| `/gst/returns/{period}` | `gst.returns.show` | `Gst\Returns\Detail` | `returns.view` |
+| `/gst/returns/{period}/export/{type}` | `gst.returns.export` | `GstCsvExportController` | `returns.export` |
 
-**Screens that do NOT exist** (do not invent nav entries for them): dashboard, products, inventory,
-ledger/accounting screens, reports, settings, user management. Permissions that exist: `invoices.*`,
-`receipts.*` (+`receipts.allocate`), `purchases.*`, `corrections.*`, `reversals.post`, `returns.*`.
-`receipts.allocate` has an action (not a screen). All Livewire components declare `#[Layout('layouts.app')]`.
+---
 
-## 3. Screen-by-screen inventory
+## 3. Screen-by-Screen Modernization Inventory (MS-06 Scope)
 
-| # | Screen | View(s) | Current state |
+All primary transactional editors, view screens, admin utilities, and registers are standardized onto the LaraLekh Design System.
+
+| # | Screen | Blade View | Design System Implementation |
 |---|---|---|---|
-| 1 | Main layout | `layouts/app.blade.php` | Top-header-only shell: brand link, 4 nav links, logout. No sidebar, no company display, no user menu. `{{ $slot }}` + `@yield('content')` (both conventions supported). TenantContext-guarded GST link |
-| 2 | Login | `auth/login.blade.php` | Functional card form; no brand moment, no password visibility toggle, no loading state. Has remember-me; **no forgot-password route exists** |
-| 3 | Company selection | `company/select.blade.php` | Single dropdown + Continue. No company metadata (GSTIN/address), no user identification, no selected-state styling |
-| 4 | GST returns dashboard | `livewire/gst/returns/dashboard.blade.php` | **Best current pattern**: eyebrow + 3xl title header, workflow badge, card section. This is the local standard to promote everywhere |
-| 5 | GST return detail | `livewire/gst/returns/detail.blade.php` | Dense single-line markup; KPI-ish articles, CSV export buttons, snapshot list. Contains the LaraLekh-only CSV note |
-| 6 | Invoice list | `livewire/sales/invoice-list.blade.php` | Title + New button, 4 filter fields in a card, table w/ inline status badge, `₹` totals, pagination, empty state |
-| 7 | Invoice editor | `livewire/sales/invoice-editor.blade.php` | Alpine `x-data` party/item autocomplete dropdowns, card sections, line items. Largest form (218 lines) |
-| 8 | Invoice/receipt/correction/reversal views | `sales/invoice-view`, `receipt-view`, `correction-view`, `accounting/reversal-view` | Read-only documents with action buttons |
-| 9 | Receipts | `receipt-list/editor/view` | Same patterns as invoices |
-| 10 | Customers | `customer-list`, `customer-outstanding`, `customer-statement` | Compact list (32 lines) + outstanding + statement with running balance |
-| 11 | Purchases | `purchase/*` (3 views) | Same patterns as sales |
+| 1 | Main layout & shell | `layouts/app.blade.php` | Collapsible sidebar rail, tooltip labels, top bar with company/FY switcher, brand wordmark, mobile off-canvas drawer |
+| 2 | Login | `auth/login.blade.php` | Centered brand card, `<x-input>`, `<x-button variant="primary">`, styled validation messages |
+| 3 | Company selector | `company/select.blade.php` | Company card grid, GSTIN/state metadata display, active state highlights |
+| 4 | Dashboard | `livewire/dashboard.blade.php` | KPI summary cards (`<x-kpi>`), quick actions, recent activity feeds |
+| 5 | Sales Invoice list | `livewire/sales/invoice-list.blade.php` | `<x-page-header>`, `<x-card class="p-4">` filter bar, `<x-table caption="...">`, `<x-badge>`, `<x-empty-state>` |
+| 6 | Sales Invoice editor | `livewire/sales/invoice-editor.blade.php` | `<x-page-header>`, `<x-card>`, `<x-combobox>` for party & item lookup, line item calculations, totals aside |
+| 7 | Sales Invoice view | `livewire/sales/invoice-view.blade.php` | Status banner, document metadata, `<x-table caption="...">` for lines, tax breakout, PDF trigger |
+| 8 | Customer Receipt list | `livewire/sales/receipt-list.blade.php` | `<x-page-header>`, `<x-card>` filter bar, `<x-table>`, `<x-empty-state>`, LaraLekh pagination |
+| 9 | Customer Receipt editor | `livewire/sales/receipt-editor.blade.php` | `<x-page-header>`, party combobox, settlement allocation table with balance checks, `<x-card>` |
+| 10 | Customer Receipt view | `livewire/sales/receipt-view.blade.php` | `<x-page-header>`, allocation breakdown table, voucher reference, action triggers |
+| 11 | Purchase Bill list | `livewire/purchase/purchase-bill-list.blade.php` | `<x-page-header>`, `<x-card>` search card, `<x-table>`, `<x-empty-state>`, `<x-money>` |
+| 12 | Purchase Bill editor | `livewire/purchase/purchase-bill-editor.blade.php` | `<x-page-header>`, party combobox, line items table, ITC category selectors, totals aside |
+| 13 | Purchase Bill view | `livewire/purchase/purchase-bill-view.blade.php` | `<x-page-header>`, supplier details card, line item breakdown, totals summary |
+| 14 | Supplier Payment list | `livewire/purchase/supplier-payment-list.blade.php` | `<x-page-header>`, filter card, `<x-table>`, `<x-empty-state>`, `<x-badge>` |
+| 15 | Supplier Payment editor | `livewire/purchase/supplier-payment-editor.blade.php` | `<x-page-header>`, supplier combobox, unpaid bill allocation table, draft validation guards |
+| 16 | Supplier Payment view | `livewire/purchase/supplier-payment-view.blade.php` | `<x-page-header>`, payment details, allocated bills table, voucher linkage |
+| 17 | Customer list & outstanding | `livewire/sales/customer-list.blade.php`, `customer-outstanding.blade.php` | `<x-page-header>`, aging summaries, unallocated receipts card, invoice list |
+| 18 | Customer statement | `livewire/sales/customer-statement.blade.php` | Running balance ledger table, period date range picker, running debits/credits |
+| 19 | Sales Corrections | `livewire/sales/correction-editor.blade.php`, `correction-view.blade.php`, `invoice-corrections.blade.php` | Capacity validation, line delta editor, credit note representation |
+| 20 | Voucher Reversals | `livewire/accounting/reversal-editor.blade.php`, `reversal-view.blade.php` | Reason selector, journal reversal preview, immutable audit log |
+| 21 | Financial Year Manager | `livewire/admin/financial-year-manager.blade.php` | Financial year creation card, closed/active status badges, company context safeguards |
+| 22 | User Manager | `livewire/admin/user-manager.blade.php` | Modal-driven user creation (`<x-dialog>`), company role assignment, active/deactivate toggle |
+| 23 | Role Manager | `livewire/admin/role-manager.blade.php` | Company-scoped role definition, template presets (Sales, Purchase, Viewer, Admin), granular permission checkboxes |
+| 24 | Item Master Manager | `livewire/inventory/item-manager.blade.php` | Goods/Service catalog, SKU uniqueness, HSN/SAC validation, tax rates, stock tracking toggle, usage deletion protection |
+| 25 | GST Returns Dashboard & Detail | `livewire/gst/returns/dashboard.blade.php`, `detail.blade.php` | Period cards, GSTR-1 & GSTR-3B table summaries, CSV export actions |
+| 26 | Financial Reports | `trial-balance.blade.php`, `profit-and-loss.blade.php`, `balance-sheet.blade.php` | Formatted ledger tables, grouping hierarchy, zero-balance toggles, date filters |
 
-### Current visual language (consistent but uncomponentized)
-- Palette: `slate` neutrals + `indigo-600/700` actions, `green`/`amber`/`red` statuses
-- Cards: `bg-white rounded-lg border border-slate-200 p-4/5`; tables: `bg-slate-50` header, `border-t` rows
-- Status badges: inline `rounded-full px-2 py-0.5 text-xs` triplets repeated per view
-- Buttons: inline `rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700`
-- Money: inline `₹{{ ... }}` with `font-mono`; dates `d-m-Y`; numbers unformatted (no thousands separator)
-- Two competing page-header styles: plain `text-xl` h1 (most screens) vs GST's eyebrow+3xl pattern
-- Forms: repeated inline input classes (`rounded border-slate-300 ... focus:outline-none`), `@error` paragraphs
-- Focus states: mostly `focus:outline-none` + color change — **not keyboard-visible enough**; no skip links, no aria-current on nav, no focus-visible rings
+---
 
-## 4. Gaps vs. target product (drives the phases)
+## 4. Phase 0 Gaps Resolution Matrix
 
-1. No brand identity: no logo, no favicon integration, no fonts, generic indigo/slate look
-2. No design tokens in `tailwind.config.js`; no reusable Blade components → heavy duplication
-3. Shell is a top bar only; no sidebar, no company context display, no user menu
-4. No dashboard (route absent); `/` redirects to invoices
-5. Accessibility: weak focus visibility, no aria-current, unlabeled icon-less controls, tables lack `<caption>`/scope polish
-6. No Indian number formatting helper (lakh/crore grouping) for financial values
-7. Stock Laravel favicon live; brand favicon absent
-
-## 5. Proposed design direction (summary — full rationale in chat)
-
-- **Tokens**: extend `tailwind.config.js` with a `brand` palette mapping 1:1 to the target colors
-  (teal `#0F766E` primary, navy `#172554` secondary, saffron `#F59E0B` accent, slate neutrals kept).
-  The palette intentionally aligns with Tailwind's default scale for incremental adoption.
-- **Typography**: Inter with system fallback; self-hosted `woff2` in `public/fonts` (no external CDN),
-  loaded via `@font-face` + preload; tabular numerals for financial columns.
-- **Icons**: single zero-dependency inline SVG sprite (Lucide icon geometry) exposed through one
-  `<x-icon name="...">` Blade component — no new packages, one consistent icon style.
-- **Components**: small Blade component set (`x-button`, `x-input`, `x-card`, `x-badge`, `x-kpi`,
-  `x-empty-state`, `x-page-header`…) replacing the repeated inline patterns; GST dashboard's
-  eyebrow-header pattern promoted as the standard page header.
-- **Shell**: collapsible sidebar (permission-aware, grouped) + header with logo, current company,
-  user menu; mobile drawer. Nav entries strictly limited to existing routes.
-- **Dashboard (needs approval)**: new Livewire page fed by existing models/services with
-  permission-aware KPI cards and empty states; propose making it the `/` landing.
-- **Logo**: hand-authored SVG "ledger/Lekh" mark (bound-record motif) + wordmark; light/dark/icon
-  variants + favicon set replacing the stock Laravel icon.
+| # | Gap Identified in Phase 0 | Resolution in MS-06 |
+|---|---|---|
+| 1 | No brand identity, logo, favicon, or brand typography | Resolved via custom SVG mark/wordmark, Inter latin/ext fonts, and full favicon bundle (PR #2). |
+| 2 | No design tokens in `tailwind.config.js`; no reusable Blade components | Resolved: `brand` tokens configured; 19 modular Blade components implemented (PR #2, PR #6). |
+| 3 | Shell was top bar only; no company context display or user menu | Resolved: Collapsible sidebar rail + header with live company & financial year context and user menu (PR #2). |
+| 4 | No dashboard (route `/` redirected to invoices) | Resolved: `/` now routes to interactive KPI and activity Dashboard (PR #2). |
+| 5 | Accessibility gaps (focus rings, ARIA comboboxes/dialogs, captions) | Resolved: Native `<dialog>` modal (`<x-dialog>`), ARIA-compliant combobox (`<x-combobox>`), focus-visible styling, stable error/hint descriptions. |
+| 6 | No Indian number formatting helper for currency values | Resolved: `<x-money>` Blade component formats amounts in Indian lakhs/crores system with tabular numerals. |
+| 7 | Stock Laravel favicon active | Resolved: LaraLekh branded vector and multi-size favicons installed and linked. |
