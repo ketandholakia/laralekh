@@ -102,6 +102,10 @@ Route::middleware('auth')->group(function (): void {
         // years.manage permission, independent of purchases.view.
         Route::get('/financial-years', \App\Livewire\Masters\FinancialYearManager::class)->name('financial-years.index');
 
+        // Company-scoped user and role administration.
+        Route::get('/admin/users', \App\Livewire\Admin\UserManager::class)->name('admin.users.index');
+        Route::get('/admin/roles', \App\Livewire\Admin\RoleManager::class)->name('admin.roles.index');
+
         // Financial reports from posted voucher movements (read-only).
         Route::get('/reports/trial-balance', \App\Livewire\Accounting\TrialBalance::class)->name('reports.trial-balance');
         Route::get('/reports/profit-and-loss', \App\Livewire\Accounting\ProfitAndLoss::class)->name('reports.profit-and-loss');

@@ -16,12 +16,12 @@ class User extends Authenticatable
 
     public function companies(): BelongsToMany
     {
-        return $this->belongsToMany(Company::class);
+        return $this->belongsToMany(Company::class)->withPivot('is_active')->withTimestamps();
     }
 
     public function isMemberOf(int $companyId): bool
     {
-        return $this->companies()->whereKey($companyId)->exists();
+        return $this->companies()->whereKey($companyId)->wherePivot('is_active', true)->exists();
     }
 
     // Spatie caches role/permission relations per team id on the loaded user,
