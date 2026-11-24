@@ -107,6 +107,13 @@
         </div>
         @endcan
 
+        @if (app(\App\Domain\Shared\Tenancy\TenantContext::class)->hasContext() && (auth()->user()?->can('items.view') || auth()->user()?->can('items.manage')))
+        <div class="space-y-1">
+            <p class="whitespace-nowrap px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Inventory</p>
+            <x-nav-item :href="route('items.index')" label="Items" icon="package" :active="request()->routeIs('items.*')"/>
+        </div>
+        @endif
+
         @can('returns.view')
         <div class="space-y-1">
             <p class="whitespace-nowrap px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Compliance</p>

@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PurchasePermissionSeeder::class);
         $this->call(GstReturnsPermissionSeeder::class);
         $this->call(UserPermissionSeeder::class);
+        $this->call(ItemPermissionSeeder::class);
         Company::each(function (Company $company): void {
             app(TenantContext::class)->run($company->id, function (): void {
                 $this->call([ChartOfAccountsSeeder::class, GstSlabSeeder::class]);
