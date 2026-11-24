@@ -59,8 +59,9 @@ MySQL triggers; money is a decimal-string `Money` value object (never float).
 
 ## 5. Existing implemented functionality (implemented and tested)
 
-Evidence: dedicated test files; full suite currently **360 passed / 1 todo /
-1018 assertions** on SQLite (CI-verified on PR #2 and on merged `main`).
+Evidence: dedicated test files; full suite currently **412 passed / 1 todo /
+1311 assertions** on SQLite (CI-verified on PR #6 and on merged `main` @
+`0e46f11`).
 
 | Area | Status detail |
 |---|---|
@@ -79,7 +80,7 @@ Evidence: dedicated test files; full suite currently **360 passed / 1 todo /
 | GSTR-3B preparation | Reconciliation worksheet at tax-head precision, statutory rounding only on combined payable, ledger tie-out (`Gstr3bSummaryTest`) |
 | Return lifecycle | Immutable versioned snapshots (SHA-256), filing markers (ARN/date), filed-record protection, backdating monitor (`GstReturnSnapshotTest`, `ReturnValidationReportTest`) |
 | Dashboard | Permission-gated financial KPIs with SettlementService-faithful receivables (`DashboardTest`, 12 scenarios) |
-| UI/brand | Design system (14 Blade components), sidebar shell with icon rail + tooltips, guest layout, Inter fonts + OFL, logo/favicon assets (PR #2) |
+| UI/brand | Design system (19 Blade components — the 14 from PR #2 plus the MS-06 Stage 0 primitives `x-table`/`x-dialog`/`x-combobox`/`x-textarea`/`x-detail-list` and the LaraLekh pagination view, PR #6), sidebar shell with icon rail + tooltips, guest layout, Inter fonts + OFL, logo/favicon assets (PR #2) |
 | CI & protection | GitHub Actions (backend/frontend/quality), branch protection with required checks (`ci.yml`, protection API) |
 
 ## 6. Partially implemented functionality
@@ -231,15 +232,37 @@ authorize MS-04B.
 - **Risks:** regulatory changes; portal-only data cannot be verified offline.
 - **Status:** PROPOSED.
 
-### P3 — UI modernization completion and administration — PROPOSED
+### P3 — UI modernization completion and administration — PROPOSED (Stage 0 completed)
+
 - **Objective:** bring the remaining screens to the new design system and add
   administration screens.
-- **Scope:** editors/detail views (invoice, receipt, purchase, correction,
-  reversal), customer outstanding/statement, item master screens, user & role
-  management screens; optional PDF customization (LL-P3-008 needs decision).
+- **MS-06 Stage 0 — shared UI foundations (LL-P3-000) — COMPLETED (PR #6,
+  merge `0e46f11`, 2026-11-18):** delivered as a separate PR per the owner's
+  binding decision on the approved MS-06 implementation plan. Scope:
+  `x-table`, `x-dialog`, `x-combobox`, `x-textarea`, `x-detail-list`, the
+  LaraLekh pagination view (`pagination.laralekh`, registered as the Laravel
+  default and wired via `paginationView()` on the four register lists after
+  review finding F-01), field-error accessibility wiring, and the
+  `brand-200` token fix; review corrections F-01/F-02 included. Suite
+  baseline on merged `main`: 412 passed / 1 todo / 1311 assertions;
+  post-merge CI run `44315749152` 3/3 SUCCESS. The four Livewire list
+  components received only the `paginationView()` method — their screen
+  modernization has not started.
+- **Scope (remaining):** editors/detail views (invoice, receipt, purchase,
+  correction, reversal), customer outstanding/statement, item master screens,
+  user & role management screens; optional PDF customization (LL-P3-008 needs
+  decision).
+- **Owner decisions from the approved MS-06 plan (unchanged):** Stage 0 as a
+  separate PR (executed); brand-styled pagination replaces the stock view
+  (executed); per-field error attribution via additive keys (component wiring
+  shipped; editor adoption lands with each screen task); GST returns detail
+  excluded (separate proposal only); mobile drawer focus trap and user-menu
+  keyboard management deferred; `docs/ui/ui-inventory.md` refresh at MS-06
+  completion.
 - **Acceptance criteria:** visual-only changes for existing flows (behaviour
   tests unchanged and green); admin screens fully permission-tested.
-- **Status:** PROPOSED.
+- **Status:** Stage 0 COMPLETED; LL-P3-001…005 remain READY with Owner
+  Approval "Not Required" — READY is not implementation authorization.
 
 ### P4 — Integrations — PROPOSED/BLOCKED
 - **Objective:** external statutory and banking integrations.
@@ -267,7 +290,10 @@ milestones: **MS-04A** (accounting safety and essential reports — the
 recommended next milestone) and **MS-04B** (additional accounting workflows,
 each gated on its own policy decision; approval of MS-04A does not authorize
 MS-04B). MS-05 depends on MS-04B item LL-P1-009; MS-06 is independent of
-MS-04A/MS-04B/MS-05; MS-07 is blocked on external credentials; MS-08 is last.
+MS-04A/MS-04B/MS-05 — its Stage 0 enabler substage (LL-P3-000) is completed
+via PR #6 (merge `0e46f11`, 2026-11-18) while the remaining MS-06 screens
+stay PROPOSED/READY as registered; MS-07 is blocked on external credentials;
+MS-08 is last.
 
 ## 13. Testing and release strategy
 

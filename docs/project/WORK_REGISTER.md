@@ -6,8 +6,8 @@ COMPLETED · DEFERRED · CANCELLED`. Owner Approval states: `Required /
 Approved / Rejected / Not Required`. Nothing is marked APPROVED or COMPLETED
 without recorded evidence (commit, PR, or test run).
 
-Baseline: `main` @ `8132cf8` (PR #4 merged, 2026-11-18), suite 398 passed /
-1 todo / 1207 assertions.
+Baseline: `main` @ `0e46f11` (PR #6 merged, 2026-11-18), suite 412 passed /
+1 todo / 1311 assertions.
 
 ## Readiness versus implementation authorization
 
@@ -83,6 +83,7 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 
 | ID | Work item | Description | Category | Priority | Status | Deps | Owner approval | Acceptance criteria | Verification | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
+| LL-P3-000 | MS-06 Stage 0 — shared UI foundations | Enabler substage of MS-06: design-system primitives shared by LL-P3-001…005 — `x-table`, `x-dialog` (native `<dialog>`), `x-combobox` (ARIA combobox/listbox), `x-textarea`, `x-detail-list`, the LaraLekh pagination view (`pagination.laralekh`, wired via `Paginator::defaultView` and `paginationView()` on the four register lists), field-error accessibility wiring (stable `{name}-error`/`{name}-hint` ids, additive `aria-invalid`/`aria-describedby`), and the missing `brand-200` token; independent-review corrections F-01 (Livewire pagination integration) and F-02 (table row-divider CSS) applied on the same branch | UI | Medium | COMPLETED | — | Not Required | Separate-PR delivery per the approved MS-06 plan; components + runtime tests merged; full suite green; `npm run build` PASS; no accounting/domain/route/permission/schema changes | Commits `1da192d` (Stage 0) and `22fbdc0` (F-01/F-02 remediation) merged via **PR #6** (merge `0e46f11`, 2026-11-18T13:38:19Z); PR CI run `44314872756` 3/3 SUCCESS; post-merge CI run `44315749152` 3/3 SUCCESS; final suite 412 passed / 1 todo / 1311 assertions (SQLite); reduced MySQL cadence PASS (migration up/down/up on `laravix_test_migrations`; 46 triggers + immutability tamper probe on `laravix_test_ms06_s0`) | ID assigned during the owner-authorized documentation reconciliation (2026-11-18); no existing ID renumbered. The four Livewire list components received only the `paginationView()` method — their screen modernization (LL-P3-001…005) remains outstanding; `docs/ui/ui-inventory.md` refresh deferred to MS-06 completion |
 | LL-P3-001 | Invoice editor + view modernization | Apply the design system to `invoice-editor`/`invoice-view`; visual only | UI | Medium | READY | — | Not Required | All existing Livewire bindings/tests unchanged and green | Suite + visual review | Highest-traffic screen |
 | LL-P3-002 | Receipt editor + view modernization | Same treatment for receipt screens | UI | Medium | READY | — | Not Required | As above | Suite + visual review | — |
 | LL-P3-003 | Purchase editor + view modernization | Same treatment for purchase screens | UI | Medium | READY | — | Not Required | As above | Suite + visual review | — |
@@ -114,18 +115,18 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 
 ## Summary
 
-**Total tasks: 39**
+**Total tasks: 40**
 
-By status: COMPLETED 13 · READY 9 · PROPOSED 12 · BLOCKED 4 · DEFERRED 1 ·
+By status: COMPLETED 14 · READY 9 · PROPOSED 12 · BLOCKED 4 · DEFERRED 1 ·
 IN_PROGRESS 0 · IN_REVIEW 0 · CANCELLED 0
 
-By priority: Critical 2 · High 14 · Medium 21 · Low 2
+By priority: Critical 2 · High 14 · Medium 22 · Low 2
 
 Tasks requiring owner approval before work starts ("Required") — **19**:
 LL-P1-006…LL-P1-011, LL-P2-001…LL-P2-004, LL-P3-006, LL-P3-008,
 LL-P4-001…LL-P4-004, LL-P5-002, LL-P5-003, LL-P5-005.
 
-"Not Required" — **11**: LL-P0-001, LL-P1-012, LL-P3-001…LL-P3-005,
+"Not Required" — **12**: LL-P0-001, LL-P1-012, LL-P3-000, LL-P3-001…LL-P3-005,
 LL-P3-007, LL-P5-001, LL-P5-004, LL-P5-006. These may start on normal
 instruction.
 
