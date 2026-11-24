@@ -7,12 +7,14 @@ use App\Domain\Shared\Models\Role;
 use App\Livewire\Admin\RoleManager;
 use App\Livewire\Admin\UserManager;
 use App\Models\User;
+use Database\Seeders\StateSeeder;
 use Database\Seeders\UserPermissionSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 
 beforeEach(function (): void {
+    (new StateSeeder)->run();
     (new UserPermissionSeeder)->run();
 });
 
@@ -22,6 +24,7 @@ function adminSession(string $email = 'admin@example.test', array $permissions =
     $user = webUser($email);
     addMembership($user, $company);
     assignCompanyRole($user, $company, 'admin-role', $permissions);
+    selectSessionCompany($user, $company, salesYear($company));
 
     return [$user, $company];
 }
@@ -31,6 +34,7 @@ it('restricts user management to users with users.view permission', function ():
     $unauth = webUser('viewer@example.test');
     addMembership($unauth, $company);
     assignCompanyRole($unauth, $company, 'viewer-role', ['invoices.view']);
+    selectSessionCompany($unauth, $company, salesYear($company));
 
     $this->actingAs($unauth);
     $this->get('/admin/users')->assertForbidden();
@@ -48,6 +52,7 @@ it('aborts user management mutations for users.view-only users', function (): vo
     $viewOnly = webUser('viewonly@example.test');
     addMembership($viewOnly, $company);
     assignCompanyRole($viewOnly, $company, 'users-viewer', ['users.view']);
+    selectSessionCompany($viewOnly, $company, salesYear($company));
 
     $this->actingAs($admin);
     $component = inTenantContext($company, fn () => Livewire::test(UserManager::class));
@@ -207,6 +212,7 @@ it('restricts role management to users with roles.manage permission', function (
     $userOnly = webUser('useradmin@example.test');
     addMembership($userOnly, $company);
     assignCompanyRole($userOnly, $company, 'user-admin', ['users.view', 'users.manage']);
+    selectSessionCompany($userOnly, $company, salesYear($company));
 
     $this->actingAs($userOnly);
     $this->get('/admin/roles')->assertForbidden();

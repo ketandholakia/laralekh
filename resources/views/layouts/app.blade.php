@@ -114,7 +114,7 @@
         </div>
         @endcan
 
-        @if (auth()->user()?->can('users.view') || auth()->user()?->can('users.manage') || auth()->user()?->can('roles.manage'))
+        @if (app(\App\Domain\Shared\Tenancy\TenantContext::class)->hasContext() && (auth()->user()?->can('users.view') || auth()->user()?->can('users.manage') || auth()->user()?->can('roles.manage')))
         <div class="space-y-1">
             <p class="whitespace-nowrap px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400" :class="rail ? 'lg:hidden' : ''">Administration</p>
             @if (auth()->user()?->can('users.view') || auth()->user()?->can('users.manage'))
@@ -164,16 +164,18 @@
                             <p class="truncate text-sm font-semibold text-slate-900">{{ $user?->name }}</p>
                             <p class="truncate text-xs text-slate-500">{{ $user?->email }}</p>
                         </div>
-                        @if (auth()->user()?->can('users.view') || auth()->user()?->can('users.manage'))
-                            <a href="{{ route('admin.users.index') }}" class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">
-                                <x-icon name="users" class="h-4 w-4 text-slate-400"/> User Management
-                            </a>
+                        @if (app(\App\Domain\Shared\Tenancy\TenantContext::class)->hasContext())
+                            @if (auth()->user()?->can('users.view') || auth()->user()?->can('users.manage'))
+                                <a href="{{ route('admin.users.index') }}" class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">
+                                    <x-icon name="users" class="h-4 w-4 text-slate-400"/> User Management
+                                </a>
+                            @endif
+                            @can('roles.manage')
+                                <a href="{{ route('admin.roles.index') }}" class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">
+                                    <x-icon name="user-circle" class="h-4 w-4 text-slate-400"/> Roles & Permissions
+                                </a>
+                            @endcan
                         @endif
-                        @can('roles.manage')
-                            <a href="{{ route('admin.roles.index') }}" class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">
-                                <x-icon name="user-circle" class="h-4 w-4 text-slate-400"/> Roles & Permissions
-                            </a>
-                        @endcan
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600" role="menuitem">

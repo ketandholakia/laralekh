@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Livewire\Admin;
 
 use App\Domain\Shared\Models\Role;
+use App\Domain\Shared\Tenancy\CompanySession;
 use App\Domain\Shared\Tenancy\TenantContext;
+use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
@@ -29,12 +31,29 @@ final class RoleManager extends Component
         $this->guardManage();
     }
 
+    private function companyId(): int
+    {
+        return app(TenantContext::class)->hasContext()
+            ? app(TenantContext::class)->id()
+            : (app(CompanySession::class)->companyId() ?? abort(403, 'A company context is required.'));
+    }
+
+    private function inCompanyScope(Closure $callback): mixed
+    {
+        $companyId = $this->companyId();
+        if (app(TenantContext::class)->hasContext() && app(TenantContext::class)->id() === $companyId) {
+            return $callback($companyId);
+        }
+
+        return app(TenantContext::class)->run($companyId, fn () => $callback($companyId));
+    }
+
     private function guardManage(): void
     {
         $user = auth()->user();
-        $companyId = app(TenantContext::class)->id();
+        $companyId = $this->companyId();
         abort_unless($user && $user->isMemberOf($companyId), 403);
-        abort_unless($user->can('roles.manage'), 403);
+        abort_unless($this->inCompanyScope(fn () => $user->can('roles.manage')), 403);
     }
 
     public function getPermissionCatalogProperty(): array
@@ -83,21 +102,21 @@ final class RoleManager extends Component
 
     public function getRolesProperty(): array
     {
-        $companyId = app(TenantContext::class)->id();
+        return $this->inCompanyScope(function (int $companyId): array {
+            return Role::with('permissions')->get()->map(function (Role $role) use ($companyId): array {
+                $userCount = DB::table('model_has_roles')
+                    ->where('role_id', $role->id)
+                    ->where('company_id', $companyId)
+                    ->count();
 
-        return Role::with('permissions')->get()->map(function (Role $role) use ($companyId): array {
-            $userCount = DB::table('model_has_roles')
-                ->where('role_id', $role->id)
-                ->where('company_id', $companyId)
-                ->count();
-
-            return [
-                'id' => $role->id,
-                'name' => $role->name,
-                'user_count' => $userCount,
-                'permissions' => $role->permissions->pluck('name')->all(),
-            ];
-        })->all();
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'user_count' => $userCount,
+                    'permissions' => $role->permissions->pluck('name')->all(),
+                ];
+            })->all();
+        });
     }
 
     public function openCreateModal(): void
@@ -111,12 +130,14 @@ final class RoleManager extends Component
     public function openEditModal(int $roleId): void
     {
         $this->guardManage();
-        $role = Role::with('permissions')->findOrFail($roleId);
-        $this->editingRoleId = $role->id;
-        $this->roleName = $role->name;
-        $this->selectedPermissions = $role->permissions->pluck('name')->all();
-        $this->resetErrorBag();
-        $this->showRoleModal = true;
+        $this->inCompanyScope(function () use ($roleId): void {
+            $role = Role::with('permissions')->findOrFail($roleId);
+            $this->editingRoleId = $role->id;
+            $this->roleName = $role->name;
+            $this->selectedPermissions = $role->permissions->pluck('name')->all();
+            $this->resetErrorBag();
+            $this->showRoleModal = true;
+        });
     }
 
     public function closeRoleModal(): void
@@ -168,6 +189,7 @@ final class RoleManager extends Component
     public function saveRole(): void
     {
         $this->guardManage();
+
         $this->validate([
             'roleName' => ['required', 'string', 'max:50', 'regex:/^[a-zA-Z0-9_\-\s]+$/'],
             'selectedPermissions' => ['array'],
@@ -175,58 +197,60 @@ final class RoleManager extends Component
         ]);
 
         $cleanName = trim($this->roleName);
-        $companyId = app(TenantContext::class)->id();
 
-        $exists = Role::where('name', $cleanName)
-            ->when($this->editingRoleId, fn ($q) => $q->where('id', '!=', $this->editingRoleId))
-            ->exists();
+        $this->inCompanyScope(function (int $companyId) use ($cleanName): void {
+            $exists = Role::where('name', $cleanName)
+                ->when($this->editingRoleId, fn ($q) => $q->where('id', '!=', $this->editingRoleId))
+                ->exists();
 
-        if ($exists) {
-            $this->addError('roleName', 'A role with this name already exists in this company.');
+            if ($exists) {
+                $this->addError('roleName', 'A role with this name already exists in this company.');
 
-            return;
-        }
+                return;
+            }
 
-        // Ensure permissions exist in Spatie database
-        $permissions = array_map(
-            fn (string $name) => Permission::findOrCreate($name, 'web'),
-            $this->selectedPermissions,
-        );
+            $permissions = array_map(
+                fn (string $name) => Permission::findOrCreate($name, 'web'),
+                $this->selectedPermissions,
+            );
 
-        if ($this->editingRoleId) {
-            $role = Role::findOrFail($this->editingRoleId);
-            $role->name = $cleanName;
-            $role->save();
-            $role->syncPermissions($permissions);
-            session()->flash('status', 'Role "'.$cleanName.'" updated successfully.');
-        } else {
-            $role = Role::create(['name' => $cleanName]);
-            $role->syncPermissions($permissions);
-            session()->flash('status', 'Role "'.$cleanName.'" created successfully.');
-        }
+            if ($this->editingRoleId) {
+                $role = Role::findOrFail($this->editingRoleId);
+                $role->name = $cleanName;
+                $role->save();
+                $role->syncPermissions($permissions);
+                session()->flash('status', 'Role "'.$cleanName.'" updated successfully.');
+            } else {
+                $role = Role::create(['name' => $cleanName]);
+                $role->syncPermissions($permissions);
+                session()->flash('status', 'Role "'.$cleanName.'" created successfully.');
+            }
 
-        $this->closeRoleModal();
+            $this->closeRoleModal();
+        });
     }
 
     public function deleteRole(int $roleId): void
     {
         $this->guardManage();
-        $companyId = app(TenantContext::class)->id();
-        $role = Role::findOrFail($roleId);
 
-        $userCount = DB::table('model_has_roles')
-            ->where('role_id', $role->id)
-            ->where('company_id', $companyId)
-            ->count();
+        $this->inCompanyScope(function (int $companyId) use ($roleId): void {
+            $role = Role::findOrFail($roleId);
 
-        if ($userCount > 0) {
-            $this->addError('role', 'Cannot delete role "'.$role->name.'" because '.$userCount.' user(s) are assigned to it.');
+            $userCount = DB::table('model_has_roles')
+                ->where('role_id', $role->id)
+                ->where('company_id', $companyId)
+                ->count();
 
-            return;
-        }
+            if ($userCount > 0) {
+                $this->addError('role', 'Cannot delete role "'.$role->name.'" because '.$userCount.' user(s) are assigned to it.');
 
-        $role->delete();
-        session()->flash('status', 'Role "'.$role->name.'" deleted successfully.');
+                return;
+            }
+
+            $role->delete();
+            session()->flash('status', 'Role "'.$role->name.'" deleted successfully.');
+        });
     }
 
     public function render(): View
