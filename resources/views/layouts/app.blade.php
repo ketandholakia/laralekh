@@ -130,6 +130,9 @@
             @can('roles.manage')
                 <x-nav-item :href="route('admin.roles.index')" label="Roles & Permissions" icon="user-circle" :active="request()->routeIs('admin.roles.*')"/>
             @endcan
+            @if (auth()->user()?->can('users.manage') || auth()->user()?->hasRole('admin'))
+                <x-nav-item :href="route('admin.pdf-customizer.index')" label="PDF Templates" icon="file-text" :active="request()->routeIs('admin.pdf-customizer.*')"/>
+            @endif
         </div>
         @endif
     </nav>

@@ -64,6 +64,12 @@ final class InvoicePdfController
             }
         }
 
+        $rawSettings = Company::whereKey($companyId)->value('pdf_settings');
+        if (is_string($rawSettings)) {
+            $rawSettings = json_decode($rawSettings, true);
+        }
+        $pdfSettings = is_array($rawSettings) ? $rawSettings : [];
+
         $pdf = Pdf::loadView('pdf.invoice', [
             'invoice' => $invoice,
             'supplier' => $supplier,
@@ -74,6 +80,7 @@ final class InvoicePdfController
             'words' => AmountInWords::inr($invoice->total),
             'paymentQr' => $paymentQr,
             'interState' => ! $invoice->igst->isZero(),
+            'pdfSettings' => $pdfSettings,
         ])->setPaper('a4', 'portrait');
 
         $filename = ($isPosted

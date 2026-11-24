@@ -29,6 +29,7 @@
         'user-circle' => ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z', 'M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z', 'M5.5 19a8 8 0 0 1 13 0'],
         'swap' => ['M8 3 4 7l4 4', 'M4 7h16', 'M16 21l4-4-4-4', 'M20 17H4'],
         'package' => ['M16.5 9.4 7.55 4.24', 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z', 'M3.29 7 12 12l8.71-5', 'M12 22V12'],
+        'file-text' => ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z', 'M14 2v4a2 2 0 0 0 2 2h4', 'M10 9H8', 'M16 13H8', 'M16 17H8'],
     ];
     $name = $name ?? array_key_first($paths);
     $paths = $paths[$name] ?? throw new InvalidArgumentException("Unknown icon [{$name}].");

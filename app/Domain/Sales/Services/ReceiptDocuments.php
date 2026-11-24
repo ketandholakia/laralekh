@@ -24,10 +24,18 @@ final class ReceiptDocuments
         $partyName = $receipt->party_snapshot['name'] ?? ($receipt->party?->name ?? '—');
         $partyAddress = $receipt->party_snapshot['address'] ?? ($receipt->party?->address ?? '');
 
+        $companyId = app(\App\Domain\Shared\Tenancy\CompanySession::class)->companyId() ?? $receipt->company_id;
+        $rawSettings = \App\Domain\Masters\Models\Company::whereKey($companyId)->value('pdf_settings');
+        if (is_string($rawSettings)) {
+            $rawSettings = json_decode($rawSettings, true);
+        }
+        $pdfSettings = is_array($rawSettings) ? $rawSettings : [];
+
         return $this->render('pdf.receipt', [
             'receipt' => $receipt, 'original' => $original, 'posted' => $posted,
             'partyName' => $partyName, 'partyAddress' => $partyAddress,
             'words' => AmountInWords::inr($receipt->amount),
+            'pdfSettings' => $pdfSettings,
         ], $posted ? 'RECEIPT '.$receipt->series.'/'.$receipt->number : 'DRAFT - NO NUMBER ALLOCATED');
     }
 

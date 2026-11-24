@@ -10,6 +10,10 @@ class Company extends Model
 {
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'pdf_settings' => 'array',
+    ];
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)->withPivot('is_active')->withTimestamps();
