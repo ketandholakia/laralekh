@@ -517,3 +517,27 @@ evidence (commit SHA, CI run).
   1311 assertions (SQLite).
 - **Outstanding:** MS-06 screen modernization continues with LL-P3-005 (customer
   outstanding + statement).
+
+## 2026-11-24 — Customer outstanding and statement modernization (LL-P3-005, PR #16)
+
+- **Summary:** Modernized the customer settlement report screens (`customer-outstanding`
+  and `customer-statement`) to use the LaraLekh design system and MS-06 Stage 0
+  Blade components (`x-page-header`, `x-table`, `x-card`, `x-badge`, `x-alert`,
+  `x-button`, `x-field`, `x-input`). Refactored party header metadata, open
+  invoices, unapplied advances, and excess credits summary KPI cards, settlement
+  documents table, interactive as-of date filters, ledger statement table with
+  opening/closing balance distinctions, and authoritative ledger balance reconciliation
+  indicators. Visual and accessibility modernization only; Livewire bindings,
+  permissions, routing, and Pest tests green.
+- **Task ID:** LL-P3-005 (COMPLETED).
+- **Files/modules:** `resources/views/livewire/sales/customer-outstanding.blade.php`,
+  `resources/views/livewire/sales/customer-statement.blade.php`.
+- **Commits:** `1b4415e` and `a7d8ac2` merged via **PR #16** (merge commit
+  **`583a206`**, 2026-11-24).
+- **CI:** PR run `45369248684` 3/3 SUCCESS (Backend SQLite 33s, Frontend build
+  15s, Quality and security 14s).
+- **Post-merge baseline:** `main` @ `583a206` — full suite 412 passed / 1 todo /
+  1311 assertions (SQLite).
+- **Outstanding:** Core screen modernization (LL-P3-001…005) is completed; remaining
+  MS-06 tasks are gated LL-P3-006 (user/role management), LL-P3-007 (item master),
+  LL-P3-008 (PDF customization), and register lists modernization.
