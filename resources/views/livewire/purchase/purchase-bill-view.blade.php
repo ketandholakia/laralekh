@@ -10,6 +10,11 @@
                 <x-icon name="cart" class="h-4 w-4" /> Edit draft
             </x-button>
         @endif
+        @if ($bill->status === 'posted' && auth()->user()->can('purchases.create'))
+            <x-button :href="route('purchase-debit-notes.create', $bill)" variant="secondary">
+                <x-icon name="plus" class="h-4 w-4" /> Issue Debit Note
+            </x-button>
+        @endif
         <x-button :href="route('purchases.index')" variant="ghost">Back to list</x-button>
     </x-page-header>
 
@@ -86,6 +91,29 @@
                     @endforeach
                 </tbody>
             </x-table>
+
+            @if ($bill->debitNotes->isNotEmpty())
+                <x-card>
+                    <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-2">Issued Purchase Debit Notes</h3>
+                    <div class="divide-y divide-slate-100">
+                        @foreach ($bill->debitNotes as $dn)
+                            <div class="py-2.5 flex items-center justify-between">
+                                <div>
+                                    <a href="{{ route('purchase-debit-notes.show', $dn) }}" class="font-medium text-brand-700 hover:underline">
+                                        {{ $dn->status === 'posted' ? 'PDN/'.$dn->number : 'Draft Debit Note' }}
+                                    </a>
+                                    <span class="text-xs text-slate-500 ml-2">({{ $dn->date->format('d-m-Y') }})</span>
+                                    <p class="text-xs text-slate-600 mt-0.5">{{ $dn->reason }}</p>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="font-mono font-semibold text-slate-900"><x-money :value="$dn->total"/></span>
+                                    <x-badge :status="$dn->status"/>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </x-card>
+            @endif
         </div>
 
         <aside class="space-y-6">

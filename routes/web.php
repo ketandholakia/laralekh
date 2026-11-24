@@ -96,6 +96,14 @@ Route::middleware('auth')->group(function (): void {
             Route::get('/supplier-payments/create', \App\Livewire\Purchase\SupplierPaymentEditor::class)
                 ->middleware('can:purchases.create')->name('supplier-payments.create');
             Route::get('/supplier-payments/{payment}', \App\Livewire\Purchase\SupplierPaymentView::class)->name('supplier-payments.show');
+
+            // Purchase debit notes (LL-P1-006).
+            Route::get('/purchase-bills/{bill}/debit-notes/create', \App\Livewire\Purchase\PurchaseDebitNoteEditor::class)
+                ->middleware('can:purchases.create')->name('purchase-debit-notes.create');
+            Route::get('/purchase-debit-notes/{debitNote}', \App\Livewire\Purchase\PurchaseDebitNoteView::class)
+                ->name('purchase-debit-notes.show');
+            Route::get('/purchase-debit-notes/{debitNote}/edit', \App\Livewire\Purchase\PurchaseDebitNoteEditor::class)
+                ->middleware('can:purchases.create')->name('purchase-debit-notes.edit');
         });
 
         // Item master management.

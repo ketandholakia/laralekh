@@ -31,6 +31,6 @@ final class PurchaseBillView extends Component
 
     public function render(): View
     {
-        return view('livewire.purchase.purchase-bill-view', ['bill' => PurchaseBill::with(['items', 'party', 'voucher'])->findOrFail($this->billId)]);
+        return view('livewire.purchase.purchase-bill-view', ['bill' => PurchaseBill::with(['items', 'party', 'voucher', 'debitNotes'])->findOrFail($this->billId)]);
     }
 }
