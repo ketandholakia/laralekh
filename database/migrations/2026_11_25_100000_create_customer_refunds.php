@@ -72,11 +72,11 @@ return new class extends Migration
                 ->references(['company_id', 'financial_year_id', 'id'])->on('customer_refunds')->cascadeOnDelete();
             $t->enum('allocation_type', ['receipt', 'invoice']);
             $t->unsignedBigInteger('receipt_id')->nullable();
-            $t->foreign(['company_id', 'receipt_id'], 'cust_refund_allocs_receipt_fk')
-                ->references(['company_id', 'id'])->on('receipts')->nullOnDelete();
+            $t->foreign('receipt_id', 'cust_refund_allocs_receipt_fk')
+                ->references('id')->on('receipts')->nullOnDelete();
             $t->unsignedBigInteger('invoice_id')->nullable();
-            $t->foreign(['company_id', 'invoice_id'], 'cust_refund_allocs_invoice_fk')
-                ->references(['company_id', 'id'])->on('invoices')->nullOnDelete();
+            $t->foreign('invoice_id', 'cust_refund_allocs_invoice_fk')
+                ->references('id')->on('invoices')->nullOnDelete();
             $this->money($t, 'amount');
         });
 
