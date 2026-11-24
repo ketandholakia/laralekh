@@ -12,11 +12,11 @@
     >
         <x-badge :status="$invoice->status" class="mr-1" />
         <x-button :href="route('invoices.pdf', $invoice)" variant="secondary">
-            <x-icon name="document" class="h-4 w-4" /> Download PDF
+            <x-icon name="file-down" class="h-4 w-4" /> Download PDF
         </x-button>
         @if ($invoice->status === 'draft' && auth()->user()->can('invoices.create'))
             <x-button :href="route('invoices.edit', $invoice)" variant="primary">
-                <x-icon name="pencil" class="h-4 w-4" /> Edit draft
+                <x-icon name="invoice" class="h-4 w-4" /> Edit draft
             </x-button>
         @endif
         <x-button :href="route('invoices.index')" variant="ghost">Back to list</x-button>

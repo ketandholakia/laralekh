@@ -144,7 +144,7 @@
                                     <button type="button" wire:click="removeLine({{ $index }})"
                                             class="inline-flex items-center justify-center rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
                                             title="Remove line" aria-label="Remove line">
-                                        <x-icon name="trash" class="h-4 w-4" />
+                                        <x-icon name="close" class="h-4 w-4" />
                                     </button>
                                 </td>
                             </tr>
