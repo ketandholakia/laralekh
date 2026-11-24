@@ -12,7 +12,7 @@ demonstrably met — code presence alone is never evidence.
 | MS-04A | Accounting safety and essential reports | LL-P1-001…LL-P1-005 | ACCEPTED — owner-accepted 2026-11-17 after independent audit and F-01…F-04 remediation |
 | MS-04B | Additional accounting workflows | LL-P1-006…LL-P1-011 | PROPOSED (per-workflow approval) |
 | MS-05 | GST compliance completion | LL-P2-001…LL-P2-004 | PROPOSED |
-| MS-06 | UI completion and administration | LL-P3-001…LL-P3-008 | PROPOSED (Stage 0 — LL-P3-000 — completed via PR #6, 2026-11-18) |
+| MS-06 | UI completion and administration | LL-P3-001…LL-P3-008 | COMPLETED (2026-11-24) |
 | MS-07 | Integrations | LL-P4-001…LL-P4-004 | PROPOSED (BLOCKED items inside) |
 | MS-08 | Production readiness | LL-P5-001…LL-P5-006 | PROPOSED (LL-P5-001, LL-P5-004 completed via PR #4, 2026-11-18) |
 
@@ -159,7 +159,7 @@ in the entry audit (Stages A–E) on a dedicated feature branch.
 - **Tests:** golden tests vs official samples; reconciliation tests.
 - **Owner acceptance:** milestone report reviewed with CA outputs.
 
-## MS-06 — UI completion and administration — PROPOSED (Stage 0 completed 2026-11-18)
+## MS-06 — UI completion and administration — COMPLETED (2026-11-24)
 
 **Stage 0 — shared UI foundations (LL-P3-000) — COMPLETED (PR #6, 2026-11-18):**
 delivered as a separate PR per the owner's binding decision on the approved
@@ -182,22 +182,20 @@ were remediated on the same branch (commit `22fbdc0`).
   (migration up/down/up on `laravix_test_migrations`; 46 triggers +
   immutability tamper probe on `laravix_test_ms06_s0`). No accounting,
   domain, route, permission or schema changes.
-- **Remaining work (outstanding):** LL-P3-001 (sales invoice editor + view —
-  COMPLETED via PR #8, merge `5783dcc`, 2026-11-24), LL-P3-002 (receipt editor
-  + view — COMPLETED via PR #10, merge `6e4df46`, 2026-11-24), LL-P3-003
-  (purchase editor + view — COMPLETED via PR #12, merge `33ca136`, 2026-11-24),
-  LL-P3-004 (corrections and reversals — COMPLETED via PR #14, merge `fdabb40`, 2026-11-24),
-  LL-P3-005 (customer outstanding + statement — COMPLETED via PR #16, merge `583a206`, 2026-11-24),
-  LL-P3-006 (user and role management screens — COMPLETED via PR #18, merge `60765ff`, 2026-11-24),
-  LL-P3-007 (item master screens — COMPLETED via PR #20, merge `de95799`, 2026-11-24) —
-  in the approved implementation sequence — plus the remaining task LL-P3-008 (PDF customization). The
-  four Livewire list components (sales invoices, customer receipts, purchase bills, supplier payments)
-  had their screen modernization completed via PR #22 (merge `f83eeed`, 2026-11-24).
+- **Completed screen tasks:**
+  - LL-P3-001 (sales invoice editor + view — COMPLETED via PR #8, merge `5783dcc`, 2026-11-24)
+  - LL-P3-002 (receipt editor + view — COMPLETED via PR #10, merge `6e4df46`, 2026-11-24)
+  - LL-P3-003 (purchase editor + view — COMPLETED via PR #12, merge `33ca136`, 2026-11-24)
+  - LL-P3-004 (corrections and reversals — COMPLETED via PR #14, merge `fdabb40`, 2026-11-24)
+  - LL-P3-005 (customer outstanding + statement — COMPLETED via PR #16, merge `583a206`, 2026-11-24)
+  - LL-P3-006 (user and role management screens — COMPLETED via PR #18, merge `60765ff`, 2026-11-24)
+  - LL-P3-007 (item master screens — COMPLETED via PR #20, merge `de95799`, 2026-11-24)
+  - Register lists modernization (sales invoices, customer receipts, purchase bills, supplier payments — COMPLETED via PR #22, merge `f83eeed`, 2026-11-24)
+  - LL-P3-008 (PDF template customization — COMPLETED via PR #25, merge `af18f0e`, 2026-11-24)
+  - UI inventory audit refresh (`docs/ui/ui-inventory.md` — COMPLETED via PR #24, merge `643497c`, 2026-11-24)
 - **Owner decisions carried from the approved MS-06 plan (unchanged):** GST
   returns detail excluded (separate proposal only); mobile drawer focus trap
-  and user-menu keyboard management deferred; `docs/ui/ui-inventory.md`
-  refresh at MS-06 completion. READY statuses are not implementation
-  authorization.
+  and user-menu keyboard management deferred. All MS-06 tasks delivered and verified.
 
 - **Included tasks:** LL-P3-001…LL-P3-008 (plus the LL-P3-000 enabler
   substage, completed above).
