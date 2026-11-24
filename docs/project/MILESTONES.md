@@ -191,8 +191,8 @@ were remediated on the same branch (commit `22fbdc0`).
   LL-P3-006 (user and role management screens — COMPLETED via PR #18, merge `60765ff`, 2026-11-24),
   LL-P3-007 (item master screens — COMPLETED via PR #20, merge `de95799`, 2026-11-24) —
   in the approved implementation sequence — plus the remaining task LL-P3-008 (PDF customization). The
-  four Livewire list components received only the `paginationView()` method;
-  their screen modernization has not started.
+  four Livewire list components (sales invoices, customer receipts, purchase bills, supplier payments)
+  had their screen modernization completed via PR #22 (merge `f83eeed`, 2026-11-24).
 - **Owner decisions carried from the approved MS-06 plan (unchanged):** GST
   returns detail excluded (separate proposal only); mobile drawer focus trap
   and user-menu keyboard management deferred; `docs/ui/ui-inventory.md`

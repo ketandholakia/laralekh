@@ -246,12 +246,10 @@ authorize MS-04B.
   `brand-200` token fix; review corrections F-01/F-02 included. Suite
   baseline on merged `main`: 412 passed / 1 todo / 1311 assertions;
   post-merge CI run `44315749152` 3/3 SUCCESS. The four Livewire list
-  components received only the `paginationView()` method — their screen
-  modernization has not started.
-- **Scope (remaining):** editors/detail views (invoice, receipt, purchase,
-  correction, reversal), customer outstanding/statement, item master screens,
-  user & role management screens; optional PDF customization (LL-P3-008 needs
-  decision).
+  components (sales invoices, customer receipts, purchase bills, supplier payments)
+  had their screen modernization completed via PR #22 (merge `f83eeed`, 2026-11-24).
+- **Scope (remaining):** PDF customization (LL-P3-008 needs decision). All editor,
+  view, statement, master, admin, and register list screens are completed.
 - **Owner decisions from the approved MS-06 plan (unchanged):** Stage 0 as a
   separate PR (executed); brand-styled pagination replaces the stock view
   (executed); per-field error attribution via additive keys (component wiring

@@ -591,4 +591,23 @@ evidence (commit SHA, CI run).
 - **Commits:** `2fa4f48` merged via **PR #20** (merge commit **`de95799`**, 2026-11-24).
 - **CI:** PR run `45394688229` 3/3 SUCCESS (Backend SQLite 1m3s, Frontend build 9s, Quality and security 15s).
 - **Post-merge baseline:** `main` @ `de95799` — full suite 435 passed / 1 todo / 1419 assertions (SQLite).
-- **Outstanding:** Remaining MS-06 tasks are gated LL-P3-008 (PDF customization) and register lists modernization.
+- **Outstanding:** MS-06 tasks remaining are register lists modernization and LL-P3-008 (PDF customization).
+
+## 2026-11-24 — Transaction register lists modernization (PR #22)
+
+- **Summary:** Modernized the four primary transaction register views (`InvoiceList`, `ReceiptList`,
+  `PurchaseBillList`, and `SupplierPaymentList`) to the LaraLekh design system (MS-06 Stage 0).
+  Adopted standard root `<div class="space-y-6">`, `<x-card class="p-4">` wrapper for search/filter
+  controls, semantic `<x-table caption="...">` with `<thead>` and `<tbody>` leveraging design-system
+  CSS hooks, `<x-empty-state>` for empty rows, and design-system `<x-badge>` and `<x-money>` helpers,
+  while retaining all Livewire reactive models, URL query parameters, authorization checks, and
+  LaraLekh pagination intact.
+- **Task ID:** MS-06 Register Lists Modernization (COMPLETED).
+- **Files/modules:** `resources/views/livewire/purchase/purchase-bill-list.blade.php`,
+  `resources/views/livewire/purchase/supplier-payment-list.blade.php`,
+  `resources/views/livewire/sales/invoice-list.blade.php`,
+  `resources/views/livewire/sales/receipt-list.blade.php`.
+- **Commits:** `b24fc5c` merged via **PR #22** (merge commit **`f83eeed`**, 2026-11-24).
+- **CI:** PR run `45411552271` 3/3 SUCCESS (Backend SQLite 47s, Frontend build 8s, Quality and security 13s).
+- **Post-merge baseline:** `main` @ `f83eeed` — full suite 435 passed / 1 todo / 1419 assertions (SQLite).
+- **Outstanding:** Remaining MS-06 task is LL-P3-008 (PDF template customization).
