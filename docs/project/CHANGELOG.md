@@ -469,3 +469,25 @@ evidence (commit SHA, CI run).
 - **Outstanding:** MS-06 screen modernization continues with LL-P3-003 (purchase
   editor + view), LL-P3-004 (corrections and reversals), LL-P3-005 (customer
   outstanding + statement).
+
+## 2026-11-24 — Purchase bill editor and view modernization (LL-P3-003, PR #12)
+
+- **Summary:** Modernized the purchase bill editor (`purchase-bill-editor`) and
+  view (`purchase-bill-view`) screens to use the LaraLekh design system and
+  MS-06 Stage 0 Blade components (`x-page-header`, `x-table`, `x-card`,
+  `x-badge`, `x-alert`, `x-button`, `x-money`, `x-field`, `x-select`,
+  `x-input`). Refactored supplier and bill metadata, inward supply line items,
+  ITC eligibility badges/notes, reverse-charge indicators, totals calculation,
+  and draft/post actions. Visual and accessibility modernization only; Livewire
+  bindings and tests green.
+- **Task ID:** LL-P3-003 (COMPLETED).
+- **Files/modules:** `resources/views/livewire/purchase/purchase-bill-editor.blade.php`,
+  `resources/views/livewire/purchase/purchase-bill-view.blade.php`.
+- **Commits:** `55cfa08` merged via **PR #12** (merge commit **`33ca136`**,
+  2026-11-24).
+- **CI:** PR run `45361313393` 3/3 SUCCESS (Backend SQLite 52s, Frontend build
+  10s, Quality and security 10s).
+- **Post-merge baseline:** `main` @ `33ca136` — full suite 412 passed / 1 todo /
+  1311 assertions (SQLite).
+- **Outstanding:** MS-06 screen modernization continues with LL-P3-004 (corrections
+  and reversals), LL-P3-005 (customer outstanding + statement).
