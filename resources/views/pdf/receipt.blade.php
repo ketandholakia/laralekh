@@ -27,6 +27,11 @@
 <table>
     <tr>
         <td style="width:62%; border:none;">
+            @if (!empty($pdfSettings['logo_data']))
+                <div style="margin-bottom: 4pt;">
+                    <img src="{{ $pdfSettings['logo_data'] }}" style="max-height: 35pt; max-width: 120pt;" alt="Logo">
+                </div>
+            @endif
             <div style="font-size:12pt; font-weight:bold;">{{ $receipt->party_snapshot['name'] ?? $partyName }}</div>
             <div class="muted">Received with thanks from</div>
             <div style="font-weight:bold;">{{ $partyName }}</div>
@@ -94,9 +99,15 @@
     </tr>
 </table>
 
+@if (!empty($pdfSettings['terms']))
+    <div style="margin-top:8pt; font-size:7.5pt; color:#374151; white-space:pre-line; border-top:0.5pt solid #e2e8f0; padding-top:4pt;">
+        <strong>Terms & Conditions:</strong><br>{{ $pdfSettings['terms'] }}
+    </div>
+@endif
+
 <div class="signature">
     <div class="muted">For <strong>{{ config('app.name') }}</strong></div>
-    <div style="margin-top:18pt;" class="muted">Authorised signatory</div>
+    <div style="margin-top:18pt;" class="muted">{{ !empty($pdfSettings['signature_label']) ? $pdfSettings['signature_label'] : 'Authorised signatory' }}</div>
 </div>
 </body>
 </html>

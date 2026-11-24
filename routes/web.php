@@ -108,6 +108,7 @@ Route::middleware('auth')->group(function (): void {
         // Company-scoped user and role administration.
         Route::get('/admin/users', \App\Livewire\Admin\UserManager::class)->name('admin.users.index');
         Route::get('/admin/roles', \App\Livewire\Admin\RoleManager::class)->name('admin.roles.index');
+        Route::get('/admin/pdf-customizer', \App\Livewire\Admin\PdfCustomizer::class)->name('admin.pdf-customizer.index');
 
         // Financial reports from posted voucher movements (read-only).
         Route::get('/reports/trial-balance', \App\Livewire\Accounting\TrialBalance::class)->name('reports.trial-balance');

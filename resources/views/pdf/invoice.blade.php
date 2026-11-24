@@ -44,11 +44,27 @@
 <table>
     <tr>
         <td style="width:62%; border:none;">
-            <div style="font-size:12pt; font-weight:bold;">{{ $supplier['name'] ?? '—' }}</div>
-            <div style="white-space:pre-line;">{{ $supplier['address'] ?? '' }}</div>
-            <div>GSTIN: <strong>{{ $supplier['gstin'] ?? 'Unregistered' }}</strong>
-                · State: {{ $supplier['state_code'] ?? '' }}</div>
-            <div class="muted">Regime: {{ ucfirst($supplier['gst_regime'] ?? 'regular') }}</div>
+            @if (!empty($pdfSettings['hide_header']))
+                {{-- Space reserved for physical pre-printed letterhead stationery --}}
+                <div style="height: 28mm;"></div>
+            @else
+                @if (!empty($pdfSettings['logo_data']))
+                    <div style="margin-bottom: 4pt;">
+                        <img src="{{ $pdfSettings['logo_data'] }}" style="max-height: 40pt; max-width: 140pt;" alt="Logo">
+                    </div>
+                @endif
+                <div style="font-size:12pt; font-weight:bold;">{{ $supplier['name'] ?? '—' }}</div>
+                @if (!empty($pdfSettings['trade_name']) && $pdfSettings['trade_name'] !== ($supplier['name'] ?? ''))
+                    <div style="font-size:9pt; font-style:italic; color:#4b5563;">{{ $pdfSettings['trade_name'] }}</div>
+                @endif
+                <div style="white-space:pre-line;">{{ $supplier['address'] ?? '' }}</div>
+                <div>GSTIN: <strong>{{ $supplier['gstin'] ?? 'Unregistered' }}</strong>
+                    · State: {{ $supplier['state_code'] ?? '' }}</div>
+                <div class="muted">Regime: {{ ucfirst($supplier['gst_regime'] ?? 'regular') }}</div>
+                @if (!empty($pdfSettings['contact_info']))
+                    <div class="muted">{{ $pdfSettings['contact_info'] }}</div>
+                @endif
+            @endif
         </td>
         <td style="width:38%; border:none;">
             <div class="doc-title">
@@ -211,13 +227,28 @@
                         (supplier payment QR — not an IRP e-invoice QR)</div>
                 </div>
             @endif
+            @if (!empty($pdfSettings['show_bank_details']) && !empty($pdfSettings['bank_account_no']))
+                <div style="margin-top:8pt; padding:4pt 6pt; border:0.5pt solid #cbd5e1; background:#f8fafc; font-size:7.5pt;">
+                    <div style="font-weight:bold; color:#1e293b; margin-bottom:2pt;">Bank Details for Payment</div>
+                    @if (!empty($pdfSettings['bank_name']))<div>Bank: {{ $pdfSettings['bank_name'] }}</div>@endif
+                    <div>A/C No: <strong>{{ $pdfSettings['bank_account_no'] }}</strong></div>
+                    @if (!empty($pdfSettings['bank_ifsc']))<div>IFSC: <strong>{{ $pdfSettings['bank_ifsc'] }}</strong></div>@endif
+                    @if (!empty($pdfSettings['bank_branch']))<div>Branch: {{ $pdfSettings['bank_branch'] }}</div>@endif
+                </div>
+            @endif
         </td>
     </tr>
 </table>
 
+@if (!empty($pdfSettings['terms']))
+    <div style="margin-top:8pt; font-size:7.5pt; color:#374151; white-space:pre-line; border-top:0.5pt solid #e2e8f0; padding-top:4pt;">
+        <strong>Terms & Conditions:</strong><br>{{ $pdfSettings['terms'] }}
+    </div>
+@endif
+
 <div class="signature">
     <div class="muted">For <strong>{{ $supplier['name'] ?? '—' }}</strong></div>
-    <div style="margin-top:18pt;" class="muted">Authorised signatory</div>
+    <div style="margin-top:18pt;" class="muted">{{ !empty($pdfSettings['signature_label']) ? $pdfSettings['signature_label'] : 'Authorised signatory' }}</div>
 </div>
 </body>
 </html>
