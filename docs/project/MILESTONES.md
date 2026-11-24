@@ -188,8 +188,9 @@ were remediated on the same branch (commit `22fbdc0`).
   (purchase editor + view — COMPLETED via PR #12, merge `33ca136`, 2026-11-24),
   LL-P3-004 (corrections and reversals — COMPLETED via PR #14, merge `fdabb40`, 2026-11-24),
   LL-P3-005 (customer outstanding + statement — COMPLETED via PR #16, merge `583a206`, 2026-11-24),
-  LL-P3-006 (user and role management screens — COMPLETED via PR #18, merge `60765ff`, 2026-11-24) —
-  in the approved implementation sequence — plus the remaining tasks LL-P3-007 (item master) and LL-P3-008 (PDF customization). The
+  LL-P3-006 (user and role management screens — COMPLETED via PR #18, merge `60765ff`, 2026-11-24),
+  LL-P3-007 (item master screens — COMPLETED via PR #20, merge `de95799`, 2026-11-24) —
+  in the approved implementation sequence — plus the remaining task LL-P3-008 (PDF customization). The
   four Livewire list components received only the `paginationView()` method;
   their screen modernization has not started.
 - **Owner decisions carried from the approved MS-06 plan (unchanged):** GST

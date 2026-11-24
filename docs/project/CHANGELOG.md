@@ -570,3 +570,25 @@ evidence (commit SHA, CI run).
 - **CI:** PR run `45379702394` 3/3 SUCCESS (Backend SQLite 41s, Frontend build 10s, Quality and security 9s).
 - **Post-merge baseline:** `main` @ `60765ff` — full suite 425 passed / 1 todo / 1353 assertions (SQLite).
 - **Outstanding:** MS-06 tasks remaining are LL-P3-007 (item master), LL-P3-008 (PDF customization), and register lists modernization.
+
+## 2026-11-24 — Company-scoped item master screens and catalog management (LL-P3-007, PR #20)
+
+- **Summary:** Implemented company-scoped item master administration (`ItemManager` at `/items`)
+  built with the LaraLekh design system and MS-06 Stage 0 Blade components (`x-page-header`,
+  `x-card`, `x-table`, `x-badge`, `x-button`, `x-field`, `x-input`, `x-alert`). Features goods
+  and service item creation/editing with company-scoped SKU uniqueness validation, HSN/SAC
+  format checks, unit selection (UQC), default tax rate linkage (`tax_rate_code`), stock tracking
+  toggle (auto-disabled for services), keyword search (name/SKU/HSN), kind/stock filters, KPI summary
+  counters, and transaction deletion protection (`isUsed()` check across invoices, purchase bills,
+  and stock movements). Seeded `items.view` and `items.manage` permissions via `ItemPermissionSeeder`,
+  updated `RoleManager` permission catalog and templates, and added `Inventory` navigation sidebar item.
+- **Task ID:** LL-P3-007 (COMPLETED).
+- **Files/modules:** `app/Domain/Inventory/Models/Item.php`, `app/Livewire/Admin/RoleManager.php`,
+  `app/Livewire/Inventory/ItemManager.php`, `database/seeders/DatabaseSeeder.php`,
+  `database/seeders/ItemPermissionSeeder.php`, `resources/views/components/icon.blade.php`,
+  `resources/views/layouts/app.blade.php`, `resources/views/livewire/inventory/item-manager.blade.php`,
+  `routes/web.php`, `tests/Feature/ItemMasterTest.php`.
+- **Commits:** `2fa4f48` merged via **PR #20** (merge commit **`de95799`**, 2026-11-24).
+- **CI:** PR run `45394688229` 3/3 SUCCESS (Backend SQLite 1m3s, Frontend build 9s, Quality and security 15s).
+- **Post-merge baseline:** `main` @ `de95799` — full suite 435 passed / 1 todo / 1419 assertions (SQLite).
+- **Outstanding:** Remaining MS-06 tasks are gated LL-P3-008 (PDF customization) and register lists modernization.

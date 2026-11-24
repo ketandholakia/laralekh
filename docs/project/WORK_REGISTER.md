@@ -90,7 +90,7 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 | LL-P3-004 | Correction/reversal screens modernization | Correction editor/view, reversal editor/view | UI | Medium | COMPLETED | — | Not Required | All existing Livewire bindings/tests unchanged and green | Suite + visual review; merged PR #14 (merge `fdabb40`, 2026-11-24), CI 3/3 SUCCESS | Modernized correction-editor, correction-view, invoice-corrections, reversal-editor, reversal-view to LaraLekh design system |
 | LL-P3-005 | Customer outstanding/statement modernization | Outstanding + statement screens on the design system | UI | Medium | COMPLETED | — | Not Required | All existing Livewire bindings/tests unchanged and green | Suite + visual review; merged PR #16 (merge `583a206`, 2026-11-24), CI 3/3 SUCCESS | Modernized customer-outstanding and customer-statement to LaraLekh design system |
 | LL-P3-006 | User & role management screens | Company-scoped user administration: create users, assign company-scoped roles, deactivate; expectations for invitations/password reset resolved in DEC-019 | feature | High | COMPLETED | — | Required | Only admins manage users/roles; roles remain company-scoped; suite green | `tests/Feature/UserAndRoleManagementTest.php` (13 tests passed); merged PR #18 (merge `60765ff`, 2026-11-24), CI 3/3 SUCCESS | `company_user.is_active` deactivation; company-scoped role manager with templates; `UserManager` and `RoleManager` Livewire components |
-| LL-P3-007 | Item master screens | Create/maintain items (SKU, HSN/SAC, rates linkage) | feature | Medium | READY | — | Not Required | Items manageable by authorized users; invoice line lookup unchanged | UI tests | Items currently created only via seeders/tests |
+| LL-P3-007 | Item master screens | Create/maintain items (SKU, HSN/SAC, rates linkage) | feature | Medium | COMPLETED | — | Not Required | Items manageable by authorized users; invoice line lookup unchanged | `tests/Feature/ItemMasterTest.php` (10 tests passed); merged PR #20 (merge `de95799`, 2026-11-24), CI 3/3 SUCCESS | `ItemManager` Livewire component, `items.view`/`items.manage` permissions, company-scoped SKU uniqueness, stock tracking controls, deletion guards for referenced items |
 | LL-P3-008 | PDF template customization | Letterhead/logo/footer options per company | feature | Low | PROPOSED | — | Required | Customization renders in DomPDF output; statutory content unchanged | PDF sample visual review | Scope needs owner decision |
 
 ### P4 — Integrations (blocked/deferred)
@@ -117,7 +117,7 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 
 **Total tasks: 40**
 
-By status: COMPLETED 15 · READY 8 · PROPOSED 12 · BLOCKED 4 · DEFERRED 1 ·
+By status: COMPLETED 16 · READY 7 · PROPOSED 12 · BLOCKED 4 · DEFERRED 1 ·
 IN_PROGRESS 0 · IN_REVIEW 0 · CANCELLED 0
 
 By priority: Critical 2 · High 14 · Medium 22 · Low 2
