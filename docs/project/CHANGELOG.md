@@ -541,3 +541,32 @@ evidence (commit SHA, CI run).
 - **Outstanding:** Core screen modernization (LL-P3-001…005) is completed; remaining
   MS-06 tasks are gated LL-P3-006 (user/role management), LL-P3-007 (item master),
   LL-P3-008 (PDF customization), and register lists modernization.
+
+## 2026-11-24 — Company-scoped user and role management screens (LL-P3-006, PR #18)
+
+- **Summary:** Implemented company-scoped user administration and role management
+  screens (`UserManager` at `/admin/users` and `RoleManager` at `/admin/roles`)
+  built with the LaraLekh design system and MS-06 Stage 0 Blade components
+  (`x-page-header`, `x-card`, `x-table`, `x-badge`, `x-button`, `x-field`, `x-input`,
+  `x-alert`). Features direct user creation/linking with initial password, company-scoped
+  role assignment, password resets, active-company deactivation via a new `is_active`
+  boolean column on `company_user` (preventing self-deactivation and denying access via
+  `isMemberOf`), granular company-scoped role creation and editing with permission catalog
+  checkboxes, role templates (`sales_clerk`, `accountant`, `auditor`, `admin`), and deletion
+  guards preventing removal of roles with active user assignments. Navigation sidebar and
+  user dropdown updated with permission-gated Administration links. Tenancy isolation
+  preserved: `Role` global scope fails safe (`1 = 0`) outside active tenant context while
+  keeping writes strictly guarded.
+- **Task ID:** LL-P3-006 (COMPLETED).
+- **Files/modules:** `app/Domain/Masters/Models/Company.php`, `app/Domain/Shared/Models/Role.php`,
+  `app/Livewire/Admin/UserManager.php`, `app/Livewire/Admin/RoleManager.php`,
+  `app/Models/User.php`, `database/migrations/2026_11_24_160000_add_is_active_to_company_user_table.php`,
+  `database/seeders/DatabaseSeeder.php`, `database/seeders/UserPermissionSeeder.php`,
+  `resources/views/layouts/app.blade.php`, `resources/views/livewire/admin/user-manager.blade.php`,
+  `resources/views/livewire/admin/role-manager.blade.php`, `routes/web.php`,
+  `tests/Feature/UserAndRoleManagementTest.php`.
+- **Commits:** `1f3faf7`, `beb3252`, `510e573`, `4bca0aa` merged via **PR #18** (merge commit
+  **`60765ff`**, 2026-11-24).
+- **CI:** PR run `45379702394` 3/3 SUCCESS (Backend SQLite 41s, Frontend build 10s, Quality and security 9s).
+- **Post-merge baseline:** `main` @ `60765ff` — full suite 425 passed / 1 todo / 1353 assertions (SQLite).
+- **Outstanding:** MS-06 tasks remaining are LL-P3-007 (item master), LL-P3-008 (PDF customization), and register lists modernization.

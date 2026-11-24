@@ -36,7 +36,7 @@ still need an owner call are `PROPOSED`.
 | DEC-016 | Refund of excess customer credits | UNDECIDED: credits displayed separately only | LL-P1-008 | PROPOSED |
 | DEC-017 | Sales debit-note correction / reversal-of-reversal scope | UNDECIDED: deliberately deferred in the corrections MVP | `docs/corrections-design.md`; LL-P1-011 | PROPOSED |
 | DEC-018 | GSTR-2B import format | UNDECIDED: manual import needs a format decision (no portal feed exists) | LL-P2-002 | PROPOSED |
-| DEC-019 | User administration expectations | UNDECIDED: invitation flow, password reset, admin role model for screens | LL-P3-006 | PROPOSED |
+| DEC-019 | User administration expectations | Direct user creation/linking with initial password; `is_active` boolean on `company_user` pivot table (deactivated members fail `isMemberOf`); company-scoped custom roles with permission catalog and quick templates | PR #18 (merge `60765ff`, 2026-11-24); `UserManager`, `RoleManager`, `UserAndRoleManagementTest` | OWNER_APPROVED (PR #18) |
 | DEC-020 | PDF customization scope | UNDECIDED: letterhead/logo/footer options | LL-P3-008 | PROPOSED |
 | DEC-021 | Integration providers and credentials | UNDECIDED: IRP/GSP choice, e-way credentials, bank feed source | LL-P4-001…003 | PROPOSED |
 | DEC-022 | Hosting/deployment target | UNDECIDED: environment for production readiness work | LL-P5-002 | PROPOSED |
