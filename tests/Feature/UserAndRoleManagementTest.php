@@ -239,9 +239,10 @@ it('creates and edits custom roles with permissions and templates', function ():
             ->assertHasNoErrors();
 
         $role = Role::where('name', 'Billing Operator')->firstOrFail();
-        expect($role->hasPermissionTo('invoices.view'))->toBeTrue()
-            ->and($role->hasPermissionTo('receipts.create'))->toBeTrue()
-            ->and($role->hasPermissionTo('purchases.create'))->toBeFalse();
+        $assigned = $role->permissions->pluck('name')->all();
+        expect($assigned)->toContain('invoices.view')
+            ->and($assigned)->toContain('receipts.create')
+            ->and($assigned)->not->toContain('purchases.create');
 
         // Edit role
         $ui->call('openEditModal', $role->id)
@@ -251,9 +252,10 @@ it('creates and edits custom roles with permissions and templates', function ():
             ->assertHasNoErrors();
 
         $updatedRole = $role->fresh();
+        $updatedAssigned = $updatedRole->permissions->pluck('name')->all();
         expect($updatedRole->name)->toBe('Senior Billing Operator')
-            ->and($updatedRole->hasPermissionTo('purchases.view'))->toBeTrue()
-            ->and($updatedRole->hasPermissionTo('receipts.create'))->toBeFalse();
+            ->and($updatedAssigned)->toContain('purchases.view')
+            ->and($updatedAssigned)->not->toContain('receipts.create');
     });
 });
 
