@@ -66,6 +66,11 @@ final readonly class Money implements JsonSerializable, Stringable
         return bccomp($this->amount, '0', 2) < 0;
     }
 
+    public function isPositive(): bool
+    {
+        return bccomp($this->amount, '0', 2) > 0;
+    }
+
     public function isZero(): bool
     {
         return $this->amount === '0.00';
