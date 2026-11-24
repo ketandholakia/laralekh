@@ -203,7 +203,7 @@ authorize MS-04B.
 #### MS-04B — Additional accounting workflows (LL-P1-006…011)
 - **Objective:** address additional accounting workflows only after their
   product and accounting policies have been decided.
-- **Scope:** LL-P1-006 (purchase debit notes), LL-P1-007 (zero-value
+- **Scope:** LL-P1-006 (purchase debit notes — COMPLETED via PR #27), LL-P1-007 (zero-value
   invoices), LL-P1-008 (credit refunds), LL-P1-009 (advance receipt
   vouchers), LL-P1-010 (inventory/COGS policy and stock register), LL-P1-011
   (sales debit-note correction / reversal-of-reversal scope).
@@ -215,7 +215,7 @@ authorize MS-04B.
   remain intact; required MySQL validation passes.
 - **Cross-cutting:** LL-P1-012 (MySQL validation cadence) applies to both
   milestones and is not a prerequisite for individual MS-04B workflows.
-- **Status:** PROPOSED — per-workflow approval.
+- **Status:** IN_PROGRESS — per-workflow approval (LL-P1-006 completed 2026-11-24 via PR #27; LL-P1-008 next).
 
 ### P2 — GST compliance completion — PROPOSED
 - **Objective:** finish GST output fidelity and CA-review closure.
