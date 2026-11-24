@@ -420,3 +420,30 @@ evidence (commit SHA, CI run).
   (separate proposal only); mobile drawer focus trap and user-menu keyboard
   management deferred; `docs/ui/ui-inventory.md` refresh deferred to MS-06
   completion. MS-04B, MS-05A, F-05, F-06 remain unapproved and untouched.
+
+## 2026-11-24 — Planning docs reconciliation (PR #7)
+
+- **Summary:** Reconciled `DEVELOPMENT_PLAN.md`, `MILESTONES.md`, `WORK_REGISTER.md`,
+  and `CHANGELOG.md` with the MS-06 Stage 0 merge (PR #6).
+- **Commits:** `a858a91` merged via **PR #7** (`787158f`, 2026-11-24).
+- **CI:** PR run `45334871136` 3/3 SUCCESS (Backend SQLite, Frontend build, Quality and security).
+
+## 2026-11-24 — Sales invoice editor and view modernization (LL-P3-001, PR #8)
+
+- **Summary:** Modernized the sales invoice editor (`invoice-editor`) and detail
+  view (`invoice-view`) screens to use the LaraLekh design system and MS-06
+  Stage 0 Blade components (`x-page-header`, `x-table`, `x-card`, `x-badge`,
+  `x-alert`, `x-button`, `x-money`, `x-field`, `x-select`, `x-input`). Visual and
+  accessibility modernization only; Livewire bindings and tests green.
+- **Task ID:** LL-P3-001 (COMPLETED).
+- **Files/modules:** `resources/views/livewire/sales/invoice-editor.blade.php`,
+  `resources/views/livewire/sales/invoice-view.blade.php`.
+- **Commits:** `d2e100f` and `63628c2` merged via **PR #8** (merge commit
+  **`5783dcc`**, 2026-11-24).
+- **CI:** PR run `45337493920` 3/3 SUCCESS (Backend SQLite 46s, Frontend build
+  9s, Quality and security 10s).
+- **Post-merge baseline:** `main` @ `5783dcc` — full suite 412 passed / 1 todo /
+  1311 assertions (SQLite).
+- **Outstanding:** MS-06 screen modernization continues with LL-P3-002 (receipt
+  editor + view), LL-P3-003 (purchase editor + view), LL-P3-004 (corrections
+  and reversals), LL-P3-005 (customer outstanding + statement).
