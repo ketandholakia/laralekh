@@ -44,7 +44,7 @@
             </x-field>
 
             <x-field label="Reason" name="form.reason" class="sm:col-span-2">
-                <x-textarea wire:model="form.reason" rows="2" maxlength="2000" placeholder="Explain the correction and supporting reference" />
+                <x-textarea name="form.reason" wire:model="form.reason" rows="2" maxlength="2000" placeholder="Explain the correction and supporting reference" />
             </x-field>
         </div>
     </x-card>
@@ -60,19 +60,19 @@
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <x-field label="Planned reporting date" name="form.reporting_date">
-                    <x-input type="date" wire:model="form.reporting_date" />
+                    <x-input name="form.reporting_date" type="date" wire:model="form.reporting_date" />
                 </x-field>
                 <x-field label="Original year's annual return filed on (blank only if not filed)" name="form.annual_return_filed_on">
-                    <x-input type="date" wire:model="form.annual_return_filed_on" />
+                    <x-input name="form.annual_return_filed_on" type="date" wire:model="form.annual_return_filed_on" />
                 </x-field>
             </div>
 
             <x-field label="Review evidence / reference" name="form.eligibility_evidence">
-                <x-textarea wire:model="form.eligibility_evidence" rows="2" />
+                <x-textarea name="form.eligibility_evidence" wire:model="form.eligibility_evidence" rows="2" />
             </x-field>
 
             <x-field label="Recipient delivery address (required for unregistered recipients)" name="form.delivery_address">
-                <x-textarea wire:model="form.delivery_address" rows="2" />
+                <x-textarea name="form.delivery_address" wire:model="form.delivery_address" rows="2" />
             </x-field>
 
             <label class="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">

@@ -45,7 +45,7 @@
         </div>
 
         <x-field label="Reason" name="reason">
-            <x-textarea wire:model="reason" rows="3" maxlength="2000" placeholder="Provide the business and audit reason for this accounting reversal" />
+            <x-textarea name="reason" wire:model="reason" rows="3" maxlength="2000" placeholder="Provide the business and audit reason for this accounting reversal" />
         </x-field>
 
         <label class="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
