@@ -11,7 +11,13 @@ class Role extends SpatieRole
 {
     protected static function booted(): void
     {
-        static::addGlobalScope('company', fn (Builder $query) => $query->where($query->qualifyColumn('company_id'), app(TenantContext::class)->id()));
+        static::addGlobalScope('company', function (Builder $query): void {
+            if (app(TenantContext::class)->hasContext()) {
+                $query->where($query->qualifyColumn('company_id'), app(TenantContext::class)->id());
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        });
         static::saving(function (self $role): void {
             $role->company_id ??= app(TenantContext::class)->id();
             if ((int) $role->company_id !== app(TenantContext::class)->id() || ($role->exists && $role->isDirty('company_id'))) {
