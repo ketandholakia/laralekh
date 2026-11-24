@@ -24,4 +24,9 @@ class PurchaseBillItem extends TenantModel
     {
         return $this->belongsTo(Item::class);
     }
+
+    public function debitNoteLines()
+    {
+        return $this->hasMany(PurchaseDebitNoteLine::class);
+    }
 }

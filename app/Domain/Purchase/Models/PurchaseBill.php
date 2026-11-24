@@ -30,4 +30,9 @@ class PurchaseBill extends TenantModel
     {
         return $this->belongsTo(Voucher::class);
     }
+
+    public function debitNotes()
+    {
+        return $this->hasMany(PurchaseDebitNote::class)->orderBy('date');
+    }
 }
