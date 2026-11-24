@@ -50,7 +50,7 @@
                         <td class="px-4 py-3"></td>
                         <td class="px-4 py-3"></td>
                         <td class="px-4 py-3 text-right font-mono text-sm font-semibold text-slate-900">
-                            <x-money :value="$statement['opening']" />
+                            {{ $statement['opening'] }}
                         </td>
                     </tr>
                     @foreach ($statement['rows'] as $row)
@@ -60,17 +60,13 @@
                             </td>
                             <td class="px-4 py-3 text-sm text-slate-900">{{ $row['description'] }}</td>
                             <td class="px-4 py-3 text-right font-mono text-sm text-slate-700">
-                                @if ($row['debit'] !== '0.00')
-                                    <x-money :value="$row['debit']" />
-                                @endif
+                                {{ $row['debit'] !== '0.00' ? $row['debit'] : '' }}
                             </td>
                             <td class="px-4 py-3 text-right font-mono text-sm text-slate-700">
-                                @if ($row['credit'] !== '0.00')
-                                    <x-money :value="$row['credit']" />
-                                @endif
+                                {{ $row['credit'] !== '0.00' ? $row['credit'] : '' }}
                             </td>
                             <td class="px-4 py-3 text-right font-mono text-sm font-medium text-slate-900">
-                                <x-money :value="$row['balance']" />
+                                {{ $row['balance'] }}
                             </td>
                         </tr>
                     @endforeach
@@ -82,7 +78,7 @@
                         <td class="px-4 py-3"></td>
                         <td class="px-4 py-3"></td>
                         <td class="px-4 py-3 text-right font-mono text-sm font-bold text-slate-900">
-                            <x-money :value="$statement['closing']" />
+                            {{ $statement['closing'] }}
                         </td>
                     </tr>
                 </x-slot>

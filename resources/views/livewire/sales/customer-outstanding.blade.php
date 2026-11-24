@@ -13,18 +13,18 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-card">
             <span class="block text-xs font-semibold uppercase tracking-wider text-slate-500">Open invoices balance</span>
-            <span class="mt-2 block font-mono text-2xl font-bold text-slate-900"><x-money :value="$summary['invoices_balance']" /></span>
+            <span class="mt-2 block font-mono text-2xl font-bold text-slate-900">₹{{ $summary['invoices_balance'] }}</span>
         </div>
 
         <div class="rounded-lg border border-emerald-200 bg-emerald-50/70 p-5 shadow-card">
             <span class="block text-xs font-semibold uppercase tracking-wider text-emerald-800">Unapplied advances</span>
-            <span class="mt-2 block font-mono text-2xl font-bold text-emerald-900"><x-money :value="$summary['advances']" /></span>
+            <span class="mt-2 block font-mono text-2xl font-bold text-emerald-900">₹{{ $summary['advances'] }}</span>
             <p class="mt-2 text-xs text-emerald-700">Receipts held on account; allocation is a separate authorised action. Advance GST treatment is not computed here.</p>
         </div>
 
         <div class="rounded-lg border border-amber-200 bg-amber-50/70 p-5 shadow-card">
             <span class="block text-xs font-semibold uppercase tracking-wider text-amber-800">Excess customer credits</span>
-            <span class="mt-2 block font-mono text-2xl font-bold text-amber-900"><x-money :value="$summary['excess_credits']" /></span>
+            <span class="mt-2 block font-mono text-2xl font-bold text-amber-900">₹{{ $summary['excess_credits'] }}</span>
             <p class="mt-2 text-xs text-amber-700">Credits exceed what was owed on those documents; refundable to the customer.</p>
         </div>
     </div>
@@ -52,10 +52,10 @@
                             {{ \Illuminate\Support\Carbon::parse($document['date'])->format('d-m-Y') }}
                         </td>
                         <td class="px-4 py-3 text-right font-mono text-sm text-slate-700">
-                            <x-money :value="$document['total']" />
+                            {{ $document['total'] }}
                         </td>
                         <td class="px-4 py-3 text-right font-mono text-sm font-medium {{ str_starts_with($document['outstanding'], '-') ? 'text-amber-700' : 'text-slate-900' }}">
-                            <x-money :value="$document['outstanding']" />
+                            {{ $document['outstanding'] }}
                         </td>
                     </tr>
                 @empty
