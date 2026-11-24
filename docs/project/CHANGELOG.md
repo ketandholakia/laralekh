@@ -610,4 +610,24 @@ evidence (commit SHA, CI run).
 - **Commits:** `b24fc5c` merged via **PR #22** (merge commit **`f83eeed`**, 2026-11-24).
 - **CI:** PR run `45411552271` 3/3 SUCCESS (Backend SQLite 47s, Frontend build 8s, Quality and security 13s).
 - **Post-merge baseline:** `main` @ `f83eeed` — full suite 435 passed / 1 todo / 1419 assertions (SQLite).
-- **Outstanding:** Remaining MS-06 task is LL-P3-008 (PDF template customization).
+- **Outstanding:** MS-06 task LL-P3-008 (PDF template customization) and ui-inventory refresh.
+
+## 2026-11-24 — Company PDF template customization (LL-P3-008, PR #25)
+
+- **Summary:** Implemented company-level PDF template and letterhead customization (`PdfCustomizer` at `/admin/pdf-customizer`).
+  Features letterhead margin reservation for pre-printed stationery (`hide_header`), custom secondary trade names, contact info lines,
+  company logo (data URI / base64), bank account remittance details on invoices (bank name, A/C number, IFSC, branch), custom footer
+  terms and conditions, and configurable signature line designation (`signature_label`), with live side-by-side A4 document preview.
+  Stored in `companies.pdf_settings` (nullable JSON). Integrated into `InvoicePdfController`, `ReceiptDocuments`, and DomPDF views
+  (`pdf.invoice`, `pdf.receipt`) while preserving all statutory tax, GSTIN, HSN, and ledger document particulars strictly unchanged.
+- **Task ID:** LL-P3-008 (COMPLETED). Completes milestone **MS-06 (UI completion and administration)**.
+- **Files/modules:** `app/Domain/Masters/Models/Company.php`, `app/Domain/Sales/Services/ReceiptDocuments.php`,
+  `app/Http/Controllers/Sales/InvoicePdfController.php`, `app/Livewire/Admin/PdfCustomizer.php`,
+  `database/migrations/2026_11_24_200000_add_pdf_settings_to_companies_table.php`,
+  `resources/views/components/icon.blade.php`, `resources/views/layouts/app.blade.php`,
+  `resources/views/livewire/admin/pdf-customizer.blade.php`, `resources/views/pdf/invoice.blade.php`,
+  `resources/views/pdf/receipt.blade.php`, `routes/web.php`, `tests/Feature/PdfCustomizationTest.php`.
+- **Commits:** `7fb0ca4`, `c336873` merged via **PR #25** (merge commit **`af18f0e`**, 2026-11-24).
+- **CI:** PR run `45419445644` 3/3 SUCCESS (Backend SQLite 1m4s, Frontend build 13s, Quality and security 10s).
+- **Post-merge baseline:** `main` @ `af18f0e` — full suite 439 passed / 1 todo / 1436 assertions (SQLite).
+- **Outstanding:** MS-06 is fully completed. Next on roadmap: MS-04B (additional accounting workflows) and MS-05 (GST compliance completion).

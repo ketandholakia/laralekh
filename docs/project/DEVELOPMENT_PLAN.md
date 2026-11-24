@@ -248,8 +248,10 @@ authorize MS-04B.
   post-merge CI run `44315749152` 3/3 SUCCESS. The four Livewire list
   components (sales invoices, customer receipts, purchase bills, supplier payments)
   had their screen modernization completed via PR #22 (merge `f83eeed`, 2026-11-24).
-- **Scope (remaining):** PDF customization (LL-P3-008 needs decision). All editor,
-  view, statement, master, admin, and register list screens are completed.
+  PDF customization (LL-P3-008) completed via PR #25 (merge `af18f0e`, 2026-11-24).
+  UI inventory audit refreshed via PR #24 (merge `643497c`, 2026-11-24).
+- **Scope (status):** MS-06 is fully completed. All editor, view, statement, master,
+  admin, register list screens, and PDF customization are delivered.
 - **Owner decisions from the approved MS-06 plan (unchanged):** Stage 0 as a
   separate PR (executed); brand-styled pagination replaces the stock view
   (executed); per-field error attribution via additive keys (component wiring
