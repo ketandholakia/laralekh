@@ -98,6 +98,9 @@ Route::middleware('auth')->group(function (): void {
             Route::get('/supplier-payments/{payment}', \App\Livewire\Purchase\SupplierPaymentView::class)->name('supplier-payments.show');
         });
 
+        // Item master management.
+        Route::get('/items', \App\Livewire\Inventory\ItemManager::class)->name('items.index');
+
         // Company-scoped financial-year administration (create/close) — its own
         // years.manage permission, independent of purchases.view.
         Route::get('/financial-years', \App\Livewire\Masters\FinancialYearManager::class)->name('financial-years.index');

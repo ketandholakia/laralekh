@@ -91,6 +91,10 @@ final class RoleManager extends Component
             'Accounting & Reports' => [
                 'reports.view' => 'View Trial Balance, P&L, Balance Sheet',
             ],
+            'Inventory & Items' => [
+                'items.view' => 'View items and product catalog',
+                'items.manage' => 'Create, edit, and delete items',
+            ],
             'Administration & Setup' => [
                 'years.manage' => 'Create & close financial years',
                 'users.view' => 'View company users',
@@ -170,17 +174,20 @@ final class RoleManager extends Component
                     'invoices.view', 'invoices.create',
                     'receipts.view', 'receipts.create',
                     'corrections.view', 'corrections.create',
+                    'items.view',
                 ];
                 break;
             case 'purchase_clerk':
                 $this->selectedPermissions = [
                     'purchases.view', 'purchases.create',
+                    'items.view',
                 ];
                 break;
             case 'viewer':
                 $this->selectedPermissions = [
                     'invoices.view', 'receipts.view', 'purchases.view',
                     'corrections.view', 'returns.view', 'reports.view',
+                    'items.view',
                 ];
                 break;
         }
