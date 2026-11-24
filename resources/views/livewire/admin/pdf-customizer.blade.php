@@ -16,7 +16,7 @@
                 {{-- Letterhead & Header Card --}}
                 <x-card>
                     <h2 class="mb-4 text-base font-semibold text-slate-900 border-b border-slate-100 pb-2">Header & Letterhead</h2>
-                    
+
                     <div class="space-y-4">
                         <label class="flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50/50 p-3 hover:bg-slate-50 cursor-pointer">
                             <input type="checkbox" wire:model.live="hide_header" class="mt-0.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
@@ -62,7 +62,7 @@
                 {{-- Bank Details Card --}}
                 <x-card>
                     <h2 class="mb-4 text-base font-semibold text-slate-900 border-b border-slate-100 pb-2">Bank Account Remittance Details</h2>
-                    
+
                     <div class="space-y-4">
                         <label class="flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50/50 p-3 hover:bg-slate-50 cursor-pointer">
                             <input type="checkbox" wire:model.live="show_bank_details" class="mt-0.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
@@ -94,7 +94,7 @@
                 {{-- Terms & Signatory Card --}}
                 <x-card>
                     <h2 class="mb-4 text-base font-semibold text-slate-900 border-b border-slate-100 pb-2">Terms, Conditions & Signatory</h2>
-                    
+
                     <div class="space-y-4">
                         <x-textarea
                             name="terms"
