@@ -447,3 +447,25 @@ evidence (commit SHA, CI run).
 - **Outstanding:** MS-06 screen modernization continues with LL-P3-002 (receipt
   editor + view), LL-P3-003 (purchase editor + view), LL-P3-004 (corrections
   and reversals), LL-P3-005 (customer outstanding + statement).
+
+## 2026-11-24 — Customer receipt editor and view modernization (LL-P3-002, PR #10)
+
+- **Summary:** Modernized the customer receipt editor (`receipt-editor`) and
+  view (`receipt-view`) screens to use the LaraLekh design system and MS-06
+  Stage 0 Blade components (`x-page-header`, `x-table`, `x-card`, `x-badge`,
+  `x-alert`, `x-button`, `x-money`, `x-field`, `x-select`, `x-input`). Refactored
+  customer lookup, payment details, existing and new allocations tables,
+  undo/reversal sections, posting preview journal entries, and action controls.
+  Visual and accessibility modernization only; Livewire bindings and tests green.
+- **Task ID:** LL-P3-002 (COMPLETED).
+- **Files/modules:** `resources/views/livewire/sales/receipt-editor.blade.php`,
+  `resources/views/livewire/sales/receipt-view.blade.php`.
+- **Commits:** `08d20fd` merged via **PR #10** (merge commit **`6e4df46`**,
+  2026-11-24).
+- **CI:** PR run `45339208919` 3/3 SUCCESS (Backend SQLite 45s, Frontend build
+  10s, Quality and security 17s).
+- **Post-merge baseline:** `main` @ `6e4df46` — full suite 412 passed / 1 todo /
+  1311 assertions (SQLite).
+- **Outstanding:** MS-06 screen modernization continues with LL-P3-003 (purchase
+  editor + view), LL-P3-004 (corrections and reversals), LL-P3-005 (customer
+  outstanding + statement).
