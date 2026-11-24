@@ -182,12 +182,13 @@ were remediated on the same branch (commit `22fbdc0`).
   (migration up/down/up on `laravix_test_migrations`; 46 triggers +
   immutability tamper probe on `laravix_test_ms06_s0`). No accounting,
   domain, route, permission or schema changes.
-- **Remaining work (outstanding):** LL-P3-001 (sales invoice editor + view),
-  LL-P3-002 (receipt editor + view), LL-P3-003 (purchase editor + view),
-  LL-P3-004 (corrections and reversals), LL-P3-005 (customer outstanding +
-  statement) — in the approved implementation sequence — plus the gated
-  LL-P3-006…LL-P3-008. The four Livewire list components received only the
-  `paginationView()` method; their screen modernization has not started.
+- **Remaining work (outstanding):** LL-P3-001 (sales invoice editor + view —
+  COMPLETED via PR #8, merge `5783dcc`, 2026-11-24), LL-P3-002 (receipt editor
+  + view), LL-P3-003 (purchase editor + view), LL-P3-004 (corrections and
+  reversals), LL-P3-005 (customer outstanding + statement) — in the approved
+  implementation sequence — plus the gated LL-P3-006…LL-P3-008. The four
+  Livewire list components received only the `paginationView()` method; their
+  screen modernization has not started.
 - **Owner decisions carried from the approved MS-06 plan (unchanged):** GST
   returns detail excluded (separate proposal only); mobile drawer focus trap
   and user-menu keyboard management deferred; `docs/ui/ui-inventory.md`
