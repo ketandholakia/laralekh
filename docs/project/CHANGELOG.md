@@ -491,3 +491,29 @@ evidence (commit SHA, CI run).
   1311 assertions (SQLite).
 - **Outstanding:** MS-06 screen modernization continues with LL-P3-004 (corrections
   and reversals), LL-P3-005 (customer outstanding + statement).
+
+## 2026-11-24 — Correction and reversal screens modernization (LL-P3-004, PR #14)
+
+- **Summary:** Modernized the sales correction screens (`correction-editor`,
+  `correction-view`, and invoice embedded corrections section `invoice-corrections`)
+  and accounting reversal screens (`reversal-editor`, `reversal-view`) to use the
+  LaraLekh design system and MS-06 Stage 0 Blade components (`x-page-header`,
+  `x-table`, `x-card`, `x-badge`, `x-alert`, `x-button`, `x-money`, `x-field`,
+  `x-select`, `x-input`, `x-textarea`). Refactored party snapshot, reason, GST
+  review, capacity indicators, line adjustments, journal preview, and audit trail
+  presentation. Visual and accessibility modernization only; Livewire bindings,
+  permissions, routing, and Pest tests green.
+- **Task ID:** LL-P3-004 (COMPLETED).
+- **Files/modules:** `resources/views/livewire/sales/correction-editor.blade.php`,
+  `resources/views/livewire/sales/correction-view.blade.php`,
+  `resources/views/livewire/sales/invoice-corrections.blade.php`,
+  `resources/views/livewire/accounting/reversal-editor.blade.php`,
+  `resources/views/livewire/accounting/reversal-view.blade.php`.
+- **Commits:** `211371e` and `c21ad0d` merged via **PR #14** (merge commit
+  **`fdabb40`**, 2026-11-24).
+- **CI:** PR run `45366135769` 3/3 SUCCESS (Backend SQLite 43s, Frontend build
+  17s, Quality and security 10s).
+- **Post-merge baseline:** `main` @ `fdabb40` — full suite 412 passed / 1 todo /
+  1311 assertions (SQLite).
+- **Outstanding:** MS-06 screen modernization continues with LL-P3-005 (customer
+  outstanding + statement).
