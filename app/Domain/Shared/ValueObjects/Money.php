@@ -15,6 +15,10 @@ final readonly class Money implements JsonSerializable, Stringable
 
     public static function of(mixed $value): self
     {
+        if ($value instanceof self) {
+            return $value;
+        }
+
         if ((! is_string($value) && ! is_int($value)) ||
             ! preg_match('/^-?\d+(?:\.\d{1,2})?$/D', (string) $value)) {
             throw new InvalidArgumentException('Money requires a decimal string with at most two decimal places; floats are forbidden.');

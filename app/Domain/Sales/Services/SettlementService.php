@@ -84,7 +84,7 @@ final class SettlementService
             ->lockForUpdate()->get(['customer_refund_allocations.amount']);
         $sum = Money::of('0');
         foreach ($rows as $row) {
-            $sum = $sum->add(Money::of($row->amount));
+            $sum = $sum->add($row->amount instanceof Money ? $row->amount : Money::of((string) $row->amount));
         }
 
         return $sum;
@@ -102,7 +102,7 @@ final class SettlementService
             ->lockForUpdate()->get(['customer_refund_allocations.amount']);
         $sum = Money::of('0');
         foreach ($rows as $row) {
-            $sum = $sum->add(Money::of($row->amount));
+            $sum = $sum->add($row->amount instanceof Money ? $row->amount : Money::of((string) $row->amount));
         }
 
         return $sum;

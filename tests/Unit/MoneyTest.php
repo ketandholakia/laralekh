@@ -11,9 +11,11 @@ it('rounds half away from zero', fn ($input, $expected) => expect((string) Money
     ->with([['1.005', '1.01'], ['1.0049', '1.00'], ['-1.005', '-1.01'], ['-0.004', '0.00']]);
 
 it('checks positive, negative, and zero amounts correctly', function () {
-    expect(Money::of('10.00')->isPositive())->toBeTrue()
-        ->and(Money::of('10.00')->isNegative())->toBeFalse()
-        ->and(Money::of('10.00')->isZero())->toBeFalse()
+    $m = Money::of('10.00');
+    expect(Money::of($m))->toBe($m)
+        ->and($m->isPositive())->toBeTrue()
+        ->and($m->isNegative())->toBeFalse()
+        ->and($m->isZero())->toBeFalse()
         ->and(Money::of('-5.50')->isPositive())->toBeFalse()
         ->and(Money::of('-5.50')->isNegative())->toBeTrue()
         ->and(Money::of('-5.50')->isZero())->toBeFalse()
