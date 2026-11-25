@@ -712,3 +712,22 @@ evidence (commit SHA, CI run).
 - **CI:** PR run `45549304670` 3/3 SUCCESS (Backend SQLite 49s, Frontend build 11s, Quality and security 10s).
 - **Post-merge baseline:** `main` @ `e4880a6` — full suite 465 passed / 1 todo / 1644 assertions (SQLite).
 - **Outstanding:** MS-05 remaining tasks are LL-P2-001 (GSTR-1 JSON export; blocked on schema vendoring), LL-P2-002 (GSTR-2B manual import & reconciliation), and LL-P2-003 (Close fail-closed GST review items).
+
+## 2026-11-25 — GSTR-2B manual import and purchase reconciliation (LL-P2-002, PR #35)
+
+- **Summary:** Implemented manual GSTR-2B import and purchase reconciliation for inward supplies, formalizing decision DEC-018. Features new migration `2026_11_25_300000_create_gstr2b_imports.php` creating `gstr2b_imports` with unique `['company_id', 'period']` constraint and tenant model `Gstr2bImport`. Implemented `Gstr2bParser` supporting dual-format import: official GST Portal JSON (`data.docdata.b2b`, `b2ba`, `cdnr`) and standard GST Portal GSTR-2B B2B CSV table format with case-insensitive, normalized headers and multi-line item grouping. Implemented `Gstr2bReconciler` performing 2-way inward document reconciliation against booked purchase bills (`PurchaseBill`) by `Supplier GSTIN + Normalized Document Number` with statutory $\le ₹1.00$ rounding tolerance. Documents are classified into discrete reconciliation categories: `MATCHED`, `TAX_MISMATCH` (difference $> ₹1.00$), `MISSING_IN_BOOKS` (unclaimed ITC opportunity on portal), `MISSING_IN_PORTAL` (immediate CGST Section 16(2)(aa) supplier non-filing compliance risk), `ITC_INELIGIBLE` (statutory portal flag `itcavl = 'N'`), and `UNREGISTERED_INWARD` (supplies from unregistered persons). Integrated reconciliation data into `ReturnDatasetBuilder` (`gstr2b` and `gstr2b_meta`) and `Gstr3bSummaryBuilder` (`4_itc.gstr2b_reconciliation`), automatically emitting statutory Section 16(2)(aa) compliance warnings and unclaimed ITC advisories in GSTR-3B Table 4. Enhanced Livewire `Detail` return period view with GSTR-2B upload/re-import form, 4-card KPI summary (Matched, Tax mismatch, Missing in portal, Missing in books), eligible/ineligible totals, category filter tabs, and line-by-line reconciliation table.
+- **Task ID:** LL-P2-002 (COMPLETED). Advances milestone **MS-05 (GST compliance completion)**.
+- **Files/modules:** `app/Domain/Gst/Returns/Gstr3bSummaryBuilder.php`,
+  `app/Domain/Gst/Returns/Models/Gstr2bImport.php`,
+  `app/Domain/Gst/Returns/ReturnDatasetBuilder.php`,
+  `app/Domain/Gst/Returns/Services/Gstr2bImportService.php`,
+  `app/Domain/Gst/Returns/Services/Gstr2bParser.php`,
+  `app/Domain/Gst/Returns/Services/Gstr2bReconciler.php`,
+  `app/Livewire/Gst/Returns/Detail.php`,
+  `database/migrations/2026_11_25_300000_create_gstr2b_imports.php`,
+  `resources/views/livewire/gst/returns/detail.blade.php`,
+  `tests/Feature/Gstr2bReconciliationTest.php`.
+- **Commits:** `09c1ec7`, `49a7d91`, `d3fe02f` merged via **PR #35** (merge commit **`9fb309e`**, 2026-11-25).
+- **CI:** PR run `45558162819` 3/3 SUCCESS (Backend SQLite 1m2s, Frontend build 11s, Quality and security 17s).
+- **Post-merge baseline:** `main` @ `9fb309e` — full suite 472 passed / 1 todo / 1714 assertions (SQLite).
+- **Outstanding:** MS-05 remaining tasks are LL-P2-001 (GSTR-1 JSON export; blocked on schema vendoring) and LL-P2-003 (Close fail-closed GST review items).

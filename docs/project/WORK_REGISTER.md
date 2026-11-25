@@ -75,7 +75,7 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 | ID | Work item | Description | Category | Priority | Status | Deps | Owner approval | Acceptance criteria | Verification | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | LL-P2-001 | GSTR-1 JSON export | Implement `Gstr1JsonExporter` against the official schema/sample | feature | Medium | BLOCKED | LL-P2-003 | Required | Export validates against the official schema; golden test un-todo'd | Existing todo test in `Gstr1JsonExporterPendingTest` | Blocked: schema/sample must be vendored into `docs/gst-schemas/` (decision `3b8331c`) |
-| LL-P2-002 | GSTR-2B import and reconciliation enhancement | Define a manual GSTR-2B import format and compare portal ITC/liabilities against books | feature | High | PROPOSED | LL-P2-003 | Required | Imported 2B data reconciles in the 3B worksheet; discrepancies flagged | Golden tests | No portal feed exists by design |
+| LL-P2-002 | GSTR-2B import and reconciliation enhancement | Define a manual GSTR-2B import format and compare portal ITC/liabilities against books | feature | High | COMPLETED | LL-P2-003 | Approved (PR #35 merged 2026-11-25) | Imported 2B data reconciles in the 3B worksheet; discrepancies flagged | 7 new Feature tests in Gstr2bReconciliationTest; PR #35 CI 3/3 green | Dual-format JSON/CSV import, 2-way matching by Supplier GSTIN + Document No, s. 16(2)(aa) supplier risk warnings, unclaimed ITC advisories, Livewire Detail UI; PR #35 merge 9fb309e |
 | LL-P2-003 | Close fail-closed GST review items | GSTIN portal existence, blocked-ITC statutory eligibility, Table 13 ranges, transaction-level place-of-supply treatment — resolve with CA/portal evidence | documentation | High | READY | — | Required | Each item resolved or explicitly retained as CA-review with rationale | Update `docs/gst-rules.md` + `config/gst_returns.php` | Items block/flag exports today by design |
 | LL-P2-004 | GST treatment of advance receipts | Integrate advance receipt vouchers with GST time-of-supply handling once LL-P1-009 exists | feature | Medium | COMPLETED | LL-P1-009 | Approved (PR #33 merged 2026-11-25) | Advances reflected correctly in GSTR-1 documents (Table 11A, Table 13) | 7 new Feature tests in GstAdvanceIntegrationTest; PR #33 CI 3/3 green | Integrated AdvanceReceiptVoucher into ReturnDatasetBuilder (Table 11A services, Rule 50 provisos, Notif 66/2017-CT goods exemption, Table 13 Receipt voucher series ARV); PR #33 merge e4880a6 |
 
@@ -117,20 +117,20 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 
 **Total tasks: 40**
 
-By status: COMPLETED 20 · READY 6 · PROPOSED 9 · BLOCKED 4 · DEFERRED 1 ·
+By status: COMPLETED 21 · READY 6 · PROPOSED 8 · BLOCKED 4 · DEFERRED 1 ·
 IN_PROGRESS 0 · IN_REVIEW 0 · CANCELLED 0
 
 By priority: Critical 2 · High 14 · Medium 22 · Low 2
 
-Tasks requiring owner approval before work starts ("Required") — **13**:
-LL-P1-007, LL-P1-010, LL-P1-011, LL-P2-001…LL-P2-003,
+Tasks requiring owner approval before work starts ("Required") — **12**:
+LL-P1-007, LL-P1-010, LL-P1-011, LL-P2-001, LL-P2-003,
 LL-P4-001…LL-P4-004, LL-P5-002, LL-P5-003, LL-P5-005.
 
 "Not Required" — **12**: LL-P0-001, LL-P1-012, LL-P3-000, LL-P3-001…LL-P3-005,
 LL-P3-007, LL-P5-001, LL-P5-004, LL-P5-006. These may start on normal
 instruction.
 
-Approved — **15**: LL-P0-002, LL-P0-003, LL-P0-004 (historical evidence
+Approved — **16**: LL-P0-002, LL-P0-003, LL-P0-004 (historical evidence
 recorded in the task rows: merged PRs / pushed commits), LL-P1-001…LL-P1-005
 (MS-04A owner-approved on 2026-11-17 — implementation authorization limited to
 that milestone's scope; MS-04B remains NOT approved), LL-P1-006
@@ -139,9 +139,10 @@ that milestone's scope; MS-04B remains NOT approved), LL-P1-006
 (owner-approved 2026-11-25 via DEC-013 / PR #31), LL-P1-013
 (owner-authorized 2026-11-18 as part of the hardening/documentation pass,
 together with LL-P1-012, LL-P5-001 and LL-P5-004, which are "Not Required"
-tasks executed on normal instruction), LL-P2-004 (owner-approved 2026-11-25
-via PR #33), LL-P3-006 (owner-approved 2026-11-24 via DEC-019 / PR #18),
-and LL-P3-008 (owner-approved 2026-11-24 via PR #25).
+tasks executed on normal instruction), LL-P2-002 (owner-approved 2026-11-25
+via DEC-018 / PR #35), LL-P2-004 (owner-approved 2026-11-25 via PR #33),
+LL-P3-006 (owner-approved 2026-11-24 via DEC-019 / PR #18), and LL-P3-008
+(owner-approved 2026-11-24 via PR #25).
 
 > Maintenance rules: keep this table the single source of task truth; when a
 > task moves, update its Status here and add a CHANGELOG entry with evidence.
