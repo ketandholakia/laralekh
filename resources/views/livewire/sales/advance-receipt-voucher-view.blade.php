@@ -123,7 +123,7 @@
                         ₹{{ $voucher->cgst }}
                     </td>
                     <td class="px-4 py-3 text-right font-mono text-sm text-slate-700">
-                        ₹{{ ((float) $voucher->utgst > 0) ? $voucher->utgst : $voucher->sgst }}
+                        ₹{{ $voucher->utgst->isPositive() ? $voucher->utgst : $voucher->sgst }}
                     </td>
                     <td class="px-4 py-3 text-right font-mono text-sm text-slate-700">
                         ₹{{ $voucher->igst }}
