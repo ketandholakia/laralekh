@@ -112,7 +112,7 @@ it('rejects raw SQL tampering on posted vouchers, invoices, purchase bills, adva
         $dataset = app(ReturnDatasetBuilder::class)->build($company, '2026-11', 50000000);
         $snapshot = app(GstReturnSnapshotService::class)->generate($company, '2026-11', 'gstr1', $dataset, 'csv-tool-3.2.4');
         $finalSnapshot = app(GstReturnSnapshotService::class)->finalize($snapshot->id);
-        $filing = app(GstReturnFilingService::class)->markFiled($finalSnapshot->id, 'AA271126000001Z', '2026-12-11');
+        $filing = app(GstReturnFilingService::class)->markFiled($finalSnapshot->id, 'AA271126000001Z', now()->toDateString());
 
         expect(fn () => DB::table('gst_return_snapshots')->where('id', $finalSnapshot->id)->update(['sha256' => str_repeat('0', 64)]))
             ->toThrow(QueryException::class);
