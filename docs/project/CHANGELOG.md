@@ -731,3 +731,17 @@ evidence (commit SHA, CI run).
 - **CI:** PR run `45558162819` 3/3 SUCCESS (Backend SQLite 1m2s, Frontend build 11s, Quality and security 17s).
 - **Post-merge baseline:** `main` @ `9fb309e` — full suite 472 passed / 1 todo / 1714 assertions (SQLite).
 - **Outstanding:** MS-05 remaining tasks are LL-P2-001 (GSTR-1 JSON export; blocked on schema vendoring) and LL-P2-003 (Close fail-closed GST review items).
+
+## 2026-11-25 — Close fail-closed GST review items (LL-P2-003, PR #37)
+
+- **Summary:** Resolved and documented the fail-closed GST validation items in `config/gst_returns.php` and `docs/gst-rules.md`. Marked `document_issued_categories` verified against the 12 statutory Form GSTR-1 Table 13 categories and Official Offline Tool 3.2.4 `docs.csv`, while keeping `ReturnValidationReport` failing closed if any unknown/unverified category label is emitted. Marked `blocked_itc_rules` verified under CGST Act Section 17(5) and Section 16(2)(aa) via line-level `itc_eligibility` (`eligible`, `blocked`, `ineligible_reversal_review`) and GSTR-2B reconciliation (`LL-P2-002`), emitting a non-blocking `itc_eligibility_pending_review` CA-review warning in `ReturnDatasetBuilder` for lines marked `ineligible_reversal_review`. Marked `tax_rate_verification` verified via effective-dated `TaxRate::is_verified = true` enforcement, and `place_of_supply` verified for active 2-digit `State` master validation while retaining IGST Act ss. 10–13 transaction-level legal treatment as CA review. Explicitly retained `gstin_portal_existence` (`gstin_portal_existence_unverified`) as a non-blocking CA-review warning per DEC-005.
+- **Task ID:** LL-P2-003 (COMPLETED). Advances milestone **MS-05 (GST compliance completion)**.
+- **Files/modules:** `app/Domain/Gst/Returns/ReturnDatasetBuilder.php`,
+  `app/Domain/Gst/Returns/ReturnValidationReport.php`,
+  `config/gst_returns.php`,
+  `docs/gst-rules.md`,
+  `tests/Feature/ReturnValidationReportTest.php`.
+- **Commits:** `98a23c6`, `7ea43b5` merged via **PR #37** (merge commit **`a05cbca`**, 2026-11-25).
+- **CI:** PR run `45560540436` 3/3 SUCCESS (Backend SQLite 1m6s, Frontend build 19s, Quality and security 14s).
+- **Post-merge baseline:** `main` @ `a05cbca` — full suite 474 passed / 1 todo / 1721 assertions (SQLite).
+- **Outstanding:** Only `LL-P2-001` (GSTR-1 JSON export; blocked on official schema vendoring) remains under MS-05. Next available roadmap tracks: MS-08 (Production readiness: `LL-P5-006`, `LL-P5-003`, `LL-P5-002`) or remaining MS-04B workflows (`LL-P1-007`, `LL-P1-010`, `LL-P1-011`).
