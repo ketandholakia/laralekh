@@ -173,8 +173,12 @@ final class ReturnDatasetBuilder
                 'reverse_charge' => $bill->reverse_charge, 'place_of_supply' => $bill->place_of_supply, 'taxes' => array_fill_keys($taxHeads, '0.00'), 'items' => []];
             foreach ($bill->items as $line) {
                 $record['items'][] = $this->line($line, $errors, $bill->id, $annualTurnoverRupees, $bill->date->toDateString());
-                if ($line->tax_category === 'taxable' && ! config('gst_returns.rules.blocked_itc_rules.verified')) {
-                    $errors[] = $this->issue('unverified_itc_eligibility', 'Input-tax eligibility has not been verified against current statutory restrictions; review this purchase with a CA.', $bill->id);
+                if ($line->tax_category === 'taxable') {
+                    if (! config('gst_returns.rules.blocked_itc_rules.verified')) {
+                        $errors[] = $this->issue('unverified_itc_eligibility', 'Input-tax eligibility has not been verified against current statutory restrictions; review this purchase with a CA.', $bill->id);
+                    } elseif (! in_array($line->itc_eligibility, ['eligible', 'blocked'], true)) {
+                        $warnings[] = ['code' => 'itc_eligibility_pending_review', 'message' => 'Purchase line ITC eligibility is marked for CA review under CGST s. 17(5).', 'document_id' => $bill->id, 'severity' => 'warning'];
+                    }
                 }
                 $bucket = match ($line->itc_eligibility) {
                     'eligible' => 'eligible','blocked' => 'blocked',default => 'review'
