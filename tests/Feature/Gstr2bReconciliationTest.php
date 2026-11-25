@@ -275,8 +275,8 @@ it('integrates GSTR-2B reconciliation into ReturnDatasetBuilder and GSTR-3B summ
         $gstr3b = app(Gstr3bSummaryBuilder::class)->build($dataset);
 
         expect($gstr3b['4_itc'])->toHaveKey('gstr2b_reconciliation')
-            ->and($gstr3b['warnings'])->toContain('Section 16(2)(aa) compliance risk: 1 purchase bill(s) totaling ₹180.00 tax are booked in LaraLekh but missing from GSTR-2B.')
-            ->and($gstr3b['warnings'])->toContain('Unclaimed ITC opportunity: 1 document(s) in GSTR-2B totaling ₹180.00 eligible ITC have not been recorded in books.');
+            ->and($gstr3b['warnings'])->toContain('GSTR-2B reconciliation: 1 booked purchase bill(s) are missing from portal (ITC risk under CGST Section 16(2)(aa)).')
+            ->and($gstr3b['warnings'])->toContain('GSTR-2B reconciliation: 1 document(s) reported by suppliers on portal are missing from books (unclaimed ITC).');
     });
 });
 
