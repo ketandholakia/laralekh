@@ -215,17 +215,19 @@ were remediated on the same branch (commit `22fbdc0`).
   tested with Sanctum token auth and permission gates.
 - **Owner acceptance:** per-integration.
 
-## MS-08 — Production readiness — PROPOSED (partial progress 2026-11-18)
+## MS-08 — Production readiness — IN_PROGRESS
 
 - **Progress annotation:** LL-P5-001 (README refresh) and LL-P5-004 (composer
   audit re-review) were completed on 2026-11-18 as part of the
   owner-authorized hardening/documentation pass — commit `16c599a`, **PR #4**
-  merged as `8132cf8`, all three required CI checks green on the PR and on
-  `main` after the merge. Remaining tasks: LL-P5-002 (deployment), LL-P5-003
-  (backup/restore), LL-P5-005 (queue supervision) — all PROPOSED, approval
-  Required; LL-P5-006 (MySQL trigger-parity lane) — PROPOSED, approval Not
-  Required. The milestone itself remains PROPOSED pending the hosting
-  decision (DEC-022).
+  merged as `8132cf8`. On 2026-11-25, **LL-P5-006** (SQLite/MySQL trigger
+  parity tests + MySQL 8.4 CI job) and **LL-P5-003** (Backup & restore strategy,
+  runbook, and automated `laravix_test_restore_*` verification) were completed
+  and merged via **PR #39** (merge `786075b`, CI 4/4 green: SQLite 476 passed /
+  1 todo / 1753 assertions; MySQL 8.4 migration up/rollback/up PASS, 53 passed /
+  137 assertions, end-to-end backup & restore verified). Remaining tasks:
+  LL-P5-002 (deployment) and LL-P5-005 (queue supervision) — both PROPOSED,
+  approval Required pending the hosting decision (DEC-022).
 - **Included tasks:** LL-P5-001…LL-P5-006.
 - **Entry criteria:** owner decision on target hosting.
 - **Exit criteria:** documented rehearsed deployment; proven backup/restore;

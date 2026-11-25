@@ -108,29 +108,29 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 |---|---|---|---|---|---|---|---|---|---|---|
 | LL-P5-001 | README refresh | Update stale sections: "purchase and stock workflows are reserved for later steps" (purchases implemented), the "Deferred to later steps" list, and PHP 8.3 setup text (stack is PHP 8.4+/Laravel 13) | documentation | High | COMPLETED | — | Not Required | README matches the actual codebase | Review | Refreshed 2026-11-18: PHP 8.4+ setup, dependency-status rewritten for Laravel 13 + clean audit, deferred list corrected, new "Purchases, supplier payments and financial reports" section; verified against `PostPurchaseBill`/`PostPayment` and the seeded permissions; merged via PR #4 (commit `16c599a`, merge `8132cf8`) |
 | LL-P5-002 | Deployment pipeline and production environment | Reproducible deployment (migrations, seeders, assets, queue workers) | infrastructure | High | PROPOSED | — | Required | A documented, rehearsed deployment path exists | Rehearsal on a test host | Target hosting needs owner decision |
-| LL-P5-003 | Backup and restore strategy | Backup schedule, restore runbook, tested against a `laravix_test_*` database | infrastructure | Critical | PROPOSED | — | Required | Restore proven end-to-end | Restore rehearsal | Accounting data loss is unrecoverable without this |
+| LL-P5-003 | Backup and restore strategy | Backup schedule, restore runbook, tested against a `laravix_test_*` database | infrastructure | Critical | COMPLETED | — | Approved (PR #39 merged 2026-11-25) | Restore proven end-to-end | `docs/ops/backup-and-restore.md`, `tools/backup-mysql.sh`, `tools/verify-backup-restore.php` executed in MySQL 8.4 CI (PR #39, 4/4 green) | Daily GFS + 8-year CGST s. 36 retention, `--single-transaction --triggers`, SHA-256 verification, isolated `laravix_test_restore_*` parity probe; PR #39 merge 786075b |
 | LL-P5-004 | composer audit re-review on Laravel 13 | The recorded advisories predate the Laravel 13 upgrade; re-run `composer audit` and disposition findings | security | Medium | COMPLETED | — | Not Required | Findings dispositioned in `docs/validation.md` | `composer audit` output | Re-run 2026-11-18 via official `composer-stable.phar` (Composer 2.11.2): **0 advisories, 0 abandoned packages** on the lockfile (`laravel/framework` v13.40.0); disposition recorded in `docs/validation.md`; README dependency-status updated; merged via PR #4 (commit `16c599a`, merge `8132cf8`) |
 | LL-P5-005 | Queue supervision and monitoring | `queue:work redis` is documented but unsupervised; add supervision/monitoring approach | infrastructure | Medium | PROPOSED | LL-P5-002 | Required | Queued jobs run reliably in production shape | Ops checklist | — |
-| LL-P5-006 | SQLite/MySQL trigger parity tests | Immutability triggers are MySQL-only; add a MySQL-run test lane or documented coverage note | testing | Medium | PROPOSED | — | Not Required | Posted-document immutability covered by automated tests on MySQL | MySQL test lane | LL-P1-012 provides the MySQL cadence |
+| LL-P5-006 | SQLite/MySQL trigger parity tests | Immutability triggers are MySQL-only; add a MySQL-run test lane or documented coverage note | testing | Medium | COMPLETED | — | Not Required | Posted-document immutability covered by automated tests on MySQL | `tests/Feature/ImmutabilityTriggerParityTest.php` + MySQL 8.4 CI job in `.github/workflows/ci.yml` (53 passed / 137 assertions on MySQL 8.4; 476 passed SQLite); PR #39 | Verifies 46+ triggers across 16 tables + raw SQL tamper probes on both SQLite and MySQL 8.4 + migration up/rollback/up; PR #39 merge 786075b |
 
 ## Summary
 
 **Total tasks: 40**
 
-By status: COMPLETED 22 · READY 5 · PROPOSED 8 · BLOCKED 4 · DEFERRED 1 ·
+By status: COMPLETED 24 · READY 5 · PROPOSED 6 · BLOCKED 4 · DEFERRED 1 ·
 IN_PROGRESS 0 · IN_REVIEW 0 · CANCELLED 0
 
 By priority: Critical 2 · High 14 · Medium 22 · Low 2
 
-Tasks requiring owner approval before work starts ("Required") — **11**:
+Tasks requiring owner approval before work starts ("Required") — **10**:
 LL-P1-007, LL-P1-010, LL-P1-011, LL-P2-001,
-LL-P4-001…LL-P4-004, LL-P5-002, LL-P5-003, LL-P5-005.
+LL-P4-001…LL-P4-004, LL-P5-002, LL-P5-005.
 
 "Not Required" — **12**: LL-P0-001, LL-P1-012, LL-P3-000, LL-P3-001…LL-P3-005,
 LL-P3-007, LL-P5-001, LL-P5-004, LL-P5-006. These may start on normal
 instruction.
 
-Approved — **17**: LL-P0-002, LL-P0-003, LL-P0-004 (historical evidence
+Approved — **18**: LL-P0-002, LL-P0-003, LL-P0-004 (historical evidence
 recorded in the task rows: merged PRs / pushed commits), LL-P1-001…LL-P1-005
 (MS-04A owner-approved on 2026-11-17 — implementation authorization limited to
 that milestone's scope; MS-04B remains NOT approved), LL-P1-006
@@ -142,8 +142,9 @@ together with LL-P1-012, LL-P5-001 and LL-P5-004, which are "Not Required"
 tasks executed on normal instruction), LL-P2-002 (owner-approved 2026-11-25
 via DEC-018 / PR #35), LL-P2-003 (owner-approved 2026-11-25 via PR #37),
 LL-P2-004 (owner-approved 2026-11-25 via PR #33),
-LL-P3-006 (owner-approved 2026-11-24 via DEC-019 / PR #18), and LL-P3-008
-(owner-approved 2026-11-24 via PR #25).
+LL-P3-006 (owner-approved 2026-11-24 via DEC-019 / PR #18), LL-P3-008
+(owner-approved 2026-11-24 via PR #25), and LL-P5-003 (owner-approved 2026-11-25
+via PR #39).
 
 > Maintenance rules: keep this table the single source of task truth; when a
 > task moves, update its Status here and add a CHANGELOG entry with evidence.
