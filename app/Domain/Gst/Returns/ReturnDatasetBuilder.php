@@ -57,7 +57,7 @@ final class ReturnDatasetBuilder
             'purchases' => ['itc' => ['eligible' => [], 'blocked' => [], 'review' => []], 'rcm' => []],
             'advances' => ['received' => [], 'table_11a' => []],
             'gstr2b' => $gstr2bImport?->summary,
-            'gstr2b_meta' => $gstr2bImport ? ['filename' => $gstr2bImport->source_filename, 'file_format' => $gstr2bImport->file_format, 'imported_at' => $gstr2bImport->imported_at->toIso8601String()] : null];
+            'gstr2b_meta' => $gstr2bImport ? ['filename' => $gstr2bImport->source_filename, 'source_filename' => $gstr2bImport->source_filename, 'file_format' => $gstr2bImport->file_format, 'imported_at' => $gstr2bImport->imported_at->toIso8601String()] : null];
         foreach (['eligible', 'blocked', 'review'] as $bucket) {
             $out['purchases']['itc'][$bucket] = array_fill_keys($taxHeads, '0.00');
         }

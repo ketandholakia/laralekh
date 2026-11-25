@@ -281,8 +281,8 @@ it('integrates GSTR-2B reconciliation into ReturnDatasetBuilder and GSTR-3B summ
 });
 
 it('strictly isolates GSTR-2B imports across tenants', function () {
-    [$userA, $companyA] = webSession('user-a', ['returns.view', 'returns.finalize']);
-    [$userB, $companyB] = webSession('user-b', ['returns.view', 'returns.finalize']);
+    [$userA, $companyA] = webSession('user-a', ['returns.view', 'returns.finalize'], 'user-a@example.test');
+    [$userB, $companyB] = webSession('user-b', ['returns.view', 'returns.finalize'], 'user-b@example.test');
 
     $json = json_encode([
         'gstin' => $companyA->gstin,
@@ -305,7 +305,7 @@ it('strictly isolates GSTR-2B imports across tenants', function () {
 });
 
 it('allows uploading and deleting GSTR-2B statement via Livewire UI', function () {
-    [$user, $company] = webSession('gstr2b-manager', ['returns.view', 'returns.finalize']);
+    [$user, $company] = webSession('gstr2b-manager', ['returns.view', 'returns.finalize'], 'gstr2b-ui@example.test');
     $this->actingAs($user);
 
     inTenantContext($company, function () use ($company) {
