@@ -745,3 +745,17 @@ evidence (commit SHA, CI run).
 - **CI:** PR run `45560540436` 3/3 SUCCESS (Backend SQLite 1m6s, Frontend build 19s, Quality and security 14s).
 - **Post-merge baseline:** `main` @ `a05cbca` — full suite 474 passed / 1 todo / 1721 assertions (SQLite).
 - **Outstanding:** Only `LL-P2-001` (GSTR-1 JSON export; blocked on official schema vendoring) remains under MS-05. Next available roadmap tracks: MS-08 (Production readiness: `LL-P5-006`, `LL-P5-003`, `LL-P5-002`) or remaining MS-04B workflows (`LL-P1-007`, `LL-P1-010`, `LL-P1-011`).
+
+## 2026-11-25 — MySQL trigger parity CI lane & backup/restore strategy (LL-P5-006 & LL-P5-003, PR #39)
+
+- **Summary:** Completed automated MySQL 8.4 trigger parity verification (`LL-P5-006`) and production backup/restore strategy (`LL-P5-003`) under milestone **MS-08 (Production readiness)**. Added `ImmutabilityTriggerParityTest` verifying all 16 protected accounting/GST tables (46+ triggers) and executing raw SQL tamper probes across posted vouchers, voucher lines, invoices, purchase bills, advance receipt vouchers, and finalized GST snapshots/filings on both SQLite and MySQL 8.4. Added a dedicated `Backend tests & trigger parity (MySQL 8.4)` CI job in `.github/workflows/ci.yml` running `tools/verify-migrations.php` (up/rollback/up), trigger parity/tenancy/posting tests, and `tools/verify-backup-restore.php`. Authored `docs/ops/backup-and-restore.md` (RPO/RTO targets, GFS + 8-year CGST Act s. 36 archival schedule, `APP_KEY` separation, and step-by-step restore runbook), `tools/backup-mysql.sh`, and `tools/verify-backup-restore.php` (end-to-end `mysqldump --single-transaction --triggers`, SHA-256 checksum, isolated `laravix_test_restore_*` restore, and trigger/migration parity verification).
+- **Task IDs:** LL-P5-006 (COMPLETED), LL-P5-003 (COMPLETED). Advances milestone **MS-08 (Production readiness)**.
+- **Files/modules:** `.github/workflows/ci.yml`,
+  `docs/ops/backup-and-restore.md`,
+  `tests/Feature/ImmutabilityTriggerParityTest.php`,
+  `tools/backup-mysql.sh`,
+  `tools/verify-backup-restore.php`.
+- **Commits:** `60ce9cd`, `1c3b348`, `766764c`, `9950be8`, `d1762f9` merged via **PR #39** (merge commit **`786075b`**, 2026-11-25).
+- **CI:** PR run `45582427374` 4/4 SUCCESS (Backend SQLite 1m11s: 476 passed / 1 todo / 1753 assertions; Backend MySQL 8.4 1m2s: migration up/rollback/up PASS, 53 passed / 137 assertions, backup/restore PASS; Frontend build 6s; Quality and security 10s).
+- **Post-merge baseline:** `main` @ `786075b` — full suite 476 passed / 1 todo / 1753 assertions (SQLite), plus verified MySQL 8.4 CI lane.
+- **Outstanding:** Remaining MS-08 tasks are `LL-P5-002` (Deployment pipeline; pending DEC-022 hosting decision) and `LL-P5-005` (Queue supervision).
