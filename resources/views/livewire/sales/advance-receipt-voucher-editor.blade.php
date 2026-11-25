@@ -131,7 +131,7 @@
         <div class="space-y-6">
             <x-card class="space-y-4">
                 <h2 class="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2">Advance Tax Computation</h2>
-                
+
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between py-1 border-b border-slate-100">
                         <span class="text-slate-600">Gross Advance</span>

@@ -40,7 +40,7 @@
     {{-- Description & Rule 50 details --}}
     <x-card class="space-y-4">
         <h2 class="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2">Statutory Rule 50 Particulars</h2>
-        
+
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
                 <span class="block text-xs font-semibold uppercase tracking-wider text-slate-500">Description of Supply</span>

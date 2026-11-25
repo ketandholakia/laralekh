@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sales\Actions;
 
-use App\Domain\Accounting\Services\NumberSequenceService;
+use App\Domain\Accounting\Services\VoucherNumberAllocator;
 use App\Domain\Masters\Models\Company;
 use App\Domain\Masters\Models\FinancialYear;
 use App\Domain\Masters\Models\Party;
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 final class PostAdvanceReceiptVoucher
 {
     public function __construct(
-        private NumberSequenceService $numbers,
+        private VoucherNumberAllocator $numbers,
     ) {}
 
     public function handle(int $voucherId, ?int $userId = null): AdvanceReceiptVoucher
