@@ -80,6 +80,14 @@ Route::middleware('auth')->group(function (): void {
                 ->middleware('can:receipts.create')->name('customer-refunds.edit');
             Route::get('/customer-refunds/{id}', \App\Livewire\Sales\CustomerRefundView::class)
                 ->name('customer-refunds.show');
+
+            // Statutory advance receipt vouchers (LL-P1-009)
+            Route::get('/customers/{party}/advance-vouchers/create', \App\Livewire\Sales\AdvanceReceiptVoucherEditor::class)
+                ->middleware('can:receipts.create')->name('customers.advance-vouchers.create');
+            Route::get('/advance-receipt-vouchers/{id}/edit', \App\Livewire\Sales\AdvanceReceiptVoucherEditor::class)
+                ->middleware('can:receipts.create')->name('advance-vouchers.edit');
+            Route::get('/advance-receipt-vouchers/{id}', \App\Livewire\Sales\AdvanceReceiptVoucherView::class)
+                ->name('advance-vouchers.show');
         });
 
         Route::middleware('can:invoices.view')->group(function (): void {

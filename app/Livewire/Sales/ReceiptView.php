@@ -39,7 +39,7 @@ final class ReceiptView extends Component
         abort_unless($user->isMemberOf($companyId), 403);
         abort_unless($user->can('receipts.view'), 403);
         $this->receipt = Receipt::findOrFail((int) $receiptId)
-            ->load(['allocations.invoice', 'ledger', 'voucher', 'reversals.voucher']);
+            ->load(['allocations.invoice', 'ledger', 'voucher', 'reversals.voucher', 'advanceReceiptVouchers']);
     }
 
     public function getAvailableFundsProperty(): string

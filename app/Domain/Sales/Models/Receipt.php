@@ -42,6 +42,11 @@ class Receipt extends TenantModel
         return $this->hasMany(ReceiptReversal::class, 'original_receipt_id');
     }
 
+    public function advanceReceiptVouchers()
+    {
+        return $this->hasMany(AdvanceReceiptVoucher::class);
+    }
+
     public function label(): string
     {
         return $this->number !== null ? $this->series.'/'.$this->number : $this->series.'/draft';
