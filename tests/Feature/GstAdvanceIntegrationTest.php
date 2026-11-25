@@ -83,7 +83,8 @@ it('excludes goods advances from Table 11A tax liability per Notification 66/201
         // Tracked in advances.received as statutory record
         expect($dataset['advances']['received'])->toHaveCount(1)
             ->and($dataset['advances']['received'][0]['supply_type'])->toBe('goods')
-            ->and($dataset['advances']['received'][0]['taxable_amount'])->toBe('0.00')
+            ->and($dataset['advances']['received'][0]['gross_amount'])->toBe('5000.00')
+            ->and($dataset['advances']['received'][0]['taxable_amount'])->toBe('5000.00')
             ->and($dataset['advances']['received'][0]['cgst'])->toBe('0.00')
             ->and($dataset['advances']['received'][0]['sgst'])->toBe('0.00');
 
@@ -133,15 +134,18 @@ it('handles Rule 50 provisos for undetermined rate and nature of supply in Table
 
         expect($dataset['advances']['received'])->toHaveCount(2);
 
-        $intraEntry = collect($dataset['advances']['table_11a'])->firstWhere('igst', '0.00');
+        $intraEntry = collect($dataset['advances']['table_11a'])->firstWhere('is_interstate', false);
         expect($intraEntry)->not->toBeNull()
             ->and($intraEntry['rate'])->toBe('18.00')
             ->and($intraEntry['cgst'])->toBe('90.00')
-            ->and($intraEntry['sgst'])->toBe('90.00');
+            ->and($intraEntry['sgst'])->toBe('90.00')
+            ->and($intraEntry['igst'])->toBe('0.00');
 
-        $interEntry = collect($dataset['advances']['table_11a'])->firstWhere('cgst', '0.00');
+        $interEntry = collect($dataset['advances']['table_11a'])->firstWhere('is_interstate', true);
         expect($interEntry)->not->toBeNull()
             ->and($interEntry['rate'])->toBe('18.00')
+            ->and($interEntry['cgst'])->toBe('0.00')
+            ->and($interEntry['sgst'])->toBe('0.00')
             ->and($interEntry['igst'])->toBe('180.00');
     });
 });

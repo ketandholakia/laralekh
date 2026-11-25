@@ -195,6 +195,7 @@ final class ReturnDatasetBuilder
             if (! preg_match('/^\d{2}$/', (string) $advance->place_of_supply) || ! State::query()->where('code', $advance->place_of_supply)->where('is_active', true)->exists()) {
                 $errors[] = $this->issue('invalid_place_of_supply', "Advance voucher {$number} place of supply must be an active state/UT code.", $advance->id);
             }
+            $rateStr = number_format((float) $advance->tax_rate, 2, '.', '');
             $record = [
                 'id' => $advance->id,
                 'document_number' => $number,
@@ -203,7 +204,7 @@ final class ReturnDatasetBuilder
                 'supply_type' => $advance->supply_type,
                 'gross_amount' => (string) $advance->gross_amount,
                 'taxable_amount' => (string) $advance->taxable_amount,
-                'rate' => (string) $advance->tax_rate,
+                'rate' => $rateStr,
                 'is_rate_determinable' => (bool) $advance->is_rate_determinable,
                 'is_interstate_determinable' => (bool) $advance->is_interstate_determinable,
                 'recipient' => $recipient,
@@ -216,10 +217,12 @@ final class ReturnDatasetBuilder
             $out['advances']['received'][] = $record;
 
             if ($advance->supply_type === 'services' && bccomp((string) $advance->taxable_amount, '0.00', 2) > 0) {
-                $key = $advance->place_of_supply.'|'.(string) $advance->tax_rate;
+                $isInter = bccomp((string) $advance->igst, '0.00', 2) > 0;
+                $key = ($isInter ? 'inter' : 'intra').'|'.$advance->place_of_supply.'|'.$rateStr;
                 $table11a[$key] ??= [
                     'place_of_supply' => (string) $advance->place_of_supply,
-                    'rate' => (string) $advance->tax_rate,
+                    'rate' => $rateStr,
+                    'is_interstate' => $isInter,
                     'gross_amount' => '0.00',
                     'taxable_amount' => '0.00',
                     'cgst' => '0.00',
