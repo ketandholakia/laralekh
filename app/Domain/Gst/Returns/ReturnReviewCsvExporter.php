@@ -42,6 +42,9 @@ final class ReturnReviewCsvExporter
                 $rows[] = [$dataset['meta']['period'], $bucket === 'registered' ? 'credit/debit notes (registered)' : 'credit/debit notes (unregistered)', 1, $value, $tax['cgst'], $tax['sgst'], $tax['utgst'], $tax['igst'], $tax['cess'], $report['valid'] ? 'Review' : 'Blocked'];
             }
         }
+        foreach ($dataset['advances']['table_11a'] ?? [] as $adv) {
+            $rows[] = [$dataset['meta']['period'], 'advances (Table 11A - POS '.$adv['place_of_supply'].', '.$adv['rate'].'%)', 1, $adv['taxable_amount'], $adv['cgst'], $adv['sgst'], $adv['utgst'], $adv['igst'], $adv['cess'], $report['valid'] ? 'Review' : 'Blocked'];
+        }
         $stream = fopen('php://temp', 'r+');
         fputcsv($stream, $headers, ',', '"', '\\', "\r\n");
         foreach ($rows as $row) {
