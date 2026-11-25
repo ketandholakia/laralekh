@@ -64,7 +64,7 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 | LL-P1-006 | Purchase debit-note workflow | Workflow for the designed purchase debit-note storage (`purchase_guards_and_debit_note_design` migration) | feature | Medium | COMPLETED | — | Approved (PR #27 merged 2026-11-24) | Mirrors sales-correction rigour: capacity, immutability, GST treatment decided | 6 new Feature tests in PurchaseDebitNoteTest; PR #27 CI 3/3 green | Implemented SavePurchaseDebitNoteDraft & PostPurchaseDebitNote actions, PurchaseDebitNoteEditor & PurchaseDebitNoteView UI, PurchaseBill integration; PR #27 merge 769b961 |
 | LL-P1-007 | Zero-value invoice document workflow | Non-accounting document workflow for zero-value invoices (explicitly excluded from posting today) | feature | Medium | PROPOSED | — | Required | Zero-value documents recorded without accounting postings; GST documents list unaffected | Tests | README: "Zero-value invoices require a future non-accounting document workflow" |
 | LL-P1-008 | Refund of excess customer credits | Workflow to refund excess credits/advances without disturbing immutable history | feature | Medium | COMPLETED | — | Approved (PR #29 merged 2026-11-25) | Refund posts a mirrored voucher; credits/advances reduce accordingly; statements reconcile | 6 new Feature tests in CustomerCreditRefundTest, 1 Unit test in MoneyTest; PR #29 CI 3/3 green | Implemented SaveCustomerRefundDraft, PostCustomerRefund, ReverseCustomerRefund actions, CustomerRefundEditor & CustomerRefundView UI, SettlementService and CustomerStatement integration; PR #29 merge f2c634e |
-| LL-P1-009 | Advance receipt voucher workflow | GST-correct advance receipts (time of supply, receipt voucher rules per `docs/settlements-design.md` § GST treatment of advances) | feature | High | PROPOSED | — | Required | Advance vouchers/records exist; later allocation converts advance to settlement; GST documents unaffected until supply | Service tests; CA review sign-off | Legal treatment already verified in docs — implementation design needed |
+| LL-P1-009 | Advance receipt voucher workflow | GST-correct advance receipts (time of supply, receipt voucher rules per `docs/settlements-design.md` § GST treatment of advances) | feature | High | COMPLETED | — | Approved (PR #31 merged 2026-11-25) | Advance vouchers/records exist; later allocation converts advance to settlement; GST documents unaffected until supply | 6 new Feature tests in AdvanceReceiptVoucherTest; PR #31 CI 3/3 green | Implemented SaveAdvanceReceiptVoucherDraft, PostAdvanceReceiptVoucher, AdvanceReceiptVoucherEditor & View, Rule 50 provisos, ReceiptView integration; PR #31 merge 90cc2aa |
 | LL-P1-010 | Inventory/COGS policy and stock register | Decide whether sales post stock/COGS; add valuation + stock register screens | feature | Medium | PROPOSED | DEC-012 | Required | Policy recorded in `DEC-012`; implementation matches it | Tests per decision | Purchases already record stock movements; sales do not |
 | LL-P1-011 | Sales debit-note correction & reversal-of-reversal scope | Extend corrections where MVP deliberately defers: debit-note correction, reversal-of-reversal | feature | Medium | PROPOSED | — | Required | Scope approved and documented in `docs/corrections-design.md`; implemented with capacity guards | Service tests | `docs/corrections-design.md` marks these as later workflows |
 | LL-P1-012 | MySQL migration/concurrency validation cadence | Cross-cutting validation task (not a prerequisite for individual MS-04B workflows): promote migration up/down/up, immutability-trigger verification, and series-concurrency runs from ad-hoc docs to a documented routine (checklist or CI job on MySQL) | infrastructure | Medium | COMPLETED | — | Not Required | Documented cadence executed for each schema change; covers the P1 MySQL validation rule above | `docs/mysql-validation-cadence.md` (created 2026-11-18), cross-referenced from `DEVELOPMENT_PLAN.md` §13 and `docs/mysql-84.md`; run records in `docs/mysql-test-runs.md`; merged via PR #4 (commit `16c599a`, merge `8132cf8`) | Delivered as the documented checklist variant (the register allowed "checklist or CI job"); a MySQL CI lane remains available as a future option and needs owner approval since it changes CI |
@@ -117,25 +117,26 @@ See `MILESTONES.md`. Approval of MS-04A does **not** authorize MS-04B.
 
 **Total tasks: 40**
 
-By status: COMPLETED 18 · READY 7 · PROPOSED 10 · BLOCKED 4 · DEFERRED 1 ·
+By status: COMPLETED 19 · READY 7 · PROPOSED 9 · BLOCKED 4 · DEFERRED 1 ·
 IN_PROGRESS 0 · IN_REVIEW 0 · CANCELLED 0
 
 By priority: Critical 2 · High 14 · Medium 22 · Low 2
 
-Tasks requiring owner approval before work starts ("Required") — **15**:
-LL-P1-007, LL-P1-009…LL-P1-011, LL-P2-001…LL-P2-004,
+Tasks requiring owner approval before work starts ("Required") — **14**:
+LL-P1-007, LL-P1-010, LL-P1-011, LL-P2-001…LL-P2-004,
 LL-P4-001…LL-P4-004, LL-P5-002, LL-P5-003, LL-P5-005.
 
 "Not Required" — **12**: LL-P0-001, LL-P1-012, LL-P3-000, LL-P3-001…LL-P3-005,
 LL-P3-007, LL-P5-001, LL-P5-004, LL-P5-006. These may start on normal
 instruction.
 
-Approved — **13**: LL-P0-002, LL-P0-003, LL-P0-004 (historical evidence
+Approved — **14**: LL-P0-002, LL-P0-003, LL-P0-004 (historical evidence
 recorded in the task rows: merged PRs / pushed commits), LL-P1-001…LL-P1-005
 (MS-04A owner-approved on 2026-11-17 — implementation authorization limited to
 that milestone's scope; MS-04B remains NOT approved), LL-P1-006
 (owner-approved 2026-11-24 via PR #27), LL-P1-008
-(owner-approved 2026-11-25 via DEC-016 / PR #29), LL-P1-013
+(owner-approved 2026-11-25 via DEC-016 / PR #29), LL-P1-009
+(owner-approved 2026-11-25 via DEC-013 / PR #31), LL-P1-013
 (owner-authorized 2026-11-18 as part of the hardening/documentation pass,
 together with LL-P1-012, LL-P5-001 and LL-P5-004, which are "Not Required"
 tasks executed on normal instruction), LL-P3-006 (owner-approved 2026-11-24
