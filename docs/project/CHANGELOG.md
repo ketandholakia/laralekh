@@ -653,3 +653,28 @@ evidence (commit SHA, CI run).
 - **CI:** PR run `45507207230` 3/3 SUCCESS (Backend SQLite 48s, Frontend build 9s, Quality and security 10s).
 - **Post-merge baseline:** `main` @ `769b961` — full suite 445 passed / 1 todo / 1463 assertions (SQLite).
 - **Outstanding:** MS-04B remaining workflows are LL-P1-008 (customer credit refund) and LL-P1-009 (advance receipt voucher).
+
+## 2026-11-25 — Customer credit refund workflow (LL-P1-008, PR #29)
+
+- **Summary:** Implemented the full customer credit refund workflow enabling disbursement of excess customer credits (resulting from credit notes posted after invoice settlement) and unapplied receipt advances back to the customer. Features new schema `2026_11_25_100000_create_customer_refunds.php` creating `customer_refunds`, `customer_refund_allocations`, and `customer_refund_reversals` with database immutability triggers guarding posted documents. Implemented domain models `CustomerRefund`, `CustomerRefundAllocation`, and `CustomerRefundReversal` and domain actions `SaveCustomerRefundDraft`, `PostCustomerRefund` (balanced general ledger voucher `type: 'payment'`: Dr. Customer Receivable / Sundry Debtors, Cr. Cash/Bank), and `ReverseCustomerRefund` (balanced reversal voucher `type: 'receipt'`: Dr. Cash/Bank, Cr. Customer Receivable). Integrated into `SettlementService` (`availableReceiptFunds` and `documentOutstanding` deduct active refunds and restore capacity upon reversal) and `CustomerStatement` (debit refund rows and credit reversal rows with exact statement closing to ledger tie-out). Built Livewire components `CustomerRefundEditor` (at `/customers/{party}/refunds/create` and `/customer-refunds/{id}/edit`), `CustomerRefundView` (at `/customer-refunds/{id}` with reversal modal), and added "Refund credit" button to `CustomerOutstanding`. Added `isPositive()` and instance pass-through to `Money` value object.
+- **Task ID:** LL-P1-008 (COMPLETED). Advances milestone **MS-04B (Additional accounting workflows)**.
+- **Files/modules:** `app/Domain/Sales/Actions/PostCustomerRefund.php`,
+  `app/Domain/Sales/Actions/ReverseCustomerRefund.php`,
+  `app/Domain/Sales/Actions/SaveCustomerRefundDraft.php`,
+  `app/Domain/Sales/Models/CustomerRefund.php`,
+  `app/Domain/Sales/Models/CustomerRefundAllocation.php`,
+  `app/Domain/Sales/Models/CustomerRefundReversal.php`,
+  `app/Domain/Sales/Services/CustomerStatement.php`,
+  `app/Domain/Sales/Services/SettlementService.php`,
+  `app/Domain/Shared/ValueObjects/Money.php`,
+  `app/Livewire/Sales/CustomerRefundEditor.php`,
+  `app/Livewire/Sales/CustomerRefundView.php`,
+  `database/migrations/2026_11_25_100000_create_customer_refunds.php`,
+  `resources/views/livewire/sales/customer-outstanding.blade.php`,
+  `resources/views/livewire/sales/customer-refund-editor.blade.php`,
+  `resources/views/livewire/sales/customer-refund-view.blade.php`,
+  `routes/web.php`, `tests/Feature/CustomerCreditRefundTest.php`, `tests/Unit/MoneyTest.php`.
+- **Commits:** `3e30fec`, `b246f06`, `252c430`, `854a099`, `0174fb2` merged via **PR #29** (merge commit **`f2c634e`**, 2026-11-25).
+- **CI:** PR run `45515163936` 3/3 SUCCESS (Backend SQLite 53s, Frontend build 8s, Quality and security 10s).
+- **Post-merge baseline:** `main` @ `f2c634e` — full suite 452 passed / 1 todo / 1547 assertions (SQLite).
+- **Outstanding:** MS-04B remaining workflow is LL-P1-009 (advance receipt voucher).
