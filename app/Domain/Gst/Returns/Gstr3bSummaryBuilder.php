@@ -103,13 +103,44 @@ final class Gstr3bSummaryBuilder
             $payableTotal = bcadd($payableTotal, $raw, 2);
         }
 
+        $itcSection = ['eligible' => $itc, 'blocked' => $blocked, 'review_required' => $review];
+        $warnings = ['Reconcile portal-generated GSTR-1/1A and GSTR-2B values before filing. RCM ITC eligibility and statutory reversal categories require CA review.'];
+
+        if (! empty($dataset['gstr2b'])) {
+            $g2b = $dataset['gstr2b'];
+            $comp = $g2b['comparison'] ?? [];
+            $missingInPortalCount = (int) ($comp['missing_in_portal']['count'] ?? 0);
+            $taxMismatchCount = (int) ($comp['tax_mismatch']['count'] ?? 0);
+            $missingInBooksCount = (int) ($comp['missing_in_books']['count'] ?? 0);
+
+            $itcSection['gstr2b_reconciliation'] = [
+                'portal_available_tax' => $g2b['portal_2b']['itc_available_tax'] ?? '0.00',
+                'portal_ineligible_tax' => $g2b['portal_2b']['itc_ineligible_tax'] ?? '0.00',
+                'matched_count' => (int) ($comp['matched']['count'] ?? 0),
+                'matched_tax' => $comp['matched']['tax'] ?? '0.00',
+                'tax_mismatch_count' => $taxMismatchCount,
+                'missing_in_portal_count' => $missingInPortalCount,
+                'missing_in_books_count' => $missingInBooksCount,
+            ];
+
+            if ($missingInPortalCount > 0) {
+                $warnings[] = "GSTR-2B reconciliation: {$missingInPortalCount} booked purchase bill(s) are missing from portal (ITC risk under CGST Section 16(2)(aa)).";
+            }
+            if ($taxMismatchCount > 0) {
+                $warnings[] = "GSTR-2B reconciliation: {$taxMismatchCount} document(s) have tax amount mismatches between books and portal.";
+            }
+            if ($missingInBooksCount > 0) {
+                $warnings[] = "GSTR-2B reconciliation: {$missingInBooksCount} document(s) reported by suppliers on portal are missing from books (unclaimed ITC).";
+            }
+        }
+
         return ['period' => $dataset['meta']['period'], 'basis' => 'books reconciliation only; portal values may be auto-populated from GSTR-1/1A and GSTR-2B',
             '3_1' => ['taxable_outward' => ['taxable_value' => $taxableOutward, 'tax' => $output], 'zero_rated_taxable_value' => $zeroRated,
                 'nil_rated_value' => $nil, 'exempt_value' => $exempt, 'non_gst_value' => $nonGst, 'reverse_charge_inward_tax' => $rcm],
-            '4_itc' => ['eligible' => $itc, 'blocked' => $blocked, 'review_required' => $review],
+            '4_itc' => $itcSection,
             'net_payable_after_book_itc' => $payable,
             'net_payable_total_before_statutory_rounding' => $payableTotal,
             'net_payable_total_after_statutory_rounding' => (string) $this->calculator->roundStatutoryPayable(Money::of($payableTotal)),
-            'warnings' => ['Reconcile portal-generated GSTR-1/1A and GSTR-2B values before filing. RCM ITC eligibility and statutory reversal categories require CA review.']];
+            'warnings' => $warnings];
     }
 }
