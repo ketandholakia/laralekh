@@ -9,7 +9,6 @@ use App\Domain\Masters\Models\Company;
 use App\Domain\Masters\Models\FinancialYear;
 use App\Domain\Masters\Models\Party;
 use App\Domain\Sales\Models\AdvanceReceiptVoucher;
-use App\Domain\Shared\Models\Activity;
 use App\Domain\Shared\Tenancy\TenantContext;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -62,12 +61,13 @@ final class PostAdvanceReceiptVoucher
                 'status' => 'posted',
             ])->save();
 
-            Activity::create([
-                'description' => 'Advance receipt voucher posted',
-                'subject_type' => AdvanceReceiptVoucher::class,
-                'subject_id' => $voucher->id,
-                'causer_id' => $userId,
-            ]);
+            activity('accounting')->performedOn($voucher)->event('posted')
+                ->withProperties([
+                    'voucher_id' => $voucher->id,
+                    'gross_amount' => (string) $voucher->gross_amount,
+                ])
+                ->tap(fn ($a) => $a->financial_year_id = $year->id)
+                ->log('Advance receipt voucher posted');
 
             return $voucher->fresh(['party', 'receipt']);
         });
