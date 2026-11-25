@@ -151,7 +151,7 @@ in the entry audit (Stages A–E) on a dedicated feature branch.
 ## MS-05 — GST compliance completion — IN_PROGRESS
 
 - **Included tasks:** LL-P2-001…LL-P2-004.
-- **Progress:** LL-P2-004 (GST treatment of advance receipts) completed and merged via PR #33 (merge `e4880a6`, 2026-11-25) with 7 new Feature tests in `GstAdvanceIntegrationTest` and full SQLite CI passing (465 passed, 1 todo, 1644 assertions). Advances are integrated into `ReturnDatasetBuilder` (GSTR-1 Table 11A, Rule 50 provisos, Notification 66/2017-CT goods advance exemption, Table 13 Receipt voucher series `ARV` numbers).
+- **Progress:** LL-P2-004 (GST treatment of advance receipts) completed and merged via PR #33 (merge `e4880a6`, 2026-11-25) with 7 new Feature tests in `GstAdvanceIntegrationTest` and full SQLite CI passing (465 passed, 1 todo, 1644 assertions); LL-P2-002 (GSTR-2B manual import and purchase reconciliation) completed and merged via PR #35 (merge `9fb309e`, 2026-11-25) with 7 new Feature tests in `Gstr2bReconciliationTest` and full SQLite CI passing (472 passed, 1 todo, 1714 assertions). Features dual-format JSON and B2B CSV import, 2-way inward document reconciliation against booked `PurchaseBill` by Supplier GSTIN + Document Number with ₹1.00 rounding tolerance, Section 16(2)(aa) supplier default warnings, missing-in-books unclaimed ITC advisories, and interactive Livewire Detail UI.
 - **Entry criteria:** MS-04B item LL-P1-009 (advance vouchers) approved;
   official GSTR-1 schema/sample vendored (unblocks LL-P2-001); CA engaged for
   LL-P2-003.
