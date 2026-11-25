@@ -215,7 +215,7 @@ authorize MS-04B.
   remain intact; required MySQL validation passes.
 - **Cross-cutting:** LL-P1-012 (MySQL validation cadence) applies to both
   milestones and is not a prerequisite for individual MS-04B workflows.
-- **Status:** IN_PROGRESS — per-workflow approval (LL-P1-006 completed 2026-11-24 via PR #27; LL-P1-008 completed 2026-11-25 via PR #29; LL-P1-009 next).
+- **Status:** IN_PROGRESS — per-workflow approval (LL-P1-006 completed 2026-11-24 via PR #27; LL-P1-008 completed 2026-11-25 via PR #29; LL-P1-009 completed 2026-11-25 via PR #31; MS-04B core workflows complete).
 
 ### P2 — GST compliance completion — PROPOSED
 - **Objective:** finish GST output fidelity and CA-review closure.

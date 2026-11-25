@@ -678,3 +678,24 @@ evidence (commit SHA, CI run).
 - **CI:** PR run `45515163936` 3/3 SUCCESS (Backend SQLite 53s, Frontend build 8s, Quality and security 10s).
 - **Post-merge baseline:** `main` @ `f2c634e` — full suite 452 passed / 1 todo / 1547 assertions (SQLite).
 - **Outstanding:** MS-04B remaining workflow is LL-P1-009 (advance receipt voucher).
+
+## 2026-11-25 — Statutory advance receipt voucher workflow (LL-P1-009, PR #31)
+
+- **Summary:** Implemented the statutory advance receipt voucher workflow pursuant to CGST Act Section 31(3)(d) and Rule 50 for customer advance collections. Features new migration `2026_11_25_200000_create_advance_receipt_vouchers.php` creating `advance_receipt_vouchers` with database immutability triggers guarding posted documents. Implemented domain model `AdvanceReceiptVoucher` and domain actions `SaveAdvanceReceiptVoucherDraft` and `PostAdvanceReceiptVoucher`. Implemented statutory Rule 50 provisos: automated 18% tax rate fallback if tax rate is not determinable (Rule 50 proviso (i)), inter-state IGST treatment if destination or nature of supply is not determinable (Rule 50 proviso (ii)), and 0% tax exemption for advances against goods per Notification No. 66/2017-CT. Features sequential series numbering (`ARV/1`) via `VoucherNumberAllocator`, snapshots of supplier and recipient particulars, Livewire components `AdvanceReceiptVoucherEditor` (at `/customers/{party}/advance-vouchers/create` and `/advance-receipt-vouchers/{id}/edit`) with real-time tax calculation preview, `AdvanceReceiptVoucherView` (at `/advance-receipt-vouchers/{id}`), and integrated "Issue Statutory Advance Voucher" action into `ReceiptView`.
+- **Task ID:** LL-P1-009 (COMPLETED). Completes statutory advance voucher workflow under milestone **MS-04B (Additional accounting workflows)**.
+- **Files/modules:** `app/Domain/Sales/Actions/PostAdvanceReceiptVoucher.php`,
+  `app/Domain/Sales/Actions/SaveAdvanceReceiptVoucherDraft.php`,
+  `app/Domain/Sales/Models/AdvanceReceiptVoucher.php`,
+  `app/Domain/Sales/Models/Receipt.php`,
+  `app/Livewire/Sales/AdvanceReceiptVoucherEditor.php`,
+  `app/Livewire/Sales/AdvanceReceiptVoucherView.php`,
+  `app/Livewire/Sales/ReceiptView.php`,
+  `database/migrations/2026_11_25_200000_create_advance_receipt_vouchers.php`,
+  `resources/views/livewire/sales/advance-receipt-voucher-editor.blade.php`,
+  `resources/views/livewire/sales/advance-receipt-voucher-view.blade.php`,
+  `resources/views/livewire/sales/receipt-view.blade.php`,
+  `routes/web.php`, `tests/Feature/AdvanceReceiptVoucherTest.php`.
+- **Commits:** `b30d5ee`, `e491239`, `458e7b7`, `a611661` merged via **PR #31** (merge commit **`90cc2aa`**, 2026-11-25).
+- **CI:** PR run `45518745281` 3/3 SUCCESS (Backend SQLite 1m3s, Frontend build 8s, Quality and security 14s).
+- **Post-merge baseline:** `main` @ `90cc2aa` — full suite 458 passed / 1 todo / 1604 assertions (SQLite).
+- **Outstanding:** MS-04B core workflows completed. Next on roadmap: MS-05 (GST compliance completion) and MS-08 (Production readiness).
