@@ -34,11 +34,9 @@ final class ReturnValidationReport
                 $errors[] = $this->issue('invalid_place_of_supply', 'B2CS place of supply is invalid.', 0);
             }
         }
-        if (! config('gst_returns.rules.document_issued_categories.verified')) {
-            foreach ($dataset['documents_issued'] ?? [] as $row) {
-                if (! in_array($row['nature_of_document'], config('gst_returns.rules.document_issued_categories.verified_values', []), true)) {
-                    $errors[] = $this->issue('unverified_document_nature', 'Document-issued category is not yet verified against an official category list.', 0);
-                }
+        foreach ($dataset['documents_issued'] ?? [] as $row) {
+            if (! in_array($row['nature_of_document'], config('gst_returns.rules.document_issued_categories.verified_values', []), true)) {
+                $errors[] = $this->issue('unverified_document_nature', 'Document-issued category is not yet verified against an official category list.', 0);
             }
         }
         foreach (['b2b', 'b2cl', 'sez'] as $table) {
