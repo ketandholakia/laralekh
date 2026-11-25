@@ -92,18 +92,15 @@ it('rejects raw SQL tampering on posted vouchers, invoices, purchase bills, adva
             ->toThrow(QueryException::class);
 
         // 4. Posted advance receipt voucher cannot be tampered with or deleted
-        $year = FinancialYear::where('name', '2026-27')->sole();
-        $cashLedger = Ledger::where('code', 'CASH')->sole();
-        $advDraft = app(SaveAdvanceReceiptVoucherDraft::class)->handle($company, [
-            'financial_year_id' => $year->id,
-            'party_id' => $postedInvoice->party_id,
-            'cash_bank_ledger_id' => $cashLedger->id,
-            'date' => '2026-11-08',
-            'supply_type' => 'services',
-            'place_of_supply' => '27',
-            'gross_amount' => '1180.00',
-            'tax_rate' => '18.00',
-        ]);
+        $advDraft = app(SaveAdvanceReceiptVoucherDraft::class)->handle(
+            partyId: $postedInvoice->party_id,
+            date: '2026-11-08',
+            placeOfSupply: '27',
+            grossAmount: '1180.00',
+            description: 'Advance for consulting services',
+            supplyType: 'services',
+            taxRate: '18.00',
+        );
         $postedAdv = app(PostAdvanceReceiptVoucher::class)->handle($advDraft->id);
 
         expect(fn () => DB::table('advance_receipt_vouchers')->where('id', $postedAdv->id)->update(['gross_amount' => '100.00']))
