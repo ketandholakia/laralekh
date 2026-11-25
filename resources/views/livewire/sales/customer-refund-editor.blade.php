@@ -68,7 +68,7 @@
 
                 @if (count($refundableItems) > 0)
                     <x-table caption="Refundable customer credit sources">
-                        <x-slot name="head">
+                        <thead>
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Document</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Type</th>
@@ -76,8 +76,8 @@
                                 <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Available Credit</th>
                                 <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 w-44">Refund Amount (₹)</th>
                             </tr>
-                        </x-slot>
-                        <x-slot name="body">
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
                             @foreach ($refundableItems as $item)
                                 <tr class="border-b border-slate-100 hover:bg-slate-50/50">
                                     <td class="px-4 py-3 text-sm font-medium text-slate-900">
@@ -104,7 +104,7 @@
                                     </td>
                                 </tr>
                             @endforeach
-                        </x-slot>
+                        </tbody>
                     </x-table>
                 @else
                     <div class="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">

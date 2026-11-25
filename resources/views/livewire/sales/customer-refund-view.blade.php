@@ -81,7 +81,7 @@
     <x-card>
         <h2 class="text-sm font-semibold text-slate-900 mb-3">Refund Allocations</h2>
         <x-table caption="Refunded credits and advances">
-            <x-slot name="head">
+            <thead>
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Source Document</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Type</th>
@@ -89,8 +89,8 @@
                     <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Document Total</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Refunded Amount</th>
                 </tr>
-            </x-slot>
-            <x-slot name="body">
+            </thead>
+            <tbody class="divide-y divide-slate-100">
                 @foreach ($refund->allocations as $alloc)
                     <tr class="border-b border-slate-100 hover:bg-slate-50/50">
                         <td class="px-4 py-3 text-sm font-medium text-slate-900">
@@ -130,7 +130,7 @@
                         </td>
                     </tr>
                 @endforeach
-            </x-slot>
+            </tbody>
         </x-table>
     </x-card>
 

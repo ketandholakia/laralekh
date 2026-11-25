@@ -183,7 +183,7 @@ it('posts a refund against an invoice excess credit created by a credit note', f
         expect((string) $settlement->documentOutstanding($invoice->fresh()))->toBe('0.00');
 
         // Later a commercial credit note of 300.00 is posted against the invoice
-        $creditNote = saveCorrection($invoice, '300.00', ['kind' => 'credit', 'treatment' => 'commercial']);
+        $creditNote = saveCorrection($invoice, '300.00', ['kind' => 'credit', 'treatment' => 'commercial', 'date' => '2026-11-06']);
         app(CorrectionService::class)->post($creditNote->id);
 
         // Invoice now has excess credit (outstanding = -300.00)

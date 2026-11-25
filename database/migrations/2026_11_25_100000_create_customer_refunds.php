@@ -102,8 +102,13 @@ return new class extends Migration
             $this->guard($table.'_u', $table, 'UPDATE', "OLD.status = 'posted'");
             $this->guard($table.'_d', $table, 'DELETE', "OLD.status = 'posted'");
         }
-        $this->guard('customer_refund_allocs_u', 'customer_refund_allocations', 'UPDATE', '1 = 1');
-        $this->guard('customer_refund_allocs_d', 'customer_refund_allocations', 'DELETE', '1 = 1');
+        foreach (['INSERT' => 'i', 'UPDATE' => 'u', 'DELETE' => 'd'] as $event => $suffix) {
+            $conditions = [];
+            foreach (($event === 'INSERT' ? ['NEW'] : ($event === 'DELETE' ? ['OLD'] : ['OLD', 'NEW'])) as $row) {
+                $conditions[] = "EXISTS (SELECT 1 FROM customer_refunds WHERE id = $row.customer_refund_id AND status = 'posted')";
+            }
+            $this->guard('cust_refund_allocs_'.$suffix, 'customer_refund_allocations', $event, implode(' OR ', $conditions));
+        }
     }
 
     public function down(): void
@@ -112,8 +117,9 @@ return new class extends Migration
             DB::unprepared("DROP TRIGGER IF EXISTS {$table}_u");
             DB::unprepared("DROP TRIGGER IF EXISTS {$table}_d");
         }
-        DB::unprepared('DROP TRIGGER IF EXISTS customer_refund_allocs_u');
-        DB::unprepared('DROP TRIGGER IF EXISTS customer_refund_allocs_d');
+        foreach (['i', 'u', 'd'] as $suffix) {
+            DB::unprepared("DROP TRIGGER IF EXISTS cust_refund_allocs_$suffix");
+        }
 
         Schema::dropIfExists('customer_refund_reversals');
         Schema::dropIfExists('customer_refund_allocations');
