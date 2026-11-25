@@ -120,3 +120,84 @@ jobs:
             exit 0
           fi
           git diff --check "$BASE" HEAD
+
+  mysql:
+    name: Backend tests & trigger parity (MySQL 8.4)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: laravix84
+          MYSQL_DATABASE: laravix_test_suite
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -plaravix84"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up PHP 8.4 with MySQL extensions
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.4'
+          extensions: bcmath, ctype, curl, dom, fileinfo, gd, iconv, intl, mbstring, pdo, pdo_mysql, pdo_sqlite, sqlite3, tokenizer, xml
+          coverage: none
+
+      - name: Install MySQL client tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mysql-client
+
+      - name: Install PHP dependencies from lockfile
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare ephemeral application key
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+
+      - name: Verify MySQL migration up / rollback / up
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: laravix_test_migrations
+          DB_USERNAME: root
+          DB_PASSWORD: laravix84
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -uroot -plaravix84 \
+            -e "DROP DATABASE IF EXISTS laravix_test_migrations; CREATE DATABASE laravix_test_migrations CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          php tools/verify-migrations.php
+
+      - name: Run MySQL trigger parity, tenancy, and posting tests
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: laravix_test_suite
+          DB_USERNAME: root
+          DB_PASSWORD: laravix84
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: |
+          vendor/bin/pest tests/Feature/ImmutabilityTriggerParityTest.php tests/Feature/TenancyTest.php tests/Feature/PostingServiceTest.php
+
+      - name: Verify MySQL backup & restore end-to-end
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: laravix_test_suite
+          DB_USERNAME: root
+          DB_PASSWORD: laravix84
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: php tools/verify-backup-restore.php
