@@ -34,7 +34,8 @@ it('installs immutability triggers on every protected accounting and GST table a
 
     $expectedTables = [
         'vouchers',
-        'voucher_entries',
+        'voucher_lines',
+        'activity_log',
         'invoices',
         'invoice_items',
         'sales_corrections',
@@ -65,10 +66,10 @@ it('rejects raw SQL tampering on posted vouchers, invoices, purchase bills, adva
     inSalesCompany(function (Company $company) {
         // 1. Draft invoice can be modified freely before posting
         $draftInvoice = returnSalesFixture(['date' => '2026-11-06']);
-        DB::table('invoices')->where('id', $draftInvoice->id)->update(['notes' => 'draft-edit-ok']);
-        expect(DB::table('invoices')->where('id', $draftInvoice->id)->value('notes'))->toBe('draft-edit-ok');
+        DB::table('invoices')->where('id', $draftInvoice->id)->update(['due_date' => '2026-11-20']);
+        expect(DB::table('invoices')->where('id', $draftInvoice->id)->value('due_date'))->toBe('2026-11-20');
 
-        // 2. Posted invoice & its accounting voucher / entries cannot be tampered with or deleted
+        // 2. Posted invoice & its accounting voucher / lines cannot be tampered with or deleted
         $postedInvoice = app(PostingService::class)->postSalesInvoice($draftInvoice->id);
 
         expect(fn () => DB::table('invoices')->where('id', $postedInvoice->id)->update(['total' => '9999.00']))
@@ -81,7 +82,7 @@ it('rejects raw SQL tampering on posted vouchers, invoices, purchase bills, adva
         expect(fn () => DB::table('vouchers')->where('id', $postedInvoice->voucher_id)->delete())
             ->toThrow(QueryException::class);
 
-        expect(fn () => DB::table('voucher_entries')->where('voucher_id', $postedInvoice->voucher_id)->delete())
+        expect(fn () => DB::table('voucher_lines')->where('voucher_id', $postedInvoice->voucher_id)->delete())
             ->toThrow(QueryException::class);
 
         // 3. Posted purchase bill cannot be tampered with or deleted

@@ -89,7 +89,7 @@ Run the following verification checks before promoting or switching `DB_DATABASE
 3. **Accounting Trial Balance parity (`SUM(debit) == SUM(credit)` per company):**
    ```sql
    SELECT company_id, SUM(debit) AS total_dr, SUM(credit) AS total_cr
-   FROM laravix_restore.voucher_entries
+   FROM laravix_restore.voucher_lines
    GROUP BY company_id
    HAVING total_dr <> total_cr;
    ```
