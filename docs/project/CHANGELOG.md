@@ -699,3 +699,16 @@ evidence (commit SHA, CI run).
 - **CI:** PR run `45518745281` 3/3 SUCCESS (Backend SQLite 1m3s, Frontend build 8s, Quality and security 14s).
 - **Post-merge baseline:** `main` @ `90cc2aa` — full suite 458 passed / 1 todo / 1604 assertions (SQLite).
 - **Outstanding:** MS-04B core workflows completed. Next on roadmap: MS-05 (GST compliance completion) and MS-08 (Production readiness).
+
+## 2026-11-25 — GST treatment of advance receipts in outward returns (LL-P2-004, PR #33)
+
+- **Summary:** Integrated statutory advance receipt vouchers (`AdvanceReceiptVoucher`, series `ARV`, delivered under LL-P1-009) into the outward supplies return preparation pipeline. In `ReturnDatasetBuilder`, posted advance receipt vouchers for the period are queried, validated for active place-of-supply state codes, and tracked under `advances.received`. Taxable advance receipts for services are aggregated into GSTR-1 Table 11A (`advances.table_11a`), separated by supply nature (intra-state CGST/SGST vs. inter-state IGST) in addition to place of supply and tax rate per Table 11A(1) and 11A(2) statutory structure. Accurately respects Rule 50 provisos (18% undetermined rate fallback and inter-state IGST fallback for undetermined destination). Respects statutory tax exemption on goods advances under Notification No. 66/2017-CT, keeping them tracked in received records while excluding them from Table 11A outward tax liabilities. In Table 13 (`documents_issued`), statutory advance vouchers are integrated under document category `Receipt voucher` with serial range and counts. Integrated Table 11A summaries into `ReturnReviewCsvExporter` and the Livewire `Detail` return review screen with place of supply, rate, gross advance, taxable value, and component taxes breakdown.
+- **Task ID:** LL-P2-004 (COMPLETED). Advances milestone **MS-05 (GST compliance completion)**.
+- **Files/modules:** `app/Domain/Gst/Returns/ReturnDatasetBuilder.php`,
+  `app/Domain/Gst/Returns/ReturnReviewCsvExporter.php`,
+  `resources/views/livewire/gst/returns/detail.blade.php`,
+  `tests/Feature/GstAdvanceIntegrationTest.php`.
+- **Commits:** `7360b86`, `110c9bf` merged via **PR #33** (merge commit **`e4880a6`**, 2026-11-25).
+- **CI:** PR run `45549304670` 3/3 SUCCESS (Backend SQLite 49s, Frontend build 11s, Quality and security 10s).
+- **Post-merge baseline:** `main` @ `e4880a6` — full suite 465 passed / 1 todo / 1644 assertions (SQLite).
+- **Outstanding:** MS-05 remaining tasks are LL-P2-001 (GSTR-1 JSON export; blocked on schema vendoring), LL-P2-002 (GSTR-2B manual import & reconciliation), and LL-P2-003 (Close fail-closed GST review items).

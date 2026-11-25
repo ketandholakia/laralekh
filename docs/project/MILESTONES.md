@@ -11,7 +11,7 @@ demonstrably met — code presence alone is never evidence.
 | MS-03 | UI modernization and brand | LL-P0-002 (incl. dashboard, collapsed-rail correction) | COMPLETED |
 | MS-04A | Accounting safety and essential reports | LL-P1-001…LL-P1-005 | ACCEPTED — owner-accepted 2026-11-17 after independent audit and F-01…F-04 remediation |
 | MS-04B | Additional accounting workflows | LL-P1-006…LL-P1-011 | IN_PROGRESS (per-workflow approval; LL-P1-006 completed 2026-11-24; LL-P1-008 completed 2026-11-25; LL-P1-009 completed 2026-11-25) |
-| MS-05 | GST compliance completion | LL-P2-001…LL-P2-004 | PROPOSED |
+| MS-05 | GST compliance completion | LL-P2-001…LL-P2-004 | IN_PROGRESS (LL-P2-004 completed 2026-11-25) |
 | MS-06 | UI completion and administration | LL-P3-001…LL-P3-008 | COMPLETED (2026-11-24) |
 | MS-07 | Integrations | LL-P4-001…LL-P4-004 | PROPOSED (BLOCKED items inside) |
 | MS-08 | Production readiness | LL-P5-001…LL-P5-006 | PROPOSED (LL-P5-001, LL-P5-004 completed via PR #4, 2026-11-18) |
@@ -148,9 +148,10 @@ in the entry audit (Stages A–E) on a dedicated feature branch.
 - **Owner acceptance:** per workflow — approving one MS-04B workflow does not
   authorize the others.
 
-## MS-05 — GST compliance completion — PROPOSED
+## MS-05 — GST compliance completion — IN_PROGRESS
 
 - **Included tasks:** LL-P2-001…LL-P2-004.
+- **Progress:** LL-P2-004 (GST treatment of advance receipts) completed and merged via PR #33 (merge `e4880a6`, 2026-11-25) with 7 new Feature tests in `GstAdvanceIntegrationTest` and full SQLite CI passing (465 passed, 1 todo, 1644 assertions). Advances are integrated into `ReturnDatasetBuilder` (GSTR-1 Table 11A, Rule 50 provisos, Notification 66/2017-CT goods advance exemption, Table 13 Receipt voucher series `ARV` numbers).
 - **Entry criteria:** MS-04B item LL-P1-009 (advance vouchers) approved;
   official GSTR-1 schema/sample vendored (unblocks LL-P2-001); CA engaged for
   LL-P2-003.
