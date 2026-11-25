@@ -163,8 +163,24 @@
                     <div class="flex justify-between font-semibold border-t border-slate-200 pt-2.5 mt-2 text-slate-900"><dt>Unapplied advance</dt><dd class="font-mono tabular-nums text-brand-700 text-base"><x-money :value="$this->availableFunds" /></dd></div>
                 </dl>
                 @if ($receipt->status === 'posted')
-                    <div class="mt-4 border-t border-slate-100 pt-3">
-                        <a href="{{ route('customers.show', $receipt->party) }}" class="text-xs font-medium text-brand-700 hover:text-brand-900 hover:underline">Customer outstanding →</a>
+                    <div class="mt-4 border-t border-slate-100 pt-3 space-y-2">
+                        <a href="{{ route('customers.show', $receipt->party) }}" class="block text-xs font-medium text-brand-700 hover:text-brand-900 hover:underline">Customer outstanding →</a>
+                        @if ((float) $this->availableFunds > 0 && auth()->user()->can('receipts.create'))
+                            <a href="{{ route('customers.advance-vouchers.create', ['party' => $receipt->party_id, 'receipt' => $receipt->id]) }}" class="block text-xs font-medium text-emerald-700 hover:text-emerald-900 hover:underline">Issue Statutory Advance Voucher (ARV) →</a>
+                        @endif
+                        @if ($receipt->advanceReceiptVouchers && $receipt->advanceReceiptVouchers->count() > 0)
+                            <div class="pt-2 border-t border-slate-100">
+                                <span class="block text-xs font-semibold text-slate-700">Statutory Advance Vouchers:</span>
+                                <ul class="mt-1 space-y-1">
+                                    @foreach ($receipt->advanceReceiptVouchers as $arv)
+                                        <li class="flex justify-between items-center text-xs">
+                                            <a href="{{ route('advance-vouchers.show', $arv->id) }}" class="font-mono font-medium text-brand-700 hover:underline">{{ $arv->label() }}</a>
+                                            <span class="font-mono text-slate-600">₹{{ $arv->gross_amount }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     </div>
                 @endif
             </x-card>
