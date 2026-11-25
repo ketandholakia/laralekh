@@ -10,7 +10,7 @@ demonstrably met — code presence alone is never evidence.
 | MS-02 | CI and branch protection | LL-P0-003 | COMPLETED |
 | MS-03 | UI modernization and brand | LL-P0-002 (incl. dashboard, collapsed-rail correction) | COMPLETED |
 | MS-04A | Accounting safety and essential reports | LL-P1-001…LL-P1-005 | ACCEPTED — owner-accepted 2026-11-17 after independent audit and F-01…F-04 remediation |
-| MS-04B | Additional accounting workflows | LL-P1-006…LL-P1-011 | IN_PROGRESS (per-workflow approval; LL-P1-006 completed 2026-11-24) |
+| MS-04B | Additional accounting workflows | LL-P1-006…LL-P1-011 | IN_PROGRESS (per-workflow approval; LL-P1-006 completed 2026-11-24; LL-P1-008 completed 2026-11-25) |
 | MS-05 | GST compliance completion | LL-P2-001…LL-P2-004 | PROPOSED |
 | MS-06 | UI completion and administration | LL-P3-001…LL-P3-008 | COMPLETED (2026-11-24) |
 | MS-07 | Integrations | LL-P4-001…LL-P4-004 | PROPOSED (BLOCKED items inside) |
@@ -136,7 +136,7 @@ in the entry audit (Stages A–E) on a dedicated feature branch.
   the affected feature — DEC-014 (purchase debit notes), DEC-015 (zero-value
   invoices), DEC-016 (credit refunds), DEC-013 (advance vouchers), DEC-012
   (inventory/COGS policy), DEC-017 (debit-note correction scope).
-- **Progress:** LL-P1-006 (purchase debit notes) completed and merged via PR #27 (merge `769b961`, 2026-11-24) with 6 new Feature tests and full SQLite CI passing (445 passed, 1 todo, 1463 assertions).
+- **Progress:** LL-P1-006 (purchase debit notes) completed and merged via PR #27 (merge `769b961`, 2026-11-24) with 6 new Feature tests and full SQLite CI passing (445 passed, 1 todo, 1463 assertions); LL-P1-008 (customer credit refunds) completed and merged via PR #29 (merge `f2c634e`, 2026-11-25) with 6 new Feature tests, 1 Unit test and full SQLite CI passing (452 passed, 1 todo, 1547 assertions). Remaining: LL-P1-009 (advance receipt voucher).
 - **Exit criteria:** each approved workflow has a documented accounting
   design; required service and UI tests pass; existing immutable-document and
   settlement rules remain intact; required MySQL validation passes (per
