@@ -72,6 +72,14 @@ Route::middleware('auth')->group(function (): void {
             Route::get('/customers/{party}', CustomerOutstanding::class)->name('customers.show');
             Route::get('/customers/{party}/statement', CustomerStatement::class)->name('customers.statement');
             Route::get('/customers/{party}/statement/pdf', StatementPdfController::class)->name('customers.statement-pdf');
+
+            // Customer credit refunds (LL-P1-008)
+            Route::get('/customers/{party}/refunds/create', \App\Livewire\Sales\CustomerRefundEditor::class)
+                ->middleware('can:receipts.create')->name('customers.refunds.create');
+            Route::get('/customer-refunds/{id}/edit', \App\Livewire\Sales\CustomerRefundEditor::class)
+                ->middleware('can:receipts.create')->name('customer-refunds.edit');
+            Route::get('/customer-refunds/{id}', \App\Livewire\Sales\CustomerRefundView::class)
+                ->name('customer-refunds.show');
         });
 
         Route::middleware('can:invoices.view')->group(function (): void {

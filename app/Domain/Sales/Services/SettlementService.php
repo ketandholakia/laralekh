@@ -7,6 +7,8 @@ namespace App\Domain\Sales\Services;
 use App\Domain\Accounting\Models\Voucher;
 use App\Domain\Accounting\Models\VoucherReversal;
 use App\Domain\Masters\Models\Party;
+use App\Domain\Sales\Models\CustomerRefund;
+use App\Domain\Sales\Models\CustomerRefundAllocation;
 use App\Domain\Sales\Models\Invoice;
 use App\Domain\Sales\Models\Receipt;
 use App\Domain\Sales\Models\ReceiptAllocation;
@@ -70,23 +72,63 @@ final class SettlementService
         return ['credits' => $credits, 'debits' => $debits];
     }
 
+    /** Active refunded amount against one receipt advance. Locking read. */
+    public function refundedFromReceipt(int $receiptId): Money
+    {
+        $rows = CustomerRefundAllocation::query()
+            ->join('customer_refunds', 'customer_refunds.id', '=', 'customer_refund_allocations.customer_refund_id')
+            ->where('customer_refund_allocations.receipt_id', $receiptId)
+            ->where('customer_refunds.status', 'posted')
+            ->whereNotExists(fn ($q) => $q->selectRaw(1)->from('customer_refund_reversals')
+                ->whereColumn('customer_refund_reversals.original_customer_refund_id', 'customer_refunds.id'))
+            ->lockForUpdate()->get(['customer_refund_allocations.amount']);
+        $sum = Money::of('0');
+        foreach ($rows as $row) {
+            $sum = $sum->add($row->amount instanceof Money ? $row->amount : Money::of((string) $row->amount));
+        }
+
+        return $sum;
+    }
+
+    /** Active refunded excess credit amount against one invoice. Locking read. */
+    public function refundedFromInvoice(int $invoiceId): Money
+    {
+        $rows = CustomerRefundAllocation::query()
+            ->join('customer_refunds', 'customer_refunds.id', '=', 'customer_refund_allocations.customer_refund_id')
+            ->where('customer_refund_allocations.invoice_id', $invoiceId)
+            ->where('customer_refunds.status', 'posted')
+            ->whereNotExists(fn ($q) => $q->selectRaw(1)->from('customer_refund_reversals')
+                ->whereColumn('customer_refund_reversals.original_customer_refund_id', 'customer_refunds.id'))
+            ->lockForUpdate()->get(['customer_refund_allocations.amount']);
+        $sum = Money::of('0');
+        foreach ($rows as $row) {
+            $sum = $sum->add($row->amount instanceof Money ? $row->amount : Money::of((string) $row->amount));
+        }
+
+        return $sum;
+    }
+
     /**
      * Outstanding amount of one invoice: total less posted credit notes and
-     * active receipt allocations, plus posted debit notes. Can go negative
-     * when later credits exceed what is still owed; that is a customer credit
-     * and is shown as such, never silently absorbed.
+     * active receipt allocations, plus posted debit notes, plus posted customer refunds.
+     * Can go negative when later credits exceed what is still owed; that is a customer
+     * credit and is shown as such, never silently absorbed.
      */
     public function documentOutstanding(Invoice $invoice): Money
     {
         $adjustments = $this->noteAdjustments($invoice->id);
 
         return $invoice->total->subtract($adjustments['credits'])
-            ->subtract($this->allocatedToInvoice($invoice->id))->add($adjustments['debits']);
+            ->subtract($this->allocatedToInvoice($invoice->id))
+            ->add($adjustments['debits'])
+            ->add($this->refundedFromInvoice($invoice->id));
     }
 
     public function availableReceiptFunds(Receipt $receipt): Money
     {
-        return $receipt->amount->subtract($this->allocatedFromReceipt($receipt->id));
+        return $receipt->amount
+            ->subtract($this->allocatedFromReceipt($receipt->id))
+            ->subtract($this->refundedFromReceipt($receipt->id));
     }
 
     /** True when the invoice's original voucher has a posted internal reversal. */
@@ -169,6 +211,17 @@ final class SettlementService
                     'outstanding' => (string) $funds, 'reversed' => false,
                 ];
             }
+        }
+        $refunds = CustomerRefund::query()->where('party_id', $partyId)
+            ->where('status', 'posted')->orderBy('date')->orderBy('id')->get();
+        foreach ($refunds as $refund) {
+            $reversed = $refund->isReversed();
+            $documents[] = [
+                'kind' => 'customer_refund', 'id' => $refund->id,
+                'label' => 'Refund '.$refund->label(),
+                'date' => $refund->date->format('Y-m-d'), 'total' => (string) $refund->amount,
+                'outstanding' => '0.00', 'reversed' => $reversed,
+            ];
         }
         usort($documents, fn ($a, $b) => [$a['date'], $a['id']] <=> [$b['date'], $b['id']]);
 
