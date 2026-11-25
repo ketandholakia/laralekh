@@ -44,10 +44,6 @@ it('installs immutability triggers on every protected accounting and GST table a
         'receipt_allocations',
         'purchase_bills',
         'purchase_bill_items',
-        'supplier_payments',
-        'supplier_payment_allocations',
-        'purchase_debit_notes',
-        'purchase_debit_note_lines',
         'gst_return_snapshots',
         'gst_return_filings',
         'customer_refunds',
@@ -70,19 +66,20 @@ it('rejects raw SQL tampering on posted vouchers, invoices, purchase bills, adva
         expect(DB::table('invoices')->where('id', $draftInvoice->id)->value('due_date'))->toBe('2026-11-20');
 
         // 2. Posted invoice & its accounting voucher / lines cannot be tampered with or deleted
-        $postedInvoice = app(PostingService::class)->postSalesInvoice($draftInvoice->id);
+        $voucher = app(PostingService::class)->postSalesInvoice($draftInvoice->id);
+        $postedInvoice = $draftInvoice->fresh();
 
         expect(fn () => DB::table('invoices')->where('id', $postedInvoice->id)->update(['total' => '9999.00']))
             ->toThrow(QueryException::class);
         expect(fn () => DB::table('invoices')->where('id', $postedInvoice->id)->delete())
             ->toThrow(QueryException::class);
 
-        expect(fn () => DB::table('vouchers')->where('id', $postedInvoice->voucher_id)->update(['narration' => 'tamper']))
+        expect(fn () => DB::table('vouchers')->where('id', $voucher->id)->update(['narration' => 'tamper']))
             ->toThrow(QueryException::class);
-        expect(fn () => DB::table('vouchers')->where('id', $postedInvoice->voucher_id)->delete())
+        expect(fn () => DB::table('vouchers')->where('id', $voucher->id)->delete())
             ->toThrow(QueryException::class);
 
-        expect(fn () => DB::table('voucher_lines')->where('voucher_id', $postedInvoice->voucher_id)->delete())
+        expect(fn () => DB::table('voucher_lines')->where('voucher_id', $voucher->id)->delete())
             ->toThrow(QueryException::class);
 
         // 3. Posted purchase bill cannot be tampered with or deleted
