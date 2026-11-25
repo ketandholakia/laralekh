@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Gst\Returns;
 
 use App\Domain\Gst\Models\TaxRate;
+use App\Domain\Gst\Returns\Models\Gstr2bImport;
 use App\Domain\Masters\Models\Company;
 use App\Domain\Masters\Models\State;
 use App\Domain\Purchase\Models\PurchaseBill;
@@ -49,11 +50,14 @@ final class ReturnDatasetBuilder
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])->orderBy('date')->orderBy('id')->get();
         $advanceVouchers = AdvanceReceiptVoucher::query()->with('party')->where('status', 'posted')
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])->orderBy('date')->orderBy('id')->get();
+        $gstr2bImport = Gstr2bImport::query()->where('period', $period)->first();
 
         $out = ['b2b' => [], 'b2cl' => [], 'b2cs' => [], 'exports' => [], 'sez' => [], 'notes' => ['registered' => [], 'unregistered' => []],
             'nil_exempt_non_gst' => ['nil' => [], 'exempt' => [], 'non_gst' => []], 'hsn' => [], 'documents_issued' => [], 'reverse_charge' => [],
             'purchases' => ['itc' => ['eligible' => [], 'blocked' => [], 'review' => []], 'rcm' => []],
-            'advances' => ['received' => [], 'table_11a' => []]];
+            'advances' => ['received' => [], 'table_11a' => []],
+            'gstr2b' => $gstr2bImport?->summary,
+            'gstr2b_meta' => $gstr2bImport ? ['filename' => $gstr2bImport->source_filename, 'file_format' => $gstr2bImport->file_format, 'imported_at' => $gstr2bImport->imported_at->toIso8601String()] : null];
         foreach (['eligible', 'blocked', 'review'] as $bucket) {
             $out['purchases']['itc'][$bucket] = array_fill_keys($taxHeads, '0.00');
         }
