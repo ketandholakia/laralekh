@@ -8,6 +8,7 @@ use App\Domain\Gst\Models\TaxRate;
 use App\Domain\Masters\Models\Company;
 use App\Domain\Masters\Models\State;
 use App\Domain\Purchase\Models\PurchaseBill;
+use App\Domain\Sales\Models\AdvanceReceiptVoucher;
 use App\Domain\Sales\Models\Invoice;
 use App\Domain\Sales\Models\SalesCorrection;
 use App\Domain\Shared\Tenancy\TenantContext;
@@ -46,10 +47,13 @@ final class ReturnDatasetBuilder
             ->orderByRaw('COALESCE(reporting_date, date)')->orderBy('id')->get();
         $purchases = PurchaseBill::query()->with(['items.item', 'party', 'voucher'])->where('status', 'posted')
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])->orderBy('date')->orderBy('id')->get();
+        $advanceVouchers = AdvanceReceiptVoucher::query()->with('party')->where('status', 'posted')
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])->orderBy('date')->orderBy('id')->get();
 
         $out = ['b2b' => [], 'b2cl' => [], 'b2cs' => [], 'exports' => [], 'sez' => [], 'notes' => ['registered' => [], 'unregistered' => []],
             'nil_exempt_non_gst' => ['nil' => [], 'exempt' => [], 'non_gst' => []], 'hsn' => [], 'documents_issued' => [], 'reverse_charge' => [],
-            'purchases' => ['itc' => ['eligible' => [], 'blocked' => [], 'review' => []], 'rcm' => []]];
+            'purchases' => ['itc' => ['eligible' => [], 'blocked' => [], 'review' => []], 'rcm' => []],
+            'advances' => ['received' => [], 'table_11a' => []]];
         foreach (['eligible', 'blocked', 'review'] as $bucket) {
             $out['purchases']['itc'][$bucket] = array_fill_keys($taxHeads, '0.00');
         }
@@ -180,6 +184,62 @@ final class ReturnDatasetBuilder
             }
         }
 
+        $table11a = [];
+        foreach ($advanceVouchers as $advance) {
+            $number = trim((string) $advance->series).'/'.trim((string) $advance->number);
+            if (isset($seenNumbers[$number])) {
+                $errors[] = $this->issue('duplicate_document_number', "Duplicate posted advance voucher number {$number}.", $advance->id);
+            }
+            $seenNumbers[$number] = true;
+            $recipient = $advance->party_snapshot ?? [];
+            if (! preg_match('/^\d{2}$/', (string) $advance->place_of_supply) || ! State::query()->where('code', $advance->place_of_supply)->where('is_active', true)->exists()) {
+                $errors[] = $this->issue('invalid_place_of_supply', "Advance voucher {$number} place of supply must be an active state/UT code.", $advance->id);
+            }
+            $rateStr = number_format((float) $advance->tax_rate, 2, '.', '');
+            $record = [
+                'id' => $advance->id,
+                'document_number' => $number,
+                'date' => $advance->date->toDateString(),
+                'place_of_supply' => (string) $advance->place_of_supply,
+                'supply_type' => $advance->supply_type,
+                'gross_amount' => (string) $advance->gross_amount,
+                'taxable_amount' => (string) $advance->taxable_amount,
+                'rate' => $rateStr,
+                'is_rate_determinable' => (bool) $advance->is_rate_determinable,
+                'is_interstate_determinable' => (bool) $advance->is_interstate_determinable,
+                'recipient' => $recipient,
+                'cgst' => (string) $advance->cgst,
+                'sgst' => (string) $advance->sgst,
+                'utgst' => (string) $advance->utgst,
+                'igst' => (string) $advance->igst,
+                'cess' => (string) $advance->cess,
+            ];
+            $out['advances']['received'][] = $record;
+
+            if ($advance->supply_type === 'services' && bccomp((string) $advance->taxable_amount, '0.00', 2) > 0) {
+                $isInter = bccomp((string) $advance->igst, '0.00', 2) > 0;
+                $key = ($isInter ? 'inter' : 'intra').'|'.$advance->place_of_supply.'|'.$rateStr;
+                $table11a[$key] ??= [
+                    'place_of_supply' => (string) $advance->place_of_supply,
+                    'rate' => $rateStr,
+                    'is_interstate' => $isInter,
+                    'gross_amount' => '0.00',
+                    'taxable_amount' => '0.00',
+                    'cgst' => '0.00',
+                    'sgst' => '0.00',
+                    'utgst' => '0.00',
+                    'igst' => '0.00',
+                    'cess' => '0.00',
+                ];
+                $table11a[$key]['gross_amount'] = bcadd($table11a[$key]['gross_amount'], (string) $advance->gross_amount, 2);
+                $table11a[$key]['taxable_amount'] = bcadd($table11a[$key]['taxable_amount'], (string) $advance->taxable_amount, 2);
+                foreach ($taxHeads as $head) {
+                    $table11a[$key][$head] = bcadd($table11a[$key][$head], (string) $advance->{$head}, 2);
+                }
+            }
+        }
+        $out['advances']['table_11a'] = array_values($table11a);
+
         foreach ($out['b2b'] as $r) {
             $this->validatePos($r, $errors);
         }
@@ -195,7 +255,7 @@ final class ReturnDatasetBuilder
             }
         }
         $out['hsn'] = ['b2b' => array_values($hsn['b2b']), 'b2c' => array_values($hsn['b2c'])];
-        $out['documents_issued'] = $this->documentsIssued($documents, $corrections, $cancelledInvoices);
+        $out['documents_issued'] = $this->documentsIssued($documents, $corrections, $cancelledInvoices, $advanceVouchers);
         $out['validation'] = ['errors' => $errors, 'warnings' => $warnings, 'valid' => count($errors) === 0];
         $out['meta'] = ['company_id' => $company->id, 'period' => $period, 'turnover_rupees' => $annualTurnoverRupees,
             'b2cl_threshold_rupees' => $this->threshold($period), 'built_at' => now()->toIso8601String()];
@@ -287,7 +347,7 @@ return $rule['value'];
         }
     }
 
-    private function documentsIssued($invoices, $notes, $cancelledInvoices): array
+    private function documentsIssued($invoices, $notes, $cancelledInvoices, $advanceVouchers = []): array
     {
         $groups = ['Invoices for outward supply' => ['issued' => [], 'cancelled' => []]];
         foreach ($invoices as $document) {
@@ -300,6 +360,10 @@ return $rule['value'];
             $nature = $document->kind === 'credit' ? 'Credit Note' : 'Debit Note';
             $groups[$nature] ??= ['issued' => [], 'cancelled' => []];
             $groups[$nature]['issued'][] = (int) $document->number;
+        }
+        foreach ($advanceVouchers as $document) {
+            $groups['Receipt voucher'] ??= ['issued' => [], 'cancelled' => []];
+            $groups['Receipt voucher']['issued'][] = (int) $document->number;
         }
         $rows = [];
         foreach ($groups as $nature => $numbers) {

@@ -2,7 +2,41 @@
     <header class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5"><div><a href="{{ route('gst.returns.index') }}" class="text-sm font-medium text-indigo-700 hover:underline">← All return periods</a><p class="mt-4 text-xs font-semibold uppercase tracking-[.18em] text-indigo-700">GST return review</p><h1 class="mt-1 text-3xl font-semibold tracking-tight text-slate-900">{{ \Carbon\CarbonImmutable::createFromFormat('!Y-m',$period)->format('F Y') }}</h1></div><div class="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700">Books <span class="text-indigo-600">→</span> Validation <span class="text-indigo-600">→</span> Draft <span class="text-indigo-600">→</span> Final <span class="text-indigo-600">→</span> Filed</div></header>
     @if($message)<div role="status" class="rounded-md border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">{{ $message }}</div>@endif
     @foreach($backdating as $warning)<div class="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ is_array($warning)?($warning['message']??json_encode($warning)):$warning }}</div>@endforeach
-     <section class="grid gap-4 md:grid-cols-3"><article class="rounded-lg border border-slate-200 bg-white p-5"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Validation</p><p class="mt-2 text-2xl font-semibold {{ $report['valid']?'text-emerald-700':'text-red-700' }}">{{ $report['valid']?'Ready':'Needs attention' }}</p><p class="mt-1 text-sm text-slate-600">{{ count($report['errors']??[]) }} blocking · {{ count($report['warnings']??[]) }} warnings</p></article><article class="rounded-lg border border-slate-200 bg-white p-5"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">GSTR-1 documents</p><p class="mt-2 text-2xl font-semibold text-slate-900">{{ count($dataset['b2b']??[])+count($dataset['b2cl']??[])+count($dataset['b2cs']??[])+count($dataset['sez']??[]) }}</p><p class="mt-1 text-sm text-slate-600">Outward supply records</p></article><article class="rounded-lg border border-slate-200 bg-white p-5"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">GSTR-3B summary</p>@if($summaryError)<p class="mt-2 text-sm text-amber-800">{{ $summaryError }}</p>@elseif($summary)<pre class="mt-2 overflow-auto text-xs text-slate-700">{{ json_encode($summary,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</pre>@else<p class="mt-2 text-sm text-slate-500">Resolve validation errors to build the reconciliation.</p>@endif</article></section>
+     <section class="grid gap-4 md:grid-cols-3"><article class="rounded-lg border border-slate-200 bg-white p-5"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Validation</p><p class="mt-2 text-2xl font-semibold {{ $report['valid']?'text-emerald-700':'text-red-700' }}">{{ $report['valid']?'Ready':'Needs attention' }}</p><p class="mt-1 text-sm text-slate-600">{{ count($report['errors']??[]) }} blocking · {{ count($report['warnings']??[]) }} warnings</p></article><article class="rounded-lg border border-slate-200 bg-white p-5"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">GSTR-1 documents</p><p class="mt-2 text-2xl font-semibold text-slate-900">{{ count($dataset['b2b']??[])+count($dataset['b2cl']??[])+count($dataset['b2cs']??[])+count($dataset['sez']??[])+count($dataset['advances']['received']??[]) }}</p><p class="mt-1 text-sm text-slate-600">Outward supply records</p></article><article class="rounded-lg border border-slate-200 bg-white p-5"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">GSTR-3B summary</p>@if($summaryError)<p class="mt-2 text-sm text-amber-800">{{ $summaryError }}</p>@elseif($summary)<pre class="mt-2 overflow-auto text-xs text-slate-700">{{ json_encode($summary,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</pre>@else<p class="mt-2 text-sm text-slate-500">Resolve validation errors to build the reconciliation.</p>@endif</article></section>
+    @if(count($dataset['advances']['table_11a'] ?? []))
+        <section class="rounded-lg border border-slate-200 bg-white p-5">
+            <h2 class="font-semibold text-slate-900">Advances received (Table 11A)</h2>
+            <p class="mt-1 text-sm text-slate-600">Statutory tax liability on account of advance receipts for services / undetermined supplies (CGST s. 31(3)(d), Rule 50).</p>
+            <div class="mt-4 overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead>
+                        <tr class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            <th class="py-2 pr-4">Place of supply</th>
+                            <th class="py-2 pr-4">Tax rate</th>
+                            <th class="py-2 pr-4 text-right">Gross advance</th>
+                            <th class="py-2 pr-4 text-right">Taxable value</th>
+                            <th class="py-2 pr-4 text-right">CGST</th>
+                            <th class="py-2 pr-4 text-right">SGST/UTGST</th>
+                            <th class="py-2 text-right">IGST</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach($dataset['advances']['table_11a'] as $adv)
+                            <tr>
+                                <td class="py-2 pr-4 font-mono">{{ $adv['place_of_supply'] }}</td>
+                                <td class="py-2 pr-4">{{ $adv['rate'] }}%</td>
+                                <td class="py-2 pr-4 text-right font-mono">₹{{ number_format((float) $adv['gross_amount'], 2) }}</td>
+                                <td class="py-2 pr-4 text-right font-mono">₹{{ number_format((float) $adv['taxable_amount'], 2) }}</td>
+                                <td class="py-2 pr-4 text-right font-mono">₹{{ number_format((float) $adv['cgst'], 2) }}</td>
+                                <td class="py-2 pr-4 text-right font-mono">₹{{ number_format((float) bcadd($adv['sgst'], $adv['utgst'], 2), 2) }}</td>
+                                <td class="py-2 text-right font-mono">₹{{ number_format((float) $adv['igst'], 2) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    @endif
     @if(count($report['errors']??[]))<section class="rounded-lg border border-red-200 bg-red-50 p-5"><h2 class="font-semibold text-red-900">Blocking errors</h2><ul class="mt-3 list-inside list-disc space-y-1 text-sm text-red-800">@foreach($report['errors'] as $error)<li>{{ $error['message']??$error }}</li>@endforeach</ul></section>@endif
     @if(count($report['warnings']??[]))<section class="rounded-lg border border-amber-200 bg-amber-50 p-5"><h2 class="font-semibold text-amber-900">CA review warnings</h2><ul class="mt-3 list-inside list-disc space-y-1 text-sm text-amber-800">@foreach($report['warnings'] as $warning)<li>{{ $warning['message']??$warning }}</li>@endforeach</ul></section>@endif
      <section class="rounded-lg border border-slate-200 bg-white p-5"><div class="flex flex-wrap items-end justify-between gap-3"><div><h2 class="font-semibold text-slate-900">CSV review exports</h2><p class="mt-1 text-sm text-slate-600">Section files use official Offline Tool 3.2.4 headers. “Review summary” is LaraLekh-only and is not a GST import template.</p><label class="mt-3 block text-xs font-medium text-slate-600">Preceding-FY aggregate turnover (whole rupees; required for HSN digit checks)<input type="number" min="0" step="1" wire:model.live="annualTurnoverRupees" class="mt-1 block w-72 rounded border-slate-300 text-sm"></label></div>@can('returns.export')<div class="flex flex-wrap gap-2">@foreach(['review-summary.csv','b2b,sez,de.csv','b2cl.csv','b2cs.csv','exp.csv','cdnr.csv','cdnur.csv','hsn(b2b).csv','hsn(b2c).csv','docs.csv'] as $file)<a class="rounded border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:border-indigo-400 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" href="{{ route('gst.returns.csv',['period'=>$period,'filename'=>$file,'annual_turnover_rupees'=>$annualTurnoverRupees]) }}">{{ $file }}</a>@endforeach</div>@endcan</div></section>
