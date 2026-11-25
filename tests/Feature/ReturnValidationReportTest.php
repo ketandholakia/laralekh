@@ -73,7 +73,7 @@ it('accepts verified ITC eligibility without blocking errors and warns on lines 
         app(PostPurchaseBill::class)->handle($eligibleBill->id);
 
         $reviewBill = returnPurchaseFixture(['supplier_bill_number' => 'PB-REV-1']);
-        $reviewBill->items()->update(['itc_eligibility' => 'review']);
+        $reviewBill->items()->update(['itc_eligibility' => 'ineligible_reversal_review']);
         app(PostPurchaseBill::class)->handle($reviewBill->id);
 
         $dataset = app(ReturnDatasetBuilder::class)->build($company, '2026-11', 50000000);

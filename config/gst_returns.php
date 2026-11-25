@@ -28,7 +28,7 @@ return [
         ],
         'blocked_itc_rules' => [
             'verified' => true,
-            'source' => 'CGST Act Section 17(5) & Section 16(2)(aa); GSTR-3B Table 4(B) instructions. Enforced via purchase line-level itc_eligibility (eligible/blocked/review) and GSTR-2B reconciliation; unreviewed lines emit CA-review warnings.',
+            'source' => 'CGST Act Section 17(5) & Section 16(2)(aa); GSTR-3B Table 4(B) instructions. Enforced via purchase line-level itc_eligibility (eligible/blocked/ineligible_reversal_review) and GSTR-2B reconciliation; unreviewed lines emit CA-review warnings.',
         ],
         'document_issued_categories' => [
             'verified' => true,
